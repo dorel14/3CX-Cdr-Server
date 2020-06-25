@@ -11,6 +11,7 @@ class traitementDonnées(socketserver.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         socketserver.BaseRequestHandler.__init__(self, request,
                                                  client_address, server)
+        print('handler init')
         return
 
     def handle(self):
@@ -27,13 +28,12 @@ class traitementDonnées(socketserver.BaseRequestHandler):
 
 
 class serveur(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    def __init__(self, server_address, RequestHandlerClass):
-        socketserver.TCPServer.__init__(self,
-                                        server_address,
-                                        RequestHandlerClass,
-                                        bind_and_activate=False)
+    # Ctrl-C will cleanly kill all spawned threads
+    daemon_threads = True
+    # much faster rebinding
+    allow_reuse_address = True
 
-    def server_bind(self):
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(self.server_address)
-        self.socket.setblocking(0)
+    def __init__(self, server_address, RequestHandlerClass):
+        socketserver.TCPServer.__init__(self, server_address, RequestHandlerClass)
+
+
