@@ -1,0 +1,14 @@
+#Fichiers et repertoires à ignorer
+
+config.ini
+config2.ini
+*.pyc
+*.so.1
+__pycache__/
+*.pickle
+credentials.json
+local_settings.py
+cache/
+.vscode/
+env/
+
