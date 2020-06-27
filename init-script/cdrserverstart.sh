@@ -1,5 +1,4 @@
 #!/bin/bash
-# run this as the rhodecode user!
 
 WDIR=/home/cdrTcpServer
 VIRTUALENV_DIR=/home/cdrTcpServer/env
@@ -16,5 +15,5 @@ source $VIRTUALENV_DIR/bin/activate
 
 
 
-python runserver.py 1> /var/log/supportbot/debugTCPSERVER-$(date +"%d_%m_%Y_%H_%M_%p").log  &
+python runserver.py 1> /var/log/supportbot/debugTCPSERVER.log  &
 pgrep 3cxtcpserver > /var/run/cdrserver.pid

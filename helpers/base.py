@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-
+from sqlalchemy.ext.automap import automap_base
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.orm import sessionmaker
 
@@ -16,12 +16,10 @@ dbPort = Config.get('PG_BDD', 'db_port')
 dburl = 'postgresql://' + dbUser + ':' + dbPassword + \
     '@' + dbServer + ':' + dbPort + '/' + dbName
 
+Base = automap_base()
 # create an engine
 engine = create_engine(dburl)
-
-call_data_records_meta = MetaData(engine)
-call_data_records = Table('call_data_records',
-                          call_data_records_meta,
-                          autoload=True)
+Base.prepare(engine, reflect=True)
+call_data_records = Base.classes.call_data_records
 DBSession = sessionmaker(bind=engine)
 DbSession = DBSession()
