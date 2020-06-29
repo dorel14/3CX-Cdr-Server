@@ -2,11 +2,11 @@
 import threading
 import os
 import sys
-from setproctitle import *
+from setproctitle import setproctitle, getproctitle
 
 from helpers.config import Config
 from helpers.tcp_socket_server import serveur, traitementDonnées
-
+from helpers.logging import logger
 HOST = ''
 PORT = int(Config.get('TCP_SERVER', 'PORT'))
 
@@ -17,7 +17,8 @@ threads = []
 if __name__ == '__main__':
     srv = serveur(('', PORT), traitementDonnées)
     setproctitle('3cxtcpserver')
-    print('Server loop ', getproctitle(), 'running in process:', os.getpid())
+    log = 'Server loop ' + getproctitle() + ' running in process: ' + str(os.getpid())
+    logger.info(log)
     try:
         srv.serve_forever()
         # srv3cxon = threading.Thread(target=srv.serve_forever)

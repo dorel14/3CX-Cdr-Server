@@ -16,4 +16,4 @@ source $VIRTUALENV_DIR/bin/activate
 
 
 python runserver.py 1> /var/log/supportbot/debugTCPSERVER.log  &
-pgrep 3cxtcpserver > /var/run/cdrserver.pid
+#pgrep 3cxtcpserver > /var/run/cdrserver.pid
