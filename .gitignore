@@ -11,4 +11,4 @@ local_settings.py
 cache/
 .vscode/
 env/
-
+*.log

@@ -15,5 +15,5 @@ source $VIRTUALENV_DIR/bin/activate
 
 
 
-python runserver.py 1> /var/log/supportbot/debugTCPSERVER.log  &
+python runserver.py 1> /var/log/supportbot/debugTCPSERVER.log  & 2> /var/log/supportbot/error_TCPSERVER.log
 #pgrep 3cxtcpserver > /var/run/cdrserver.pid
