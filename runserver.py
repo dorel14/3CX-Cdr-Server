@@ -4,17 +4,18 @@ import os
 import sys
 from setproctitle import setproctitle, getproctitle
 
-from helpers.config import Config
 from helpers.tcp_socket_server import serveur, traitementDonnées
+from helpers.base import engine, Base
 from helpers.logging import logger
 HOST = ''
-PORT = int(Config.get('TCP_SERVER', 'PORT'))
+PORT = int(os.environ.get('SERVER_PORT'))
 
 
 threads = []
 
 
 if __name__ == '__main__':
+    Base.metadata.create_all(engine)
     srv = serveur(('', PORT), traitementDonnées)
     setproctitle('3cxtcpserver')
     log = 'Server loop ' + getproctitle() + ' running in process: ' + str(os.getpid())

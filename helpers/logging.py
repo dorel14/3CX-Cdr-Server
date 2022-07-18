@@ -14,7 +14,7 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
 # création d'un handler qui va rediriger une écriture du log vers
 # un fichier en mode 'append', avec 1 backup et une taille max de 1Mo
-file_handler = RotatingFileHandler('/var/log/supportbot/3cxtcpserver.log',
+file_handler = RotatingFileHandler('./logs/3cxtcpserver.log',
                                    'a',
                                    1000000,
                                    1)

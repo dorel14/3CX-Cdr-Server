@@ -1,25 +1,30 @@
 # -*- coding: UTF-8 -*-
-from sqlalchemy.ext.automap import automap_base
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.ext.declarative import as_declarative
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
+import os
+
+dbUser = os.environ.get('POSTGRES_USER')
+dbPassword = os.environ.get('POSTGRES_PASSWORD')
+dbServer = os.environ.get('POSTGRES_SERVER')
+dbPort = os.environ.get('POSTGRES_PORT')
+dbName = int(os.environ.get('POSTGRES_DB'))
+
+dburl = 'postgres://{}:{}@{}:{}/{}'.format(dbUser, dbPassword, dbServer, dbPort, dbName)
+#os.environ.get('DATABASE_URL')
 
 
-from helpers.config import Config
-
-
-dbName = Config.get('PG_BDD', 'db_name')
-dbUser = Config.get('PG_BDD', 'db_user')
-dbPassword = Config.get('PG_BDD', 'db_password')
-dbServer = Config.get('PG_BDD', 'db_server')
-dbPort = Config.get('PG_BDD', 'db_port')
-
-dburl = 'postgresql://' + dbUser + ':' + dbPassword + \
-    '@' + dbServer + ':' + dbPort + '/' + dbName
-
-Base = automap_base()
 # create an engine
 engine = create_engine(dburl)
-Base.prepare(engine, reflect=True)
-call_data_records = Base.classes.call_data_records
 DBSession = sessionmaker(bind=engine)
 DbSession = DBSession()
+
+
+@as_declarative()
+class Base:
+    def _asdict(self):
+        return {c.key: getattr(self, c.key)
+                for c in inspect(self).mapper.column_attrs}
+
+
+Base.metadata.bind = engine

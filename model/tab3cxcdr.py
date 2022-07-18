@@ -31,12 +31,21 @@ class call_data_records(Base):
     bill_cost = Column(String)
     bill_name = Column(String)
     chain = Column(String)
+    from_type = Column(String)
+    to_type = Column(String)
+    final_type = Column(String)
+    from_dispname = Column(String)
+    to_dispname = Column(String)
+    final_dispname = Column(String)
+    missed_queue_calls = Column(String)  # A list of queue agents that were polled during a queue call that didn’t answer the call
 
     def __init__(self, historyid, callid, duration, time_start, time_answered,
                  time_end, reason_terminated, from_no, to_no, from_dn, to_dn,
                  dial_no, reason_changed, final_number, final_dn, bill_code,
-                 bill_rate, bill_cost,bill_name,
-                 chain):
+                 bill_rate, bill_cost, bill_name, chain, from_type, to_type,
+                 final_type, from_dispname, final_dispname, missed_queue_calls
+                 ):
+
         self.historyid = historyid
         self.callid = callid
         self.duration = duration
@@ -57,3 +66,9 @@ class call_data_records(Base):
         self.bill_cost = bill_cost
         self.bill_name = bill_name
         self.chain = chain
+        self.from_type = from_type
+        self.to_type = to_type
+        self.final_type = final_type
+        self.from_dispname = from_dispname
+        self.to_dispname = to_dispname
+        self.missed_queue_calls = missed_queue_calls
