@@ -12,3 +12,4 @@ cache/
 .vscode/
 env/
 *.log
+.venv/
