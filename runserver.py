@@ -7,7 +7,7 @@ from setproctitle import setproctitle, getproctitle
 from helpers.tcp_socket_server import serveur, traitementDonnées
 from helpers.base import engine, Base
 from helpers.logging import logger
-HOST = ''
+HOST = '0.0.0.0'
 PORT = int(os.environ.get('SERVER_PORT'))
 
 
@@ -16,7 +16,7 @@ threads = []
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)
-    srv = serveur(('', PORT), traitementDonnées)
+    srv = serveur((HOST, PORT), traitementDonnées)
     setproctitle('3cxtcpserver')
     log = 'Server loop ' + getproctitle() + ' running in process: ' + str(os.getpid())
     logger.info(log)

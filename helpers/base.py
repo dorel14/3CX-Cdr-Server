@@ -4,13 +4,16 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 import os
 
-dbUser = os.environ.get('POSTGRES_USER')
-dbPassword = os.environ.get('POSTGRES_PASSWORD')
-dbServer = os.environ.get('POSTGRES_SERVER')
-dbPort = os.environ.get('POSTGRES_PORT')
-dbName = int(os.environ.get('POSTGRES_DB'))
+dbUser = 'postgres' # os.environ.get('POSTGRES_USER')
+dbPassword ='postgres' # os.environ.get('POSTGRES_PASSWORD')
+dbServer = 'db' #os.environ.get('POSTGRES_SERVER')
+dbPort = '5432' #os.environ.get('POSTGRES_PORT')
+dbName = '3cxcdr' # os.environ.get('POSTGRES_DB')
 
-dburl = 'postgres://{}:{}@{}:{}/{}'.format(dbUser, dbPassword, dbServer, dbPort, dbName)
+print(dbUser, dbPassword, dbServer, dbPort, dbName)
+dburl = 'postgresql://' + dbUser + ':' + dbPassword + '@' + dbServer + ':' + dbPort + '/' + dbName
+
+print(dburl)
 #os.environ.get('DATABASE_URL')
 
 
