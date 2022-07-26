@@ -57,7 +57,8 @@ def parse_cdr(data):
                             final_type=parsed_cdr[22],
                             from_dispname=parsed_cdr[23],
                             to_dispname=parsed_cdr[24],
-                            missed_queue_calls=parsed_cdr[25],
+                            final_dispname=parsed_cdr[25],
+                            missed_queue_calls=parsed_cdr[26],
                             )
     DbSession.add(cdr)
     DbSession.commit()
