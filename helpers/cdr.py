@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import calendar
 from datetime import datetime
-
-from helpers.base import DbSession
+from sqlmodel import Session
+from helpers.base import engine
 from model.tab3cxcdr import call_data_records
 
 
@@ -60,6 +60,7 @@ def parse_cdr(data):
                             final_dispname=parsed_cdr[25],
                             missed_queue_calls=parsed_cdr[26],
                             )
-    DbSession.add(cdr)
-    DbSession.commit()
+    with Session(engine) as DbSession:
+        DbSession.add(cdr)
+        DbSession.commit()
     return 'ok'
