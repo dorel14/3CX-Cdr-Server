@@ -3,9 +3,8 @@ import threading
 import os
 import sys
 from setproctitle import setproctitle, getproctitle
-from sqlmodel import SQLModel
+
 from helpers.tcp_socket_server import serveur, traitementDonnées
-from helpers.base import engine
 from helpers.logging import logger
 
 HOST = '0.0.0.0'
@@ -16,7 +15,6 @@ threads = []
 
 
 if __name__ == '__main__':
-    SQLModel.metadata.create_all(engine)
     srv = serveur((HOST, PORT), traitementDonnées)
     setproctitle('3cxtcpserver')
     log = 'Server loop ' + getproctitle() + ' running in process: ' + str(os.getpid())

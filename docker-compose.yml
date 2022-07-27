@@ -1,41 +1,46 @@
-version: '3.4'
+version: '3.3'
 
 services:
   3cxcdrtcpserver:
     image: 3cxcdrtcpserver
+    hostname: 3cxtcpsrv
     build:
       context: .
       dockerfile: ./Dockerfile
+    command: bash -c "while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && python runserver.py"
     ports:
       - 5000:5000
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
-      - SERVER_PORT=5000
+      - DATABASE_URL=${DATABASE_URL}
+      - SERVER_PORT=${SERVER_PORT}
     depends_on:
       - db
 
   db:
     container_name: db
+    hostname: db
     image: postgres:12
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_SERVER=db
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=3cxcdr
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_SERVER=${POSTGRES_SERVER}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - pgdata:/var/lib/postgresql/data
+
   pgadmin:
     image: dpage/pgadmin4
+    hostname: pgadmin4
     depends_on:
       - db
     ports:
       - "5555:80"
     environment:
-      - PGADMIN_DEFAULT_EMAIL=pgadmin4@pgadmin.org
-      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     restart: unless-stopped
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
@@ -43,3 +48,5 @@ services:
 volumes:
   pgdata: {}
   pgadmin_data: {}
+
+
