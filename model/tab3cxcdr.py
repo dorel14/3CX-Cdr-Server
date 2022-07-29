@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from typing import Optional
+from typing import List, Optional
 from sqlmodel import Field, SQLModel
 from datetime import datetime, time
 #  from helpers.base import Base, DbSession
@@ -37,3 +37,14 @@ class call_data_records(SQLModel, table=True):
     to_dispname: str
     final_dispname: str
     missed_queue_calls: str  # A list of queue agents that were polled during a queue call that didn’t answer the call
+
+
+class call_data_records_details(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    cdr_id: Optional[int] = Field(default=None, foreign_key="call_data_records.id")
+    abandonned: bool
+    handling_time: time
+    waiting_time: time
+
+
+

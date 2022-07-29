@@ -4,8 +4,8 @@ import os
 import sys
 from setproctitle import setproctitle, getproctitle
 
-from helpers.tcp_socket_server import serveur, traitementDonnées
-from helpers.logging import logger
+from app.helpers.tcp_socket_server import serveur, traitementDonnées
+from app.helpers.logging import logger
 
 HOST = '0.0.0.0'
 PORT = int(os.environ.get('SERVER_PORT'))

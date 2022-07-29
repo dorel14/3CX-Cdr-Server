@@ -17,6 +17,7 @@ services:
       - db
 
   db:
+    container_name: db
     hostname: db
     image: postgres:12
     ports:
