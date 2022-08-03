@@ -9,9 +9,9 @@ class call_data_records(SQLModel, table=True):
     """
     Table de gestion des statistiques individuelles d'appels
     """
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)
     historyid: str = Field(sa_column_kwargs={'unique': True})  # - The ID you can use to link the call do the details
-    callid: str  # - I'm guessing this is for something internal,not of use.
+    callid: str = Field(sa_column_kwargs={'unique': True}) # - I'm guessing this is for something internal,not of use.
     duration: Optional[time] = None
     time_start: Optional[datetime] = None  # - Start of the call, timestamp field
     time_answered: Optional[datetime] = None  # - Answer time, timestamp field
@@ -40,11 +40,13 @@ class call_data_records(SQLModel, table=True):
 
 
 class call_data_records_details(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    cdr_id: Optional[int] = Field(default=None, foreign_key="call_data_records.id")
+    id: int = Field(default=None,
+                    primary_key=True)
+    cdr_historyid: Optional[str] = Field(default=None,
+                                         foreign_key="call_data_records.historyid")
     abandonned: bool
-    handling_time: time
-    waiting_time: time
+    handling_time_seconds: int
+    waiting_time_seconds: int
 
 
 

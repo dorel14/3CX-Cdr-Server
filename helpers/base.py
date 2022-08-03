@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from sqlalchemy.ext.declarative import as_declarative
+# from sqlalchemy.ext.declarative import as_declarative
 #  from sqlalchemy import create_engine, inspect
 #  from sqlalchemy.orm import sessionmaker
 from sqlmodel import create_engine

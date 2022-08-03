@@ -18,7 +18,8 @@ class extensions(SQLModel, table=True):
     Table listant les extensions(n° 3cx)
     """
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int = Field(default=None,
+                    primary_key=True)
     extension: str
     name: str
     mail: str
@@ -30,7 +31,7 @@ class extensions(SQLModel, table=True):
 
 
 class queues(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)
     queue: str
     queuename: str
     extensionslist: List["extensions"] = Relationship(back_populates="extensions",

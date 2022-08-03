@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
+from helpers.logging import logger
 from sqlmodel import Session
 from helpers.base import engine
-from model.tab3cxcdr import call_data_records
+from model.tab3cxcdr import call_data_records, call_data_records_details
 
 
 def to_local_datetime(utc_dt):
@@ -17,6 +18,16 @@ def to_local_datetime(utc_dt):
     return datetime.fromtimestamp(calendar.timegm(utc_dt.timetuple()))
 
 
+def datediff(startdate, enddate):
+    datestart = to_local_datetime(datetime.strptime(startdate, '%Y/%m/%d %H:%M:%S'))
+    # logger.info(datestart)
+    dateend = to_local_datetime(datetime.strptime(enddate, '%Y/%m/%d %H:%M:%S'))
+    # logger.info(dateend)
+    diff = (dateend - datestart).total_seconds()
+    # logger.info(diff)
+    return diff
+
+
 def parse_cdr(data):
     """Fonction permettant de splitter un CDR et de l'intégrer en BDD
 
@@ -27,6 +38,7 @@ def parse_cdr(data):
         _String_: Renvoi OK si insertion en BDD ok
     """
     parsed_cdr = data.split(',')
+    logger.info(parsed_cdr)
     cdr = call_data_records(historyid=parsed_cdr[0],
                             callid=parsed_cdr[1],
                             duration=datetime.strptime(parsed_cdr[2],
@@ -60,7 +72,16 @@ def parse_cdr(data):
                             final_dispname=parsed_cdr[25],
                             missed_queue_calls=parsed_cdr[26],
                             )
+    setcdrdetails = call_data_records_details(cdr_historyid=parsed_cdr[0],
+                                              abandonned=True if parsed_cdr[6] == 'TerminatedBySrc'
+                                              and parsed_cdr[4] == '' else False,
+                                              handling_time_seconds=datediff(parsed_cdr[4], parsed_cdr[5]) if parsed_cdr[4] != '' else 0,
+                                              waiting_time_seconds=datediff(parsed_cdr[3], parsed_cdr[5]) if parsed_cdr[4] == '' else datediff(parsed_cdr[3], parsed_cdr[4])
+                                              )
+    logger.info(cdr)
+    logger.info(setcdrdetails)
     with Session(engine) as DbSession:
         DbSession.add(cdr)
+        DbSession.add(setcdrdetails)
         DbSession.commit()
     return 'ok'
