@@ -1,7 +1,5 @@
 # -*- coding: UTF-8 -*-
-# from sqlalchemy.ext.declarative import as_declarative
-#  from sqlalchemy import create_engine, inspect
-#  from sqlalchemy.orm import sessionmaker
+
 from sqlmodel import create_engine
 import os
 
@@ -16,4 +14,3 @@ dburl = os.environ.get('DATABASE_URL')
 
 # create an engine
 engine = create_engine(dburl, echo=True)
-

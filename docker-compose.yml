@@ -13,6 +13,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - SERVER_PORT=${SERVER_PORT}
+      - TZ=Europe/Paris
     depends_on:
       - db
 
@@ -27,6 +28,7 @@ services:
       - POSTGRES_SERVER=${POSTGRES_SERVER}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB}
+      - TZ=Europe/Paris
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -40,6 +42,7 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - TZ=Europe/Paris
     restart: unless-stopped
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data

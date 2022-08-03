@@ -19,6 +19,12 @@ def to_local_datetime(utc_dt):
 
 
 def datediff(startdate, enddate):
+    """Fonction permettant de calculer le nombre de secondes entre les dates du cdr
+    Args:
+    startdate: date de debut au format texte '%Y/%m/%d %H:%M:%S'
+    enddate: date de fin au format texte '%Y/%m/%d %H:%M:%S'
+    Return: nombre de seconde entre les 2 dates / heures
+    """
     datestart = to_local_datetime(datetime.strptime(startdate, '%Y/%m/%d %H:%M:%S'))
     # logger.info(datestart)
     dateend = to_local_datetime(datetime.strptime(enddate, '%Y/%m/%d %H:%M:%S'))
