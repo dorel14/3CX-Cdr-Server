@@ -1,11 +1,14 @@
 # -*- coding: UTF-8 -*-
-import threading
 import os
 import sys
 from setproctitle import setproctitle, getproctitle
 
-from app.helpers.tcp_socket_server import serveur, traitementDonnées
-from app.helpers.logging import logger
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
+
+from helpers.tcp_socket_server import serveur, traitementDonnées
+from helpers.logging import logger
 
 HOST = '0.0.0.0'
 PORT = int(os.environ.get('SERVER_PORT'))

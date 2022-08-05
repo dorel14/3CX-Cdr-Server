@@ -16,7 +16,8 @@ RUN apt-get update \
     gcc \
     g++ \
     unixodbc \
-    unixodbc-dev
+    unixodbc-dev\
+    tzdata -y
 # Install pip requirements
 RUN python -m pip install --upgrade pip
 COPY requirements.txt .
