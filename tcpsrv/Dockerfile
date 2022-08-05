@@ -18,6 +18,9 @@ RUN apt-get update \
     unixodbc \
     unixodbc-dev\
     tzdata -y
+
+
+
 # Install pip requirements
 RUN python -m pip install --upgrade pip
 COPY requirements.txt .
@@ -30,8 +33,10 @@ RUN apt-get update \
     && apt-get -y install unixodbc \
     unixodbc-dev \
     libpq-dev \
-    net-tools
+    net-tools \
+    tzdata -y
 
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /app
 
 COPY --from=builder /app/wheels /wheels
