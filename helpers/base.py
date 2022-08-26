@@ -1,8 +1,9 @@
 # -*- coding: UTF-8 -*-
-
+from dotenv import load_dotenv
 from sqlmodel import create_engine
 import os
 
+load_dotenv()
 dbUser = os.environ.get('POSTGRES_USER')
 dbPassword = os.environ.get('POSTGRES_PASSWORD')
 dbServer = os.environ.get('POSTGRES_SERVER')

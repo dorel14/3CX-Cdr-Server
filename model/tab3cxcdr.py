@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 from typing import List, Optional
 from sqlmodel import Field, SQLModel
-from datetime import datetime, time
+from datetime import datetime, time, date
 
 
 
@@ -47,6 +47,11 @@ class call_data_records_details(SQLModel, table=True):
     abandonned: bool
     handling_time_seconds: int
     waiting_time_seconds: int
+    call_date: date
+    call_time: time
+    day_of_week: str
+
+
 
 
 

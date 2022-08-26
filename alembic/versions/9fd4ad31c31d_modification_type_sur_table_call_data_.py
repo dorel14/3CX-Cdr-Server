@@ -40,7 +40,7 @@ def upgrade() -> None:
                existing_type=sa.INTEGER(),
                nullable=False,
                autoincrement=True)
-    op.alter_column('extensiontoqueuelink', 'estension_id',
+    op.alter_column('extensiontoqueuelink', 'extension_id',
                existing_type=sa.INTEGER(),
                nullable=False)
     op.alter_column('extensiontoqueuelink', 'queue_id',

@@ -13,7 +13,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     hostname: db
@@ -21,13 +22,18 @@ services:
     build:
       context: .
       dockerfile: ./db_init/Dockerfile
+    restart: always
     ports:
       - 5432:5432
-    restart: always
     env_file:
       - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pgadmin:
     image: dpage/pgadmin4
@@ -42,22 +48,22 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
 
-  grafana:
-    image: grafana/grafana-oss
-    depends_on:
-      - db
-    ports:
-      - 3000:3000
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana-storage:/var/lib/grafana
-      - ./grafana/provisioning/:/etc/grafana/provisioning/
+  # grafana:
+  #   image: grafana/grafana-oss
+  #   depends_on:
+  #     - db
+  #   ports:
+  #     - 3000:3000
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   volumes:
+  #     - grafana-storage:/var/lib/grafana
+  #     - ./grafana/provisioning/:/etc/grafana/provisioning/
 
 
 volumes:
   pgdata: {}
   pgadmin_data: {}
-  grafana-storage: {}
+ # grafana-storage: {}
 
 

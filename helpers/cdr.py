@@ -6,7 +6,7 @@ from sqlmodel import Session
 from helpers.base import engine
 from model.tab3cxcdr import call_data_records, call_data_records_details
 
-
+fr_dayofweek = {0:'Lundi', 1:'Mardi', 2:'Mercredi', 3:'Jeudi', 4:'Vendredi', 5:'Samedi', 6:'Dimanche'}
 def to_local_datetime(utc_dt):
     """
     convert from utc datetime to a locally aware datetime
@@ -82,7 +82,10 @@ def parse_cdr(data):
                                               abandonned=True if parsed_cdr[6] == 'TerminatedBySrc'
                                               and parsed_cdr[4] == '' else False,
                                               handling_time_seconds=datediff(parsed_cdr[4], parsed_cdr[5]) if parsed_cdr[4] != '' else 0,
-                                              waiting_time_seconds=datediff(parsed_cdr[3], parsed_cdr[5]) if parsed_cdr[4] == '' else datediff(parsed_cdr[3], parsed_cdr[4])
+                                              waiting_time_seconds=datediff(parsed_cdr[3], parsed_cdr[5]) if parsed_cdr[4] == '' else datediff(parsed_cdr[3], parsed_cdr[4]),
+                                              call_date=datetime.date(to_local_datetime(parsed_cdr[3])),
+                                              call_time=datetime.time(to_local_datetime(parsed_cdr[3])),
+                                              day_of_week=fr_dayofweek[datetime.weekday(to_local_datetime(parsed_cdr[3]))]
                                               )
     logger.info(cdr)
     logger.info(setcdrdetails)

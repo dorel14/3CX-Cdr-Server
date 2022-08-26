@@ -5,7 +5,7 @@ from datetime import date
 
 
 class extensiontoqueuelink(SQLModel, table=True):
-    estension_id: Optional[int] = Field(
+    extension_id: Optional[int] = Field(
         default=None, foreign_key="extensions.id", primary_key=True
     )
     queue_id: Optional[int] = Field(

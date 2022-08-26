@@ -45,11 +45,11 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('extensiontoqueuelink',
-    sa.Column('estension_id', sa.Integer(), nullable=True),
-    sa.Column('queue_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['estension_id'], ['extensions.id'], ),
+    sa.Column('extension_id', sa.Integer(), nullable=False),
+    sa.Column('queue_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['extension_id'], ['extensions.id'], ),
     sa.ForeignKeyConstraint(['queue_id'], ['queues.id'], ),
-    sa.PrimaryKeyConstraint('estension_id', 'queue_id')
+    sa.PrimaryKeyConstraint('extension_id', 'queue_id')
     )
     op.alter_column('call_data_records', 'id',
                existing_type=sa.INTEGER(),
