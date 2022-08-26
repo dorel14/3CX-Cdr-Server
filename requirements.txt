@@ -16,6 +16,7 @@ psycopg2-binary==2.9.3
 pycodestyle==2.8.0
 pydantic==1.9.1
 pyflakes==2.4.0
+python-dotenv==0.20.0
 setproctitle==1.2.3
 SQLAlchemy==1.4.39
 sqlalchemy2-stubs==0.0.2a24

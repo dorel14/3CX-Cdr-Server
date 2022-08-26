@@ -83,9 +83,12 @@ def parse_cdr(data):
                                               and parsed_cdr[4] == '' else False,
                                               handling_time_seconds=datediff(parsed_cdr[4], parsed_cdr[5]) if parsed_cdr[4] != '' else 0,
                                               waiting_time_seconds=datediff(parsed_cdr[3], parsed_cdr[5]) if parsed_cdr[4] == '' else datediff(parsed_cdr[3], parsed_cdr[4]),
-                                              call_date=datetime.date(to_local_datetime(parsed_cdr[3])),
-                                              call_time=datetime.time(to_local_datetime(parsed_cdr[3])),
-                                              day_of_week=fr_dayofweek[datetime.weekday(to_local_datetime(parsed_cdr[3]))]
+                                              call_date=datetime.date(to_local_datetime(datetime.strptime(parsed_cdr[3],
+                                                                                                          '%Y/%m/%d %H:%M:%S'))),
+                                              call_time=datetime.time(to_local_datetime(datetime.strptime(parsed_cdr[3],
+                                                                                                          '%Y/%m/%d %H:%M:%S'))),
+                                              day_of_week=fr_dayofweek[datetime.weekday(to_local_datetime(datetime.strptime(parsed_cdr[3],
+                                                                                                                            '%Y/%m/%d %H:%M:%S')))]
                                               )
     logger.info(cdr)
     logger.info(setcdrdetails)

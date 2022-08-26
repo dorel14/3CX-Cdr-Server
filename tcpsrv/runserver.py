@@ -8,7 +8,6 @@ parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 
 
-from helpers.tcp_socket_server import serveur
-
 if __name__ == '__main__':
+    from helpers.tcp_socket_server import serveur
     serveur.runserver()
