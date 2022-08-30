@@ -48,22 +48,24 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
 
-  # grafana:
-  #   image: grafana/grafana-oss
-  #   depends_on:
-  #     - db
-  #   ports:
-  #     - 3000:3000
-  #   environment:
-  #     - GF_SECURITY_ADMIN_PASSWORD=admin
-  #   volumes:
-  #     - grafana-storage:/var/lib/grafana
-  #     - ./grafana/provisioning/:/etc/grafana/provisioning/
+  grafana:
+    image: grafana/grafana-oss
+    depends_on:
+      - db
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    environment:
+      -
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
 
 
 volumes:
   pgdata: {}
   pgadmin_data: {}
- # grafana-storage: {}
+  grafana-storage: {}
 
 
