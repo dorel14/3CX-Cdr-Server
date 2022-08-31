@@ -1,6 +1,8 @@
 <h2>Cet outil permet l'enregistrement des CDR 3cx dans une base de donnée PostgreSql et de faire des tableaux de bord avec l'outil Grafana</h2></br>
 
-<h3>Pour bénéficier de l'ensemble des fonctions , il est nécessaire de faire l'installation via Docker</h3></br>
+
+<h3>Pour bénéficier de l'ensemble des fonctions , il est nécessaire de faire l'installation via Docker.</br>
+Cette image contient  4 conteneurs , le serveur TCP,  le conteneur Postgres v12, le conteneur PgAdmin et le conteneur Grafana pour les dashboards</h3></br>
 
 Les paramètres de base sont à indiquer dans un fichier .env à la racine du répertoire selon le modèle .env_model
 
