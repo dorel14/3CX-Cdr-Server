@@ -56,11 +56,10 @@ services:
       - 3000:3000
     env_file:
       - .env
-    environment:
-      -
     volumes:
       - grafana-storage:/var/lib/grafana
-      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana_init/provisioning/:/etc/grafana/provisioning/
+      - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
 
 
 volumes:

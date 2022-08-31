@@ -1,4 +1,6 @@
-<h2>Serveur TCP permettant l'enregistrement des Call Data Records de 3cx dans une bdd PostgreSql</h2></br>
+<h2>Cet outil permet l'enregistrement des CDR 3cx dans une base de donnée PostgreSql et de faire des tableaux de bord avec l'outil Grafana</h2></br>
+
+<h3>Pour bénéficier de l'ensemble des fonctions , il est nécessaire de faire l'installation via Docker</h3></br>
 
 Les paramètres de base sont à indiquer dans un fichier .env à la racine du répertoire selon le modèle .env_model
 
