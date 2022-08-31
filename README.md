@@ -4,8 +4,9 @@
 <h3>Pour bénéficier de l'ensemble des fonctions , il est nécessaire de faire l'installation via Docker.</br>
 Cette image contient  4 conteneurs , le serveur TCP,  le conteneur Postgres v12, le conteneur PgAdmin et le conteneur Grafana pour les dashboards</h3></br>
 
-Les paramètres de base sont à indiquer dans un fichier .env à la racine du répertoire selon le modèle .env_model
-
+Les paramètres de base sont à indiquer dans un fichier .env à la racine du répertoire selon le modèle .env_model</br>
+Les paramétrages doivent être faits sur le serveur 3CX comme indiqué ici: </br><a href="https://www.3cx.com/docs/cdr-call-data-records">Paramétrage des CDR</a>
+Attention à bien indiquer "3CX CDR service is client / Active Socket" afin que le serveur 3cx se connecte sur notre serveur TCP.
 </br>
 Le paramétrage des CDR dans 3cx doit suivre cet ordre:
 <ul>
