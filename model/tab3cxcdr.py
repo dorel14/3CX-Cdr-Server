@@ -1,75 +1,57 @@
 # -*- coding: UTF-8 -*-
-from helpers.base import Base, DbSession
-from sqlalchemy import Column, DateTime, Integer, String, Time
+from typing import List, Optional
+from sqlmodel import Field, SQLModel
+from datetime import datetime, time, date
 
 
-class call_data_records(Base):
+
+class call_data_records(SQLModel, table=True):
     """
     Table de gestion des statistiques individuelles d'appels
     """
-    __tablename__ = "call_data_records"
+    id: int = Field(default=None, primary_key=True)
+    historyid: str = Field(sa_column_kwargs={'unique': True})  # - The ID you can use to link the call do the details
+    callid: str = Field(sa_column_kwargs={'unique': True}) # - I'm guessing this is for something internal,not of use.
+    duration: Optional[time] = None
+    time_start: Optional[datetime] = None  # - Start of the call, timestamp field
+    time_answered: Optional[datetime] = None  # - Answer time, timestamp field
+    time_end: Optional[datetime] = None  # - End of the call, timestamp field
+    reason_terminated: str
+    from_no: str  # - If its direct then this is the same as CallerID, if its to a group the group number is shown here, also if the call goes through a call menu the number of it is shown here
+    to_no: str
+    from_dn: str
+    to_dn: str
+    dial_no: str
+    reason_changed: str
+    final_number: str
+    final_dn: str
+    bill_code: str
+    bill_rate: str
+    bill_cost: str
+    bill_name: str
+    chain: str
+    from_type: str
+    to_type: str
+    final_type: str
+    from_dispname: str
+    to_dispname: str
+    final_dispname: str
+    missed_queue_calls: str  # A list of queue agents that were polled during a queue call that didn’t answer the call
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
 
-    historyid = Column(String, unique=True)  # - The ID you can use to link the call do the details
-    callid = Column(String)  # - I'm guessing this is for something internal,not of use.
-    duration = Column(Time, nullable=True)
-    time_start = Column(DateTime, nullable=True)  # - Start of the call, timestamp field
-    time_answered = Column(DateTime, nullable=True)  # - Answer time, timestamp field
-    time_end = Column(DateTime, nullable=True)  # - End of the call, timestamp field
-    reason_terminated = Column(String)
-    from_no = Column(String)  # - If its direct then this is the same as CallerID, if its to a group the group number is shown here, also if the call goes through a call menu the number of it is shown here
-    to_no = Column(String)
-    from_dn = Column(String)
-    to_dn = Column(String)
-    dial_no = Column(String)
-    reason_changed = Column(String)
-    final_number = Column(String)
-    final_dn = Column(String)
-    bill_code = Column(String)
-    bill_rate = Column(String)
-    bill_cost = Column(String)
-    bill_name = Column(String)
-    chain = Column(String)
-    from_type = Column(String)
-    to_type = Column(String)
-    final_type = Column(String)
-    from_dispname = Column(String)
-    to_dispname = Column(String)
-    final_dispname = Column(String)
-    missed_queue_calls = Column(String)  # A list of queue agents that were polled during a queue call that didn’t answer the call
+class call_data_records_details(SQLModel, table=True):
+    id: int = Field(default=None,
+                    primary_key=True)
+    cdr_historyid: Optional[str] = Field(default=None,
+                                         foreign_key="call_data_records.historyid")
+    abandonned: bool
+    handling_time_seconds: int
+    waiting_time_seconds: int
+    call_date: date
+    call_time: time
+    day_of_week: str
 
-    def __init__(self, historyid, callid, duration, time_start, time_answered,
-                 time_end, reason_terminated, from_no, to_no, from_dn, to_dn,
-                 dial_no, reason_changed, final_number, final_dn, bill_code,
-                 bill_rate, bill_cost, bill_name, chain, from_type, to_type,
-                 final_type, from_dispname, to_dispname, final_dispname,
-                 missed_queue_calls
-                 ):
 
-        self.historyid = historyid
-        self.callid = callid
-        self.duration = duration
-        self.time_start = time_start
-        self.time_answered = time_answered
-        self.time_end = time_end
-        self.reason_terminated = reason_terminated
-        self.from_no = from_no
-        self.to_no = to_no
-        self.from_dn = from_dn
-        self.to_dn = to_dn
-        self.dial_no = dial_no
-        self.reason_changed = reason_changed
-        self.final_number = final_number
-        self.final_dn = final_dn
-        self.bill_code = bill_code
-        self.bill_rate = bill_rate
-        self.bill_cost = bill_cost
-        self.bill_name = bill_name
-        self.chain = chain
-        self.from_type = from_type
-        self.to_type = to_type
-        self.final_type = final_type
-        self.from_dispname = from_dispname
-        self.to_dispname = to_dispname
-        self.missed_queue_calls = missed_queue_calls
+
+
+

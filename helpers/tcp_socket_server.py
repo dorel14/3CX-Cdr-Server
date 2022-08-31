@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import socket
+
 import socketserver
 import threading
+import os
+import sys
+from setproctitle import setproctitle, getproctitle
 
-from helpers.cdr import parse_cdr
-from helpers.logging import logger
+from dotenv import load_dotenv
+from .cdr import parse_cdr
+from .logging import logger
 
 
 class traitementDonnées(socketserver.BaseRequestHandler):
@@ -35,4 +39,20 @@ class serveur(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
 
     def __init__(self, server_address, RequestHandlerClass):
-        socketserver.TCPServer.__init__(self, server_address, RequestHandlerClass)
+        socketserver.TCPServer.__init__(self,
+                                        server_address,
+                                        RequestHandlerClass)
+
+    def runserver():
+        load_dotenv()
+        HOST = '0.0.0.0'
+        PORT = int(os.environ.get('SERVER_PORT'))
+        tcpsrv = serveur((HOST, PORT), traitementDonnées)
+        setproctitle('3cxtcpserver')
+        log = 'Server loop ' + getproctitle() \
+            + ' running in process: ' + str(os.getpid())
+        logger.info(log)
+        try:
+            tcpsrv.serve_forever()
+        except KeyboardInterrupt:
+            sys.exit(0)

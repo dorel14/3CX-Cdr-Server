@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
-
+import os
 import logging
 
 from logging.handlers import RotatingFileHandler
+
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+logfiles = os.path.join(parentdir, './logs/3cxtcpserver.log')
+print(parentdir)
 
 # création de l'objet logger qui va nous servir à écrire dans les logs
 logger = logging.getLogger()
@@ -14,7 +19,7 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
 # création d'un handler qui va rediriger une écriture du log vers
 # un fichier en mode 'append', avec 1 backup et une taille max de 1Mo
-file_handler = RotatingFileHandler('./logs/3cxtcpserver.log',
+file_handler = RotatingFileHandler(logfiles,
                                    'a',
                                    1000000,
                                    1)

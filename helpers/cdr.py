@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
+from helpers.logging import logger
+from sqlmodel import Session
+from helpers.base import engine
+from model.tab3cxcdr import call_data_records, call_data_records_details
 
-from helpers.base import DbSession
-from model.tab3cxcdr import call_data_records
-
-
+fr_dayofweek = {0:'Lundi', 1:'Mardi', 2:'Mercredi', 3:'Jeudi', 4:'Vendredi', 5:'Samedi', 6:'Dimanche'}
 def to_local_datetime(utc_dt):
     """
     convert from utc datetime to a locally aware datetime
@@ -15,6 +16,22 @@ def to_local_datetime(utc_dt):
     :return: local timezone datetime
     """
     return datetime.fromtimestamp(calendar.timegm(utc_dt.timetuple()))
+
+
+def datediff(startdate, enddate):
+    """Fonction permettant de calculer le nombre de secondes entre les dates du cdr
+    Args:
+    startdate: date de debut au format texte '%Y/%m/%d %H:%M:%S'
+    enddate: date de fin au format texte '%Y/%m/%d %H:%M:%S'
+    Return: nombre de seconde entre les 2 dates / heures
+    """
+    datestart = to_local_datetime(datetime.strptime(startdate, '%Y/%m/%d %H:%M:%S'))
+    # logger.info(datestart)
+    dateend = to_local_datetime(datetime.strptime(enddate, '%Y/%m/%d %H:%M:%S'))
+    # logger.info(dateend)
+    diff = (dateend - datestart).total_seconds()
+    # logger.info(diff)
+    return diff
 
 
 def parse_cdr(data):
@@ -27,6 +44,7 @@ def parse_cdr(data):
         _String_: Renvoi OK si insertion en BDD ok
     """
     parsed_cdr = data.split(',')
+    logger.info(parsed_cdr)
     cdr = call_data_records(historyid=parsed_cdr[0],
                             callid=parsed_cdr[1],
                             duration=datetime.strptime(parsed_cdr[2],
@@ -60,6 +78,22 @@ def parse_cdr(data):
                             final_dispname=parsed_cdr[25],
                             missed_queue_calls=parsed_cdr[26],
                             )
-    DbSession.add(cdr)
-    DbSession.commit()
+    setcdrdetails = call_data_records_details(cdr_historyid=parsed_cdr[0],
+                                              abandonned=True if parsed_cdr[6] == 'TerminatedBySrc'
+                                              and parsed_cdr[4] == '' else False,
+                                              handling_time_seconds=datediff(parsed_cdr[4], parsed_cdr[5]) if parsed_cdr[4] != '' else 0,
+                                              waiting_time_seconds=datediff(parsed_cdr[3], parsed_cdr[5]) if parsed_cdr[4] == '' else datediff(parsed_cdr[3], parsed_cdr[4]),
+                                              call_date=datetime.date(to_local_datetime(datetime.strptime(parsed_cdr[3],
+                                                                                                          '%Y/%m/%d %H:%M:%S'))),
+                                              call_time=datetime.time(to_local_datetime(datetime.strptime(parsed_cdr[3],
+                                                                                                          '%Y/%m/%d %H:%M:%S'))),
+                                              day_of_week=fr_dayofweek[datetime.weekday(to_local_datetime(datetime.strptime(parsed_cdr[3],
+                                                                                                                            '%Y/%m/%d %H:%M:%S')))]
+                                              )
+    logger.info(cdr)
+    logger.info(setcdrdetails)
+    with Session(engine) as DbSession:
+        DbSession.add(cdr)
+        DbSession.add(setcdrdetails)
+        DbSession.commit()
     return 'ok'

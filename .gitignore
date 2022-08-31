@@ -13,3 +13,5 @@ cache/
 env/
 *.log
 .venv/
+.env
+test/
