@@ -25,7 +25,7 @@ class extensions(SQLModel, table=True):
     mail: str
     date_added: date = Field(default=date.today())
     date_out: date
-    sorti: bool
+    out: bool
     queuelist: List["queues"] = Relationship(back_populates="extensions",
                                              link_model=extensiontoqueuelink)
 

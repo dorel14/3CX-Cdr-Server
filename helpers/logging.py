@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
+import pathlib
 
 from logging.handlers import RotatingFileHandler
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
-logfiles = os.path.join(parentdir, './logs/3cxtcpserver.log')
+logdir = os.path.join(parentdir, './logs')
+logfiles = os.path.join(logdir, '3cxtcpserver.log')
+
+pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
 print(parentdir)
 
 # création de l'objet logger qui va nous servir à écrire dans les logs

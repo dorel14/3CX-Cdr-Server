@@ -33,7 +33,7 @@ RUN apt-get update \
     unixodbc-dev \
     libpq-dev \
     net-tools \
-    tzdata -y
+    tzdata -y 
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /app
@@ -45,6 +45,7 @@ COPY --from=builder /app/requirements.txt /app/requirements.txt
 
 RUN python -m pip install --upgrade pip
 RUN pip install --no-cache /wheels/*
+
 #Port d'écoute
 EXPOSE 5000
 
