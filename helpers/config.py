@@ -4,7 +4,7 @@ import os
 
 
 temp_path = 'config/'  # os.path.dirname(os.path.abspath(__file__))
-configFile = os.path.join(temp_path, "config.ini")
+configFile = os.path.join(temp_path, "settings.ini")
 Config = configparser.RawConfigParser()
 Config.read(configFile)
 
