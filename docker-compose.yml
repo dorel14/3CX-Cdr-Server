@@ -15,53 +15,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
-  db:
-    hostname: db
-    image: postgres:12
-    build:
-      context: .
-      dockerfile: ./db_init/Dockerfile
-    restart: always
-    ports:
-      - 5432:5432
-    env_file:
-      - .env
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-q", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  pgadmin:
-    image: dpage/pgadmin4
-    hostname: pgadmin4
-    depends_on:
-      - db
-    ports:
-      - 5555:80
-    env_file:
-      - .env
-    restart: unless-stopped
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin/data
-
-  grafana:
-    image: grafana/grafana-oss
-    depends_on:
-      - db
-    ports:
-      - 3000:3000
-    env_file:
-      - .env
-    volumes:
-      - grafana-storage:/var/lib/grafana
-      - ./grafana_init/provisioning/:/etc/grafana/provisioning/
-      - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
-
-
 volumes:
   pgdata: {}
   pgadmin_data: {}
