@@ -1,13 +1,35 @@
 version: '3.3'
 
 services:
+  webapi:
+    build:
+      context: .
+      dockerfile: ./webapi/Dockerfile
+    ports: 
+      - 8000:8000
+    networks:
+      - deploy_network
+    container_name: webapi
+
+  ui:
+    build: 
+    context: .
+    dockerfile: ./ui/Dockerfile
+    depends_on:
+      - fastapi
+    ports: 
+        - 8501:8501
+    networks:
+      - deploy_network
+    container_name: ui
+
   3cxcdrtcpserver:
     image: 3cxcdrtcpserver
     hostname: 3cxtcpsrv
     build:
       context: .
       dockerfile: ./tcpsrv/Dockerfile
-    command: bash -c "while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && python ./tcpsrv/runserver.py"
+    # command: bash -c "while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && python ./tcpsrv/runserver.py"
     ports:
       - 5000:5000
     env_file:
@@ -15,9 +37,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-volumes:
-  pgdata: {}
-  pgadmin_data: {}
-  grafana-storage: {}
+#volumes:
+ # pgdata: {}
+ # pgadmin_data: {}
+ # grafana-storage: {}
 
-
+networks:
+  deploy_network:
+    driver: bridge

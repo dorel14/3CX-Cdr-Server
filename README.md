@@ -1,4 +1,4 @@
-<h2>Cet outil permet l'enregistrement des CDR 3cx dans une base de donnée PostgreSql et de faire des tableaux de bord avec l'outil Grafana</h2></br>
+<h2>Cet outil permet l'enregistrement des CDR 3cx dans une base de donnée</h2></br>
 
 
 <h3>Pour bénéficier de l'ensemble des fonctions , il est nécessaire de faire l'installation via Docker.</br>
