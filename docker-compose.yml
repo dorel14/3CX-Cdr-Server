@@ -1,26 +1,44 @@
 version: '3.3'
 
 services:
+  db:
+    hostname: db
+    image: postgres:12
+    build:
+      context: .
+      dockerfile: ./db_init/Dockerfile
+    restart: always
+    ports:
+      - 5432
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   webapi:
     build:
       context: .
       dockerfile: ./webapi/Dockerfile
+    depends_on:
+      - db
     ports: 
-      - 8000:8000
-    networks:
-      - deploy_network
+      - 8004:8000
     container_name: webapi
+    command: bash -c "while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
 
   ui:
     build: 
-    context: .
-    dockerfile: ./ui/Dockerfile
+      context: .
+      dockerfile: ./ui/Dockerfile
     depends_on:
-      - fastapi
+      - webapi
     ports: 
         - 8501:8501
-    networks:
-      - deploy_network
     container_name: ui
 
   3cxcdrtcpserver:
@@ -29,19 +47,30 @@ services:
     build:
       context: .
       dockerfile: ./tcpsrv/Dockerfile
-    # command: bash -c "while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && python ./tcpsrv/runserver.py"
     ports:
       - 5000:5000
     env_file:
       - .env
     depends_on:
-      db:
-        condition: service_healthy
-#volumes:
- # pgdata: {}
- # pgadmin_data: {}
- # grafana-storage: {}
+      - webapi
 
-networks:
-  deploy_network:
-    driver: bridge
+
+  pgadmin:
+    image: dpage/pgadmin4
+    hostname: pgadmin4
+    depends_on:
+      - db
+    ports:
+      - 5555:5555
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin/data
+volumes:
+   pgdata: {}
+   pgadmin_data: {}
+
+
+
+
