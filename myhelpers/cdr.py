@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import calendar
 from datetime import datetime, timedelta
-from helpers.logging import logger
+from myhelpers.logging import logger
 from sqlmodel import Session
-from helpers.base import engine
-from model.tab3cxcdr import call_data_records, call_data_records_details
+from myhelpers.base import engine
+from models.tab3cxcdr import call_data_records, call_data_records_details
 
 fr_dayofweek = {0:'Lundi', 1:'Mardi', 2:'Mercredi', 3:'Jeudi', 4:'Vendredi', 5:'Samedi', 6:'Dimanche'}
 def to_local_datetime(utc_dt):

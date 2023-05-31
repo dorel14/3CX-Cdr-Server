@@ -5,7 +5,7 @@ import shutil
 from datetime import datetime
 from ftplib import FTP
 
-from helpers.cdr import parse_cdr
+from myhelpers.cdr import parse_cdr
 
 
 path = os.path.abspath(__file__)

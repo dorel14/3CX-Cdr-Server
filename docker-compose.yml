@@ -9,7 +9,7 @@ services:
       dockerfile: ./db_init/Dockerfile
     restart: always
     ports:
-      - 5432
+      - 5432:5432
     env_file:
       - .env
     volumes:
@@ -61,7 +61,7 @@ services:
     depends_on:
       - db
     ports:
-      - 5555:5555
+      - 5555:80
     env_file:
       - .env
     restart: unless-stopped

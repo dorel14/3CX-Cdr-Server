@@ -2,7 +2,7 @@
 from typing import List, Optional
 from sqlmodel import Field, SQLModel
 from datetime import datetime, time, date
-
+metadata = SQLModel.metadata
 
 
 class call_data_records(SQLModel, table=True):
