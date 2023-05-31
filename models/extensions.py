@@ -25,16 +25,13 @@ class extensions(extensionsBase, table=True):
     """
     Table listant les extensions(n° 3cx)
     """
-
     id:int = Field(default=None, primary_key=True)
     
 class extensionsCreate(extensionsBase):
     pass
 
+class extensionsRead(extensionsBase):
+    id:int
 
-class queues(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    queue: str
-    queuename: str
-    extensionslist: List["extensions"] = Relationship(back_populates="extensions",
-                                                      link_model=extensiontoqueuelink)
+
+

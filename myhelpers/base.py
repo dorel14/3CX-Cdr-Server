@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 from dotenv import load_dotenv
-from sqlmodel import create_engine, Session, SQLModel
-# from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlmodel import create_engine, Session as  SQLModelSession, SQLModel
 from sqlalchemy.orm import sessionmaker
 import os
 
@@ -28,11 +27,10 @@ engine = create_engine(dburl, echo=True, future=True)
 metadata = SQLModel.metadata
 metadata.naming_convention = NAMING_CONVENTION
 
-async def get_session():
-    session = sessionmaker(
-        engine, class_=Session, expire_on_commit=False
-    )
-    with session() as session:
+def get_session():
+    session = SQLModelSession(engine,
+                              expire_on_commit=False,)
+    try:
         yield session
-
-
+    finally:
+        session.close()

@@ -5,7 +5,7 @@ from app import api_base_url
 
 sections = requests.get(f"{api_base_url}/config/sections")
 
-st.write(sections.)
+st.write(sections)
 
 db_type = st.selectbox(label='Type de base de donnée',
              options=('sqlite', 'PostGresql'))
