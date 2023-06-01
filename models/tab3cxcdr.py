@@ -4,12 +4,7 @@ from sqlmodel import Field, SQLModel
 from datetime import datetime, time, date
 metadata = SQLModel.metadata
 
-
-class call_data_records(SQLModel, table=True):
-    """
-    Table de gestion des statistiques individuelles d'appels
-    """
-    id: int = Field(default=None, primary_key=True)
+class call_data_records_base(SQLModel):
     historyid: str = Field(sa_column_kwargs={'unique': True})  # - The ID you can use to link the call do the details
     callid: str = Field(sa_column_kwargs={'unique': True}) # - I'm guessing this is for something internal,not of use.
     duration: Optional[time] = None
@@ -38,10 +33,22 @@ class call_data_records(SQLModel, table=True):
     final_dispname: str
     missed_queue_calls: str  # A list of queue agents that were polled during a queue call that didn’t answer the call
 
+class call_data_records(call_data_records_base, table=True):
+    """
+    Table de gestion des statistiques individuelles d'appels
+    """
+    id: int = Field(default=None, primary_key=True)
 
-class call_data_records_details(SQLModel, table=True):
-    id: int = Field(default=None,
-                    primary_key=True)
+class call_data_records_read(call_data_records_base):
+    id:int
+
+class call_data_records_create(call_data_records_base):
+    pass
+
+
+
+
+class call_data_records_details_base(SQLModel):
     cdr_historyid: Optional[str] = Field(default=None,
                                          foreign_key="call_data_records.historyid")
     abandonned: bool
@@ -50,6 +57,17 @@ class call_data_records_details(SQLModel, table=True):
     call_date: date
     call_time: time
     day_of_week: str
+
+class call_data_records_details(call_data_records_details_base, table=True):
+        id: int = Field(default=None,
+                    primary_key=True)
+
+class call_data_records_details_read(call_data_records_details_base):
+     id:int
+
+class call_data_records_details_create(call_data_records_details_base):
+     pass
+
 
 
 

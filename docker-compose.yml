@@ -24,6 +24,7 @@ services:
     build:
       context: .
       dockerfile: ./webapi/Dockerfile
+    hostname: webapi
     depends_on:
       - db
     ports: 
@@ -35,6 +36,7 @@ services:
     build: 
       context: .
       dockerfile: ./ui/Dockerfile
+    hostname: webui
     depends_on:
       - webapi
     ports: 
@@ -53,6 +55,7 @@ services:
       - .env
     depends_on:
       - webapi
+    command: bash -c "while !</dev/tcp/db/5432; do sleep 1; done; python ./tcpsrv/runserver.py"
 
 
   pgadmin:
