@@ -1,5 +1,8 @@
 FROM tiangolo/uvicorn-gunicorn:python3.9
 
+RUN apt-get update && \
+    apt-get install -y curl 
+
 RUN mkdir /fastapi
 
 COPY requirements.txt /fastapi

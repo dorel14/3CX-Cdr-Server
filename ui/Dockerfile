@@ -1,5 +1,6 @@
 FROM python:3.9-slim
 
+
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -12,7 +13,8 @@ RUN apt-get update \
     gcc \
     g++ \
     unixodbc \
-    unixodbc-dev
+    unixodbc-dev\
+    curl
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
