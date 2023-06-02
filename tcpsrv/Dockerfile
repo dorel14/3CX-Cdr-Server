@@ -52,6 +52,11 @@ EXPOSE 5000
 
 COPY . /app
 
+# Add docker-compose-wait tool -------------------
+ENV WAIT_VERSION 2.12.0
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/$WAIT_VERSION/wait /wait
+RUN chmod +x /wait
+
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
 RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app

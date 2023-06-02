@@ -4,10 +4,11 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from sqlmodel import SQLModel
 from alembic import context
+
 import os
 import sys
 sys.path.append(os.path.abspath('.'))
-from myhelpers.base import dburl, metadata
+from myhelpers.base import dburl
 from models import *
 
 
@@ -19,7 +20,7 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
+context.config.set_main_option('sqlalchemy.url', os.environ.get('DATABASE_URL'))
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
@@ -44,7 +45,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = dburl #config.get_main_option("sqlalchemy.url")
+    url = dburl
     context.configure(
         url=url,
         target_metadata=target_metadata,

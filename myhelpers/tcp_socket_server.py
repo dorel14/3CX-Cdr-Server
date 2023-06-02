@@ -51,6 +51,8 @@ class serveur(socketserver.ThreadingMixIn, socketserver.TCPServer):
         setproctitle('3cxtcpserver')
         log = 'Server loop ' + getproctitle() \
             + ' running in process: ' + str(os.getpid())
+        print('Server loop ' + getproctitle() \
+            + ' running in process: ' + str(os.getpid()))
         logger.info(log)
         try:
             tcpsrv.serve_forever()
