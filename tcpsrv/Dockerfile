@@ -16,7 +16,8 @@ RUN apt-get update \
     gcc \
     g++ \
     unixodbc \
-    unixodbc-dev
+    unixodbc-dev\
+    curl
 
 
 
@@ -33,7 +34,8 @@ RUN apt-get update \
     unixodbc-dev \
     libpq-dev \
     net-tools \
-    tzdata -y 
+    tzdata -y \
+    curl
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /app
