@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import select, Session
 from typing import Union, List
 
+
 import os
 import sys
 
 sys.path.append(os.path.abspath("."))
+
 
 from myhelpers.base import get_session
 from models.extensions import (
@@ -16,8 +18,7 @@ from models.extensions import (
     extensionUpdate
 )
 
-router = APIRouter(prefix="/api/v1")
-
+router = APIRouter(prefix="/api")
 
 @router.post("/extensions/", response_model=extensionsBase, tags=["extensions"])
 async def create_extensions(

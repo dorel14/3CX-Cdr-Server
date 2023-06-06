@@ -35,9 +35,15 @@ RUN apt-get update \
     libpq-dev \
     net-tools \
     tzdata -y \
-    curl
+    curl\
+    locales\
+    locales-all
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+
+#RUN localedef -i ${LOCALE_LANGUAGE} -c -f UTF-8 -A /usr/share/locale/locale.alias ${LOCALE_LANGUAGE}.UTF-8
+ENV LANG ${LOCALE_LANGUAGE}.utf8
 WORKDIR /app
 
 RUN rm -rf /app

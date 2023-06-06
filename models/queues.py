@@ -10,7 +10,7 @@ class queueBase(SQLModel):
 
 
 class queues(queueBase, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True, nullable=False)
 
 class queuesCreate(queueBase):
     pass

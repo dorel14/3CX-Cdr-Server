@@ -37,7 +37,7 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
-      test: curl http://webapi:8000/healthcheck || exit 1 
+      test: curl ${API_URL}/healthcheck || exit 1 
       interval: 10s
       timeout: 5s
       retries: 5

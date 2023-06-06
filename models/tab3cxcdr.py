@@ -37,7 +37,7 @@ class call_data_records(call_data_records_base, table=True):
     """
     Table de gestion des statistiques individuelles d'appels
     """
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True, nullable=False)
 
 class call_data_records_read(call_data_records_base):
     id:int
@@ -50,17 +50,21 @@ class call_data_records_create(call_data_records_base):
 
 class call_data_records_details_base(SQLModel):
     cdr_historyid: Optional[str] = Field(default=None,
-                                         foreign_key="call_data_records.historyid")
+                                         foreign_key="call_data_records.historyid",
+                                         nullable=False)
     abandonned: bool
     handling_time_seconds: int
     waiting_time_seconds: int
     call_date: date
     call_time: time
+    call_week: int
     day_of_week: str
+    
 
 class call_data_records_details(call_data_records_details_base, table=True):
         id: int = Field(default=None,
-                    primary_key=True)
+                    primary_key=True,
+                    nullable=False)
 
 class call_data_records_details_read(call_data_records_details_base):
      id:int

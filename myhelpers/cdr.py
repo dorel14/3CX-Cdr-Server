@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import calendar
-from datetime import datetime, timedelta
+from datetime import datetime as dt, timedelta as td
+from babel.dates import format_date
 from myhelpers.logging import logger
-from sqlmodel import Session
-from myhelpers.base import engine
-from models.tab3cxcdr import call_data_records, call_data_records_details
+import os
+import pandas as pd
+import numpy as np
+from io import StringIO
 
-fr_dayofweek = {0:'Lundi', 1:'Mardi', 2:'Mercredi', 3:'Jeudi', 4:'Vendredi', 5:'Samedi', 6:'Dimanche'}
+
+
 def to_local_datetime(utc_dt):
     """
     convert from utc datetime to a locally aware datetime
@@ -15,23 +18,10 @@ def to_local_datetime(utc_dt):
     :param utc_dt: utc datetime
     :return: local timezone datetime
     """
-    return datetime.fromtimestamp(calendar.timegm(utc_dt.timetuple()))
+    return dt.fromtimestamp(calendar.timegm(utc_dt.timetuple()))
 
 
-def datediff(startdate, enddate):
-    """Fonction permettant de calculer le nombre de secondes entre les dates du cdr
-    Args:
-    startdate: date de debut au format texte '%Y/%m/%d %H:%M:%S'
-    enddate: date de fin au format texte '%Y/%m/%d %H:%M:%S'
-    Return: nombre de seconde entre les 2 dates / heures
-    """
-    datestart = to_local_datetime(datetime.strptime(startdate, '%Y/%m/%d %H:%M:%S'))
-    # logger.info(datestart)
-    dateend = to_local_datetime(datetime.strptime(enddate, '%Y/%m/%d %H:%M:%S'))
-    # logger.info(dateend)
-    diff = (dateend - datestart).total_seconds()
-    # logger.info(diff)
-    return diff
+
 
 
 def parse_cdr(data):
@@ -43,57 +33,137 @@ def parse_cdr(data):
     Returns:
         _String_: Renvoi OK si insertion en BDD ok
     """
-    parsed_cdr = data.split(',')
-    logger.info(parsed_cdr)
-    cdr = call_data_records(historyid=parsed_cdr[0],
-                            callid=parsed_cdr[1],
-                            duration=datetime.strptime(parsed_cdr[2],
-                                '%H:%M:%S').time() if parsed_cdr[2] != '' else None,
-                            time_start=to_local_datetime(
-                                datetime.strptime(parsed_cdr[3],
-                                                  '%Y/%m/%d %H:%M:%S')) if parsed_cdr[3] != '' else None,
-                            time_answered=to_local_datetime(datetime.strptime(parsed_cdr[4],
-                                                        '%Y/%m/%d %H:%M:%S')) if parsed_cdr[4] != '' else None,
-                            time_end=to_local_datetime(datetime.strptime(parsed_cdr[5],
-                                                   '%Y/%m/%d %H:%M:%S')) if parsed_cdr[5] != '' else None,
-                            reason_terminated=parsed_cdr[6],
-                            from_no=parsed_cdr[7],
-                            to_no=parsed_cdr[8],
-                            from_dn=parsed_cdr[9],
-                            to_dn=parsed_cdr[10],
-                            dial_no=parsed_cdr[11],
-                            reason_changed=parsed_cdr[12],
-                            final_number=parsed_cdr[13],
-                            final_dn=parsed_cdr[14],
-                            bill_code=parsed_cdr[15],
-                            bill_rate=parsed_cdr[16],
-                            bill_cost=parsed_cdr[17],
-                            bill_name=parsed_cdr[18],
-                            chain=parsed_cdr[19],
-                            from_type=parsed_cdr[20],
-                            to_type=parsed_cdr[21],
-                            final_type=parsed_cdr[22],
-                            from_dispname=parsed_cdr[23],
-                            to_dispname=parsed_cdr[24],
-                            final_dispname=parsed_cdr[25],
-                            missed_queue_calls=parsed_cdr[26],
-                            )
-    setcdrdetails = call_data_records_details(cdr_historyid=parsed_cdr[0],
-                                              abandonned=True if parsed_cdr[6] == 'TerminatedBySrc'
-                                              and parsed_cdr[4] == '' else False,
-                                              handling_time_seconds=datediff(parsed_cdr[4], parsed_cdr[5]) if parsed_cdr[4] != '' else 0,
-                                              waiting_time_seconds=datediff(parsed_cdr[3], parsed_cdr[5]) if parsed_cdr[4] == '' else datediff(parsed_cdr[3], parsed_cdr[4]),
-                                              call_date=datetime.date(to_local_datetime(datetime.strptime(parsed_cdr[3],
-                                                                                                          '%Y/%m/%d %H:%M:%S'))),
-                                              call_time=datetime.time(to_local_datetime(datetime.strptime(parsed_cdr[3],
-                                                                                                          '%Y/%m/%d %H:%M:%S'))),
-                                              day_of_week=fr_dayofweek[datetime.weekday(to_local_datetime(datetime.strptime(parsed_cdr[3],
-                                                                                                                            '%Y/%m/%d %H:%M:%S')))]
-                                              )
+    lang = os.environ.get('LOCALE_LANGUAGE')
+    print(lang)
+    cdr_columns_names = [
+        "historyid",
+        "callid",
+        "duration",
+        "time_start",
+        "time_answered",
+        "time_end",
+        "reason_terminated",
+        "from_no",
+        "to_no",
+        "from_dn",
+        "to_dn",
+        "dial_no",
+        "reason_changed",
+        "final_number",
+        "final_dn",
+        "bill_code",
+        "bill_rate",
+        "bill_cost",
+        "bill_name",
+        "chain",
+        "from_type",
+        "to_type",
+        "final_type",
+        "from_dispname",
+        "to_dispname",
+        "final_dispname",
+        "missed_queue_calls",
+    ]
+    types = {
+        "from_no": str,
+        "to_no": str,
+        "from_dn": str,
+        "to_dn": str,
+        "dial_no": str,
+        "final_number": str,
+        "final_dn": str,
+        "time_start": str,
+        "time_answered": str,
+        "time_end": str,
+    }
+    dates_columns = ["time_start", "time_answered", "time_end"]
+    date_format = "%Y/%m/%d %H:%M:%S"
+    date_format_out = "%Y/%m/%dT%H:%M:%S.078Z"
+
+    df_cdr = pd.read_csv(
+        StringIO(data),
+        delimiter=",",
+        header=None,
+        na_values="",
+        index_col=False,
+        names=cdr_columns_names,
+        dtype=types,
+    )
+    print(df_cdr)
+
+    df_cdr_details_columns = [
+        "cdr_historyid",
+        "abandonned",
+        "handling_time_seconds",
+        "waiting_time_seconds",
+        "call_date",
+        "call_time",
+        "call_week",
+        "day_of_week"
+    ]
+    df_cdr_details = pd.DataFrame(columns=df_cdr_details_columns)
+    df_cdr_details["cdr_historyid"] = df_cdr["historyid"]
+    df_cdr_details["abandonned"] = np.where(
+        (df_cdr["reason_terminated"] == "TerminatedBySrc")
+        & (df_cdr["time_answered"] == ""),
+        True,
+        False,
+    )
+    df_cdr_details["handling_time_seconds"] = (
+        (pd.to_datetime(df_cdr["time_end"], format=date_format)
+        - pd.to_datetime(df_cdr["time_answered"], format=date_format)).dt.total_seconds()
+        if not (df_cdr["time_answered"].isnull)
+        else (pd.to_datetime(df_cdr["time_end"], format=date_format)
+        - pd.to_datetime(df_cdr["time_start"], format=date_format)).dt.total_seconds()
+    )
+    df_cdr_details["waiting_time_seconds"] = (
+        (pd.to_datetime(df_cdr["time_answered"], format=date_format)
+        - pd.to_datetime(df_cdr["time_start"], format=date_format)).dt.total_seconds()
+        if not (df_cdr["time_answered"].isnull)
+        else (pd.to_datetime(df_cdr["time_end"], format=date_format)
+        - pd.to_datetime(df_cdr["time_start"], format=date_format)).dt.total_seconds()
+    )
+    df_cdr_details["call_date"] = df_cdr["time_start"].apply(
+        lambda x: dt.date(dt.strptime(x, date_format)).strftime("%d/%m/%Y")
+    )
+    df_cdr_details["call_time"] = df_cdr["time_start"].apply(
+        lambda x: dt.time(dt.strptime(x, date_format))
+    )
+    df_cdr_details["call_week"] = pd.to_datetime(df_cdr["time_start"], format=date_format).dt.isocalendar().week
+    df_cdr_details["day_of_week"] = df_cdr["time_start"].apply(
+        lambda x: format_date(dt.strptime(x, date_format), "EEEE", locale=lang)
+    )
+
+    df_cdr_details=df_cdr_details.astype({'handling_time_seconds':int,'waiting_time_seconds':int })
+
+  
+
+    df_cdr["time_start"] = df_cdr["time_start"].apply(
+        lambda x: to_local_datetime(dt.strptime(x, date_format)).strftime(
+            date_format_out
+        )
+    )
+    df_cdr["time_answered"] = np.where(
+        df_cdr["time_answered"].isnull, df_cdr["time_end"], df_cdr["time_answered"]
+    )
+    df_cdr["time_answered"] = df_cdr["time_answered"].apply(
+        lambda x: to_local_datetime(dt.strptime(x, date_format)).strftime(
+            date_format_out
+        )
+    )
+    df_cdr["time_end"] = df_cdr["time_end"].apply(
+        lambda x: to_local_datetime(dt.strptime(x, date_format)).strftime(
+            date_format_out
+        )
+    )
+
+    cdr = df_cdr.to_json(orient="records", lines=True)
+    cdr_details = df_cdr_details.to_json(orient="records", lines=True)
+    # print(cdr)
+    # print(cdr_details)
+
     logger.info(cdr)
-    logger.info(setcdrdetails)
-    with Session(engine) as DbSession:
-        DbSession.add(cdr)
-        DbSession.add(setcdrdetails)
-        DbSession.commit()
-    return 'ok'
+    logger.info(cdr_details)
+
+
+    return cdr, cdr_details

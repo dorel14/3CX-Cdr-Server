@@ -1,10 +1,11 @@
 # -*- coding: UTF-8 -*-
 from fastapi import FastAPI, status
 from typing import Union
-from .routers import extensions_api
+from .routers import extensions_api, cdr_api
 
 app = FastAPI()
 app.include_router(extensions_api.router) #permet d'ajouter les routes d'un fichier externe
+app.include_router(cdr_api.router)
 
 @app.get('/')
 async def root():

@@ -15,6 +15,8 @@ dburl=os.environ.get('DATABASE_URL')
 
 #dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}' # os.environ.get('DATABASE_URL')
 #os.environ.update('DATABASE_URL',dburl)
+if dburl is None:
+    dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}' # os.environ.get('DATABASE_URL')
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",

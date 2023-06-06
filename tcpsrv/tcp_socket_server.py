@@ -8,8 +8,9 @@ import sys
 from setproctitle import setproctitle, getproctitle
 
 from dotenv import load_dotenv
-from .cdr import parse_cdr
-from .logging import logger
+import requests
+from myhelpers.cdr import parse_cdr
+from myhelpers.logging import logger
 
 
 class traitementDonnées(socketserver.BaseRequestHandler):
@@ -23,8 +24,13 @@ class traitementDonnées(socketserver.BaseRequestHandler):
         cdr = self.request.recv(2048)
         cdr = cdr.decode().strip()
         self.request.send(bytes(cdr, 'utf-8'))
+        
         logger.info(cdr)
-        logger.info(parse_cdr(cdr))
+        webapi_url = os.environ.get('API_URL') + '/api/v1/cdr'
+        cdrs, cdrdetails = parse_cdr(cdr)
+        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+        requests.post(webapi_url,data=cdrs, headers=headers)
+
         if cdr == 'shutdown':
             self.request.close()
             threading.Thread(target=self.server.shutdown).start()

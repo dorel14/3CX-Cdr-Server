@@ -29,7 +29,7 @@ class extensions(extensionsBase, table=True):
     Table listant les extensions(n° 3cx)
     """
 
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True,nullable=False)
 
 
 class extensionsCreate(extensionsBase):
