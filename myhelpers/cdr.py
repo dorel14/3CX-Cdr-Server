@@ -124,7 +124,7 @@ def parse_cdr(data):
         - pd.to_datetime(df_cdr["time_start"], format=date_format)).dt.total_seconds()
     )
     df_cdr_details["call_date"] = df_cdr["time_start"].apply(
-        lambda x: dt.date(dt.strptime(x, date_format)).strftime("%d/%m/%Y")
+        lambda x: dt.date(dt.strptime(x, date_format))
     )
     df_cdr_details["call_time"] = df_cdr["time_start"].apply(
         lambda x: dt.time(dt.strptime(x, date_format))
@@ -139,27 +139,21 @@ def parse_cdr(data):
   
 
     df_cdr["time_start"] = df_cdr["time_start"].apply(
-        lambda x: to_local_datetime(dt.strptime(x, date_format)).strftime(
-            date_format_out
-        )
+        lambda x: to_local_datetime(dt.strptime(x, date_format))
     )
     df_cdr["time_answered"] = np.where(
         df_cdr["time_answered"].isnull, df_cdr["time_end"], df_cdr["time_answered"]
     )
     df_cdr["time_answered"] = df_cdr["time_answered"].apply(
-        lambda x: to_local_datetime(dt.strptime(x, date_format)).strftime(
-            date_format_out
-        )
+        lambda x: to_local_datetime(dt.strptime(x, date_format))
     )
     df_cdr["time_end"] = df_cdr["time_end"].apply(
-        lambda x: to_local_datetime(dt.strptime(x, date_format)).strftime(
-            date_format_out
-        )
+        lambda x: to_local_datetime(dt.strptime(x, date_format))
     )
 
     cdr = df_cdr.to_json(orient="records", lines=True)
     cdr_details = df_cdr_details.to_json(orient="records", lines=True)
-    # print(cdr)
+    print(cdr)
     # print(cdr_details)
 
     logger.info(cdr)

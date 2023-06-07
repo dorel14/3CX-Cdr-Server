@@ -11,27 +11,27 @@ class call_data_records_base(SQLModel):
     time_start: Optional[datetime] = None  # - Start of the call, timestamp field
     time_answered: Optional[datetime] = None  # - Answer time, timestamp field
     time_end: Optional[datetime] = None  # - End of the call, timestamp field
-    reason_terminated: str
-    from_no: str  # - If its direct then this is the same as CallerID, if its to a group the group number is shown here, also if the call goes through a call menu the number of it is shown here
-    to_no: str
-    from_dn: str
-    to_dn: str
-    dial_no: str
-    reason_changed: str
-    final_number: str
-    final_dn: str
-    bill_code: str
-    bill_rate: str
-    bill_cost: str
-    bill_name: str
-    chain: str
-    from_type: str
-    to_type: str
-    final_type: str
-    from_dispname: str
-    to_dispname: str
-    final_dispname: str
-    missed_queue_calls: str  # A list of queue agents that were polled during a queue call that didn’t answer the call
+    reason_terminated: Optional[str] = None
+    from_no: Optional[str] = None # - If its direct then this is the same as CallerID, if its to a group the group number is shown here, also if the call goes through a call menu the number of it is shown here
+    to_no: Optional[str] = None
+    from_dn: Optional[str] = None
+    to_dn: Optional[str] = None
+    dial_no: Optional[str] = None
+    reason_changed: Optional[str] = None
+    final_number: Optional[str] = None
+    final_dn: Optional[str] = None
+    bill_code: Optional[str] = None
+    bill_rate: Optional[str] = None
+    bill_cost: Optional[str] = None
+    bill_name: Optional[str] = None
+    chain: Optional[str] = None
+    from_type: Optional[str] = None
+    to_type: Optional[str] = None
+    final_type: Optional[str] = None
+    from_dispname: Optional[str] = None
+    to_dispname: Optional[str] = None
+    final_dispname: Optional[str] = None
+    missed_queue_calls: Optional[str] = None  # A list of queue agents that were polled during a queue call that didn’t answer the call
 
 class call_data_records(call_data_records_base, table=True):
     """

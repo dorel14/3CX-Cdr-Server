@@ -8,10 +8,10 @@ metadata = SQLModel.metadata
 
 class extensiontoqueuelink(SQLModel, table=True):
     extension_id: Optional[int] = Field(
-        default=None, foreign_key="extensions.id", primary_key=True
+        default=None, foreign_key="extensions.id", primary_key=True, nullable=False
     )
     queue_id: Optional[int] = Field(
-        default=None, foreign_key="queues.id", primary_key=True
+        default=None, foreign_key="queues.id", primary_key=True, nullable=False
     )
 
 
