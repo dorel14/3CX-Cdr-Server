@@ -54,8 +54,8 @@ services:
     ports: 
         - 8501:8501
 
-  3cxcdrtcpserver:
-    image: 3cxcdrtcpserver
+  3cxcdrserver:
+    image: 3cxcdrserver
     build:
       context: .
       dockerfile: ./tcpsrv/Dockerfile
@@ -73,6 +73,10 @@ services:
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
+    volumes:
+      - cdr:/opt/cdrfiles
+      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/opt/cdrfiles_archives
+
 
 
   pgadmin:
@@ -90,6 +94,11 @@ services:
 volumes:
    pgdata: {}
    pgadmin_data: {}
+   cdr:
+    driver_opts:
+      type: "nfs"
+      o: "addr=${CDR_SERVER_IP},nolock,soft,rw,nfsvers=3"
+      device: :${CDR_FOLDER}
 
 
 

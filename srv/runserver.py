@@ -9,5 +9,5 @@ sys.path.append(parentdir)
 
 
 if __name__ == '__main__':
-    from tcpsrv.tcp_socket_server import serveur
+    from srv.tcp_socket_server import serveur
     serveur.runserver()

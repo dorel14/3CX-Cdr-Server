@@ -4,73 +4,52 @@ import os
 import shutil
 from datetime import datetime
 from ftplib import FTP
-
-from myhelpers.cdr import parse_cdr
-
+from time import sleep
 
 path = os.path.abspath(__file__)
 dir_path = os.path.dirname(path)
 working_path = os.getcwd()
-filefolder = os.environ.get('FTP_3CX_LOCALDIR')
-savefolder = os.environ.get('FTP_3CX_SAVDIR')
+filefolder = '/opt/cdrfiles'
+savefolder = datetime.today().strftime('%d%m%Y')
+
+class ftpclient():
+    def __init__(self, host, login, password):
+        self.host=host
+        self.login=login
+        self.password=password
+    
+    def monitor(self, ftpfolder='', interval=50):
+        ftp = FTP(self.host)
+        ftp.login(self.login, self.password)
+        ftp.cwd(ftpfolder)
+        old_files = []
+        try:
+            while True:
+                new_files = ftp.nlst()
+                if len(old_files) != 0 and new_files != old_files:
+                    changes = [i for i in new_files if i not in old_files]
+                    print(changes)
+                    yield changes
+                sleep(interval)
+        except KeyboardInterrupt:
+            ftp.quit()
+    
+
+    def ftp_download(self, ftpfolder, localfolder,filestodownload ,deletefiles:False):
+        ftp = FTP(self.host)
+        # Identification
+        ftp.login(self.login, self.password)
+        ftp.cwd(ftpfolder)
+        if not os.path.exists(localfolder):
+            os.mkdir(localfolder)
+        # Print out the files
+        for file in filestodownload:
+            print("Downloading..." + file)
+            ftp.retrbinary("RETR " + file, open(localfolder + file, 'wb').write)
+            if deletefiles is True:
+                ftp.delete(file)
+        ftp.close()
+        print("Download finish")
 
 
-def ftp_download():
-    ftp = FTP(os.environ.get('FTP_3CX_HOST'))
-    # Identification
-    ftp.login(os.environ.get('FTP_3CX_LOGIN'),
-              os.environ.get('FTP_3CX_PASSWORD'))
-    ftp.cwd(os.environ.get('FTP_3CX_SRVDIR'))
-    # Get All Files
-    files = ftp.nlst()
-    if not os.path.exists(filefolder):
-        os.mkdir(filefolder)
-    # Print out the files
-    for file in files:
-        print("Downloading..." + file)
-        ftp.retrbinary("RETR " + file, open(filefolder + file, 'wb').write)
-        ftp.delete(file)
-    ftp.close()
-    print("Download finish")
 
-
-def csv_files_read():
-    print(filefolder)
-    for f in glob.glob(filefolder + "**"
-                       + os.environ.get('FTP_3CX_FILEEXT'),
-                       recursive=False):
-        print(f)
-        csv = open(f, 'r')
-        count = 0
-        while True:
-            count += 1
-            # Get next line from file
-            line = csv.readline()
-            # if line is empty
-            # end of file is reached
-            if not line:
-                break
-            testline = line.split(',')
-            if testline[0].startswith('Call'):
-                parse_cdr(line)
-            print("Line{}: {}".format(count, line.strip()))
-        csv.close()
-        files_move(f)
-
-
-def files_move(file):
-    filename = str(os.path.basename(file))
-    print(filename)
-    year = datetime.now().strftime("%Y")
-    month = datetime.now().strftime("%m")
-    date = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-    if not os.path.exists(savefolder):
-        os.mkdir(savefolder)
-    savefolderd = savefolder + year + '/'
-    if not os.path.exists(savefolderd):
-        os.mkdir(savefolderd)
-    savefolderd = savefolder + year + '/' + month + '/'
-    if not os.path.exists(savefolderd):
-        os.mkdir(savefolderd)
-    shutil.move(file, savefolderd + date + '_' + filename)  # to move files from
-    print(file + ' moved')

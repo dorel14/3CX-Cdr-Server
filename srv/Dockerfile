@@ -54,6 +54,9 @@ COPY --from=builder /app/requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip
 RUN pip install --no-cache /wheels/*
 
+RUN mkdir -p /opt/cdrfiles
+RUN mkdir -p /opt/cdrfiles_archives
+
 #Port d'écoute
 EXPOSE 5000
 
