@@ -1,5 +1,8 @@
 FROM tiangolo/uvicorn-gunicorn:python3.9
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 
+
 RUN apt-get update && \
     apt-get install -y curl 
 

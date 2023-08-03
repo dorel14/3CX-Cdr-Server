@@ -1,31 +1,59 @@
-FROM python:3.9-slim
-
-
-# Keeps Python from generating .pyc files in the container
-ENV PYTHONDONTWRITEBYTECODE=1
-
-# Turns off buffering for easier container logging
-ENV PYTHONUNBUFFERED=1
+# For more information, please refer to https://aka.ms/vscode-docker-python
+FROM python:3.9.17-slim-bullseye as builder
 
 #Prepare apt files
-RUN apt-get update \
-    && apt-get -y install libpq-dev \
+RUN apt update \
+     && apt-get install -y apt-transport-https 
+RUN apt install -y libpq-dev \
     gcc \
     g++ \
     unixodbc \
     unixodbc-dev\
     curl
 
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# Activate the virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
 
 RUN mkdir /streamlit
 
 WORKDIR /streamlit
 
-COPY requirements.txt /streamlit
+# Install pip requirements
+COPY requirements.txt /streamlit/requirements.txt
+RUN python -m venv /opt/venv && \
+    pip install --upgrade pip && \
+    pip install -r requirements.txt 
 
-RUN pip install --upgrade pip
-RUN pip install -r /streamlit/requirements.txt
+
+# final stage
+FROM python:3.9.17-slim-bullseye
+
+
+
+#Prepare apt files
+RUN apt-get update \
+    && apt-get install -y apt-transport-https 
+RUN apt install -y libpq-dev \
+    gcc \
+    g++ \
+    unixodbc \
+    unixodbc-dev\
+    curl
+
+# Keeps Python from generating .pyc files in the container
+# Turns off buffering for easier container logging
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1\
+    PATH="/opt/venv/bin:$PATH"
+
+
+COPY --from=builder /opt/venv /opt/venv
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN mkdir /streamlit
+
+WORKDIR /streamlit
 
 COPY . /streamlit
 
