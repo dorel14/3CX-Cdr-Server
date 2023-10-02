@@ -34,7 +34,7 @@ def parse_cdr(data):
         _String_: Renvoi OK si insertion en BDD ok
     """
     lang = os.environ.get('LOCALE_LANGUAGE')
-    print(lang)
+    logger.info(lang)
     cdr_columns_names = [
         "historyid",
         "callid",
@@ -89,7 +89,7 @@ def parse_cdr(data):
         names=cdr_columns_names,
         dtype=types,
     )
-    print(df_cdr)
+    logger.info(df_cdr)
 
     df_cdr_details_columns = [
         "cdr_historyid",
