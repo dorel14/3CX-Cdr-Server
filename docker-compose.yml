@@ -1,21 +1,6 @@
-version: '3.3'
+version: '3.8'
 
 services:
-  3cxcdrtcpserver:
-    image: 3cxcdrtcpserver
-    hostname: 3cxtcpsrv
-    build:
-      context: .
-      dockerfile: ./tcpsrv/Dockerfile
-    command: bash -c "while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && python ./tcpsrv/runserver.py"
-    ports:
-      - 5000:5000
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-
   db:
     hostname: db
     image: postgres:12
@@ -34,6 +19,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  3cxcdrtcpserver:
+    image: 3cxcdrtcpserver
+    hostname: 3cxtcpsrv
+    build:
+      context: .
+      dockerfile: ./tcpsrv/Dockerfile
+    restart: always
+    command: bash -c "/wait && alembic upgrade head && python ./tcpsrv/runserver.py"
+    #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && python ./tcpsrv/runserver.py"
+    ports:
+      - 5000:5000
+    environment:
+      - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
+      - WAIT_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
+    env_file:
+      - .env
+    depends_on: 
+      db: 
+        condition: service_healthy
 
   pgadmin:
     image: dpage/pgadmin4

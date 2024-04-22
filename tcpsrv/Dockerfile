@@ -1,5 +1,5 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3.9.7-slim as builder
+FROM python:3.9.19-slim-bullseye as builder
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ COPY requirements.txt /app/requirements.txt
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 # final stage
-FROM python:3.9.7-slim
+FROM python:3.9.19-slim-bullseye
 
 RUN apt-get update \
     && apt-get -y install unixodbc \
@@ -45,6 +45,11 @@ COPY --from=builder /app/requirements.txt /app/requirements.txt
 
 RUN python -m pip install --upgrade pip
 RUN pip install --no-cache /wheels/*
+
+# Add docker-compose-wait tool -------------------
+ENV WAIT_VERSION 2.12.0
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/$WAIT_VERSION/wait /wait
+RUN chmod +x /wait
 
 #Port d'écoute
 EXPOSE 5000
