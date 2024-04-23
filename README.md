@@ -1,14 +1,23 @@
-<h2>Cet outil permet l'enregistrement des CDR 3cx dans une base de donnée PostgreSql et de faire des tableaux de bord avec l'outil Grafana</h2></br>
+# Recording 3CX CDRs into a PostgreSql database with Grafana
 
+## Description
+This tool enables the recording of 3CX CDRs into a PostgreSql database and the creation of dashboards using Grafana.
 
-<h3>Pour bénéficier de l'ensemble des fonctions , il est nécessaire de faire l'installation via Docker.</br>
-Cette image contient  4 conteneurs , le serveur TCP,  le conteneur Postgres v12, le conteneur PgAdmin et le conteneur Grafana pour les dashboards</h3></br>
+## Installation
+To benefit from all functionalities, it's necessary to install via Docker. This image contains 4 containers:
+- TCP server
+- Postgres v12 container
+- PgAdmin container
+- Grafana container for dashboards
 
-Les paramètres de base sont à indiquer dans un fichier .env à la racine du répertoire selon le modèle .env_model</br>
-Les paramétrages doivent être faits sur le serveur 3CX comme indiqué ici: </br><a href="https://www.3cx.com/docs/cdr-call-data-records">Paramétrage des CDR</a>
-Attention à bien indiquer "3CX CDR service is client / Active Socket" afin que le serveur 3cx se connecte sur notre serveur TCP.
-</br>
-Le paramétrage des CDR dans 3cx doit suivre cet ordre:
+## Configuration
+1. Basic parameters should be provided in a `.env` file at the root directory following the `.env_model` template.
+2. Configuration settings need to be applied on the 3CX server as indicated below:
+</br><a href="https://www.3cx.com/docs/cdr-call-data-records">Paramétrage des CDR</a>
+
+### Configuring CDRs in 3CX:
+- Ensure to indicate "3CX CDR service is client / Active Socket" for the 3CX server to connect to our TCP server.
+- CDR configuration in 3CX should follow this sequence:
 <ul>
 <li>historyid</li>
 <li>callid</li>
