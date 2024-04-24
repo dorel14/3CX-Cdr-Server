@@ -2,11 +2,9 @@ version: '3'
 
 services:
   db:
-    hostname: db
-    image: postgres:12
     build:
       context: .
-      dockerfile: ./db_init/Dockerfile
+      dockerfile: ./db_folder/Dockerfile
     restart: always
     ports:
       - 5432:5432
@@ -20,34 +18,72 @@ services:
       timeout: 5s
       retries: 5
 
-  3cxcdrtcpserver:
-    image: 3cxcdrtcpserver
-    hostname: 3cxtcpsrv
+  webapi:
     build:
       context: .
-      dockerfile: ./tcpsrv/Dockerfile
+      dockerfile: ./webapi/Dockerfile
     restart: always
-    command: bash -c "/wait && alembic upgrade head && python ./tcpsrv/runserver.py"
-    #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && python ./tcpsrv/runserver.py"
-    ports:
-      - 5000:5000
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: 
+      - 8004:8000
+    command: bash -c  "/wait && alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
+    healthcheck:
+      test: curl ${API_URL}/healthcheck || exit 1 
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ui:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./ui/Dockerfile
+  #   restart: always
+  #   depends_on:
+  #     webapi:
+  #       condition: service_healthy
+  #   ports: 
+  #       - 8501:8501
+
+  3cxcdrserver:
+    image: 3cxcdrserver
+    build:
+      context: .
+      dockerfile: ./srv/Dockerfile
+    ports:
+      - 5000:5000
     env_file:
       - .env
-    depends_on: 
-      db: 
+    depends_on:
+      webapi:
         condition: service_healthy
+    command: bash -c "/wait && python srv/runserver.py"
+    environment:
+      - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
+      - WAIT_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
+    volumes:
+      - cdr:/opt/cdrfiles
+      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/opt/cdrfiles_archives
+
+
 
   pgadmin:
     image: dpage/pgadmin4
-    hostname: pgadmin4
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - 5555:80
     env_file:
@@ -69,10 +105,16 @@ services:
       - ./grafana_init/provisioning/:/etc/grafana/provisioning/
       - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
 
-
 volumes:
-  pgdata: {}
-  pgadmin_data: {}
-  grafana-storage: {}
+   pgdata: {}
+   pgadmin_data: {}
+   grafana-storage: {}
+   cdr:
+    driver_opts:
+      type: "nfs"
+      o: "addr=${CDR_SERVER_IP},nolock,soft,rw,nfsvers=3"
+      device: :${CDR_FOLDER}
+
+
 
 
