@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3'
 
 services:
   db:
@@ -91,9 +91,24 @@ services:
     restart: unless-stopped
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
+
+  grafana:
+    image: grafana/grafana-oss
+    depends_on:
+      - db
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana_init/provisioning/:/etc/grafana/provisioning/
+      - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
+
 volumes:
    pgdata: {}
    pgadmin_data: {}
+   grafana-storage: {}
    cdr:
     driver_opts:
       type: "nfs"
