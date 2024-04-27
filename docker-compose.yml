@@ -10,11 +10,13 @@ services:
       - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-q", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
 
   webapi:
     build:
@@ -41,6 +43,8 @@ services:
       retries: 5
       start_period: 60s
 
+
+
   # ui:
   #   build: 
   #     context: .
@@ -52,8 +56,8 @@ services:
   #   ports: 
   #       - 8501:8501
 
+
   3cxcdrserver:
-    image: 3cxcdrserver
     build:
       context: .
       dockerfile: ./srv/Dockerfile
@@ -64,6 +68,7 @@ services:
     depends_on:
       webapi:
         condition: service_healthy
+    restart: always
     command: bash -c "/wait && python srv/runserver.py"
     environment:
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
@@ -71,9 +76,10 @@ services:
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
-    #volumes:
-    #  - cdr:/opt/cdrfiles
-    #  - ${LOCAL_CDR_FOLDER_ARCHIVE}:/opt/cdrfiles_archives
+    volumes:
+      - cdr:/opt/cdrfiles
+      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/opt/cdrfiles_archives
+
 
 
 
@@ -90,6 +96,7 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
 
+
   grafana:
     image: grafana/grafana-oss
     depends_on:
@@ -103,15 +110,12 @@ services:
       - ./grafana_init/provisioning/:/etc/grafana/provisioning/
       - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
 
+
 volumes:
    pgdata: {}
    pgadmin_data: {}
    grafana-storage: {}
    cdr: {}
-   # driver_opts:
-    #  type: "nfs"
-     # o: "addr=${CDR_SERVER_IP},nolock,soft,rw,nfsvers=3"
-      #device: :${CDR_FOLDER}
 
 
 
