@@ -42,8 +42,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
-
-
+      
 
   # ui:
   #   build: 
@@ -79,9 +78,6 @@ services:
     volumes:
       - cdr:/opt/cdrfiles
       - ${LOCAL_CDR_FOLDER_ARCHIVE}:/opt/cdrfiles_archives
-
-
-
 
   pgadmin:
     image: dpage/pgadmin4
