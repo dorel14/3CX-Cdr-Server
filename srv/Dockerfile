@@ -1,6 +1,6 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 # using ubuntu LTS version
-FROM python:3.9-slim AS builder-image
+FROM python:3.12-slim-bookworm AS builder-image
 
 # avoid stuck build due to user prompt
 ARG DEBIAN_FRONTEND=noninteractive
@@ -12,7 +12,7 @@ RUN	apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home myuser
 
 # Activate the virtual environment
-RUN python3.9 -m venv /home/myuser/venv
+RUN python -m venv /home/myuser/venv
 ENV PATH="/home/myuser/venv/bin:$PATH"
 
 RUN mkdir /home/myuser/app
@@ -26,7 +26,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 
 
-FROM python:3.9-slim AS runner-image
+FROM python:3.12-slim-bookworm AS runner-image
 RUN apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages net-tools \
      tzdata -y\
      curl\ 

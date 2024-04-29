@@ -1,4 +1,4 @@
-FROM tiangolo/uvicorn-gunicorn:python3.9
+FROM tiangolo/uvicorn-gunicorn:python3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 
