@@ -4,6 +4,7 @@ import socketserver
 import threading
 import os
 import sys
+import chardet
 from setproctitle import setproctitle, getproctitle
 
 from dotenv import load_dotenv
@@ -21,7 +22,9 @@ class traitementDonnées(socketserver.BaseRequestHandler):
 
     def handle(self):
         cdr = self.request.recv(2048)
-        cdr = cdr.decode().strip()
+        cdr_encoding = chardet.detect(cdr).get('encoding')
+        logger.debug(cdr_encoding)
+        cdr = cdr.decode(encoding=cdr_encoding).strip()
         self.request.send(bytes(cdr, 'utf-8'))
         
         logger.info(cdr)
