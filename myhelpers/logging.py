@@ -36,6 +36,6 @@ logger.addHandler(file_handler)
 
 # création d'un second handler qui va rediriger chaque écriture de log
 # sur la console
-# stream_handler = logging.StreamHandler()
-# stream_handler.setLevel(logging.DEBUG)
-# logger.addHandler(stream_handler)
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+logger.addHandler(stream_handler)

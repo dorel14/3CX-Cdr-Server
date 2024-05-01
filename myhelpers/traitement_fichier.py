@@ -12,7 +12,7 @@ savefolder = '/opt/cdrfiles_archives'
 
 def files_move(file):
     filename = str(os.path.basename(file))
-    print(filename)
+    logger.info(filename)
     year = datetime.now().strftime("%Y")
     month = datetime.now().strftime("%m")
     date = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
@@ -54,13 +54,13 @@ def csv_files_read(filefolder):
                 logger.info(r_cdr.status_code)
                 logger.info(r_cdr.content)
 
-                print(r_cdr.status_code, r_cdr.content)
+                logger.info(r_cdr.status_code, r_cdr.content)
 
                 webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
                 r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdrdetails, headers=headers)
                 logger.info(r_cdrdetails.status_code)
                 logger.info(r_cdrdetails.content)
-                print(r_cdrdetails.status_code, r_cdrdetails.content)
+                logger.info(r_cdrdetails.status_code, r_cdrdetails.content)
 
             logger.info("Line{}: {}".format(count, line.strip()))
         csv.close()

@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends --allow-change-
      tzdata -y\
      curl\ 
      locales\
+     iputils-ping\
      locales-
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
