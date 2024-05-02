@@ -7,7 +7,7 @@
 Detta verktyg underlättar inspelning av 3CX CDR:er i en PostgreSql-databas och skapande av instrumentpaneler med hjälp av Grafana.
 
 ## Installation
-För att använda alla funktioner krävs installation via Docker. Denna bild innehåller 4 containrar:
+För att använda alla funktioner krävs installation via Docker. Denna bild innehåller 5 containrar:
 - TCP-server / FTP-klient
 - WebAPI-server
 - Postgres v12-container

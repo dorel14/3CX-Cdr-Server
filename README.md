@@ -8,7 +8,7 @@
 This tool facilitates the recording of 3CX CDRs into a PostgreSql database and the creation of dashboards using Grafana.
 
 ## Installation
-To utilize all features, installation via Docker is necessary. This image contains 4 containers:
+To utilize all features, installation via Docker is necessary. This image contains 5 containers:
 - TCP Server / FTP Client
 - WebAPI server
 - Postgres v12 container
