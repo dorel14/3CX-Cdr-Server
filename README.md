@@ -1,26 +1,29 @@
 # Multilanguage README Pattern
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.md)
 [![fr](https://img.shields.io/badge/lang-fr-green.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.fr.md)
+[![swe](https://img.shields.io/badge/lang-swe-blue.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.swe.md)
 # Recording 3CX CDRs into a PostgreSql database with Grafana
 
 ## Description
-This tool enables the recording of 3CX CDRs into a PostgreSql database and the creation of dashboards using Grafana.
+This tool facilitates the recording of 3CX CDRs into a PostgreSql database and the creation of dashboards using Grafana.
 
 ## Installation
-To benefit from all functionalities, it's necessary to install via Docker. This image contains 4 containers:
-- TCP server
+To utilize all features, installation via Docker is necessary. This image contains 4 containers:
+- TCP Server / FTP Client
+- WebAPI server
 - Postgres v12 container
 - PgAdmin container
 - Grafana container for dashboards
 
 ## Configuration
-1. Basic parameters should be provided in a `.env` file at the root directory following the `.env_model` template.
+1. Basic parameters should be provided in a `.env` file at the root directory following the `.env_template` model.
 2. Configuration settings need to be applied on the 3CX server as indicated below:
-</br><a href="https://www.3cx.com/docs/cdr-call-data-records">Paramétrage des CDR</a>
+</br><a href="https://www.3cx.com/docs/cdr-call-data-records">CDR Configuration</a>
 
 ### Configuring CDRs in 3CX:
-- Ensure to indicate "3CX CDR service is client / Active Socket" for the 3CX server to connect to our TCP server.
-- CDR configuration in 3CX should follow this sequence:
+- For TCP transfer: Ensure to indicate "3CX CDR service is client / Active Socket" for the 3CX server to connect to our TCP server.
+- For FTP transfer: Ensure file generation. It's recommended to generate 1 file per call for seamless integration throughout the day. Note that this mode requires setting up an FTP server where CDR files will be available and accessible by the application. In the configuration file, you can choose to archive files on the FTP server; they will be renamed to .old, or to delete them. In any case, files are backed up after processing in the LOCAL_CDR_FOLDER_ARCHIVE directory specified in the .env file and mounted on the server running the Docker stack.
+- The CDR configuration in 3CX should follow this order:
 <ul>
 <li>historyid</li>
 <li>callid</li>
@@ -51,3 +54,5 @@ To benefit from all functionalities, it's necessary to install via Docker. This 
 <li>missed_queue_calls</li>
 </ul>
 
+### Logs:
+Log files are located in the directory: `/home/appuser/app/logs`.

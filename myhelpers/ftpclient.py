@@ -32,7 +32,10 @@ class ftpclient():
                     ftp.download_if_newer(f,
                                           os.path.join(localfolder, f))
                     logger.info("file downloaded:" + f)
-                    ftp.rename(f, f + ".old")
+                    if os.environ.get('FTP_3CX_ARCHIVE_OR_DELETE') == 'ARCHIVE':
+                        ftp.rename(f, f + ".old")
+                    elif os.environ.get('FTP_3CX_ARCHIVE_OR_DELETE') == 'DELETE':
+                        ftp.remove(f)
             csv_files_read(localfolder, archivefolder)            
             sleep(interval)
 
