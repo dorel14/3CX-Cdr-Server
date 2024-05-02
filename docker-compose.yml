@@ -60,6 +60,7 @@ services:
     build:
       context: .
       dockerfile: ./srv/Dockerfile
+    tty: true
     ports:
       - 5000:5000
     env_file:
@@ -76,8 +77,8 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     volumes:
-      - cdr:/opt/cdrfiles
-      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/opt/cdrfiles_archives
+      - cdr:/home/appuser/cdrfiles
+      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives
 
   pgadmin:
     image: dpage/pgadmin4

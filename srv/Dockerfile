@@ -47,6 +47,8 @@ COPY --from=builder-image /home/myuser/venv /home/appuser/venv
 
 RUN rm -rf /home/appuser/app
 RUN mkdir /home/appuser/app
+RUN mkdir /home/appuser/cdrfiles
+
 
 WORKDIR /home/appuser/app
 
@@ -59,14 +61,16 @@ RUN chmod +x /wait
 
 COPY . .
 
-RUN chown -R appuser  /home/appuser/app  
+# RUN chown -R appuser  /home/appuser/*
+RUN chown -R appuser  /home/appuser/app 
+RUN chown -R appuser  /home/appuser/cdrfiles
 
 USER appuser
 # Keeps Python from generating .pyc files in the container
 # Turns off buffering for easier container logging
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/home/appuser/venv/bin:$PATH"
 
 
 

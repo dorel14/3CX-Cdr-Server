@@ -7,10 +7,10 @@ import requests
 from myhelpers.cdr import parse_cdr
 from myhelpers.logging import logger
 
-filefolder = '/opt/cdrfiles'
-savefolder = '/opt/cdrfiles_archives'
+#filefolder = '/opt/cdrfiles'
+#savefolder = '/opt/cdrfiles_archives'
 
-def files_move(file):
+def files_move(file, savefolder):
     filename = str(os.path.basename(file))
     logger.info(filename)
     year = datetime.now().strftime("%Y")
@@ -27,11 +27,11 @@ def files_move(file):
     shutil.move(file, savefolderd + date + '_' + filename)  # to move files from
     logger.info(file + ' moved')
 
-def csv_files_read(filefolder):
+def csv_files_read(filefolder, archivefolder):
     logger.info(filefolder)
-    for f in glob.glob(filefolder + "**"
-                       + os.environ.get('FTP_3CX_FILEEXT'),
-                       recursive=False):
+    os.chdir(filefolder)
+    for f in list(glob.glob(os.environ.get('3CX_FILEEXT'),
+                       recursive=False)):
         logger.info(f)
         csv = open(f, 'r')
         count = 0
@@ -46,24 +46,24 @@ def csv_files_read(filefolder):
             testline = line.split(',')
             if testline[0].startswith('Call'):
                 cdrs, cdrdetails = parse_cdr(line)
-                logger.info('cdr: ', cdrs)
-                logger.info('cdrdetails: ', cdrdetails)
+                #logger.info('cdr: ' + cdrs)
+                #logger.info('cdrdetails: ' + cdrdetails)
                 webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
                 headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
                 r_cdr = requests.post(webapi_url_cdr,data=cdrs, headers=headers)
                 logger.info(r_cdr.status_code)
                 logger.info(r_cdr.content)
 
-                logger.info(r_cdr.status_code, r_cdr.content)
+                #logger.info(r_cdr.status_code, r_cdr.content)
 
                 webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
                 r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdrdetails, headers=headers)
                 logger.info(r_cdrdetails.status_code)
                 logger.info(r_cdrdetails.content)
-                logger.info(r_cdrdetails.status_code, r_cdrdetails.content)
+                #logger.info(r_cdrdetails.status_code, r_cdrdetails.content)
 
             logger.info("Line{}: {}".format(count, line.strip()))
         csv.close()
-        files_move(f)
+        files_move(f, archivefolder)
 
 
