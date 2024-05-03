@@ -28,7 +28,7 @@ services:
         condition: service_healthy
     ports: 
       - 8004:8000
-    command: bash -c  "/wait && alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
@@ -69,7 +69,7 @@ services:
       webapi:
         condition: service_healthy
     restart: always
-    command: bash -c "/wait && python srv/runserver.py"
+    command: bash -c "/wait && python -m alembic upgrade head && python srv/runserver.py"
     environment:
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300

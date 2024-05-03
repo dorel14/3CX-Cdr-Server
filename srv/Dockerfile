@@ -80,6 +80,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 ENV VIRTUAL_ENV=/home/appuser/venv
 ENV PATH="/home/appuser/venv/bin:$PATH"
 
+RUN pip3 install --upgrade pip
+RUN pip3 install alembic
+
 #Port d'écoute
 EXPOSE 5000
 

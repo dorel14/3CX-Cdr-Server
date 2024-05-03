@@ -60,6 +60,7 @@ class call_data_records_details_base(SQLModel):
     call_time: time
     call_week: int
     day_of_week: str
+    filename:Optional[str]
     
 
 class call_data_records_details(call_data_records_details_base, table=True):

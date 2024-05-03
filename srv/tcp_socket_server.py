@@ -33,7 +33,7 @@ class traitementDonnées(socketserver.BaseRequestHandler):
         #webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
         cdrs, cdrdetails = parse_cdr(cdr)
         rcdr, rcdrdetails = push_cdr_api(cdrs, cdrdetails)
-        print(rcdr.status_code, rcdrdetails.status_code)
+        print(rcdr, rcdrdetails)
 
         if cdr == 'shutdown':
             self.request.close()

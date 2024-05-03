@@ -21,7 +21,7 @@ def to_local_datetime(utc_dt):
     return dt.fromtimestamp(calendar.timegm(utc_dt.timetuple()))
 
 
-def parse_cdr(data):
+def parse_cdr(data,filename=''):
     """Fonction permettant de splitter un CDR et de l'intégrer en BDD
 
     Args:
@@ -72,7 +72,9 @@ def parse_cdr(data):
         "time_start": str,
         "time_answered": str,
         "time_end": str,
+        "missed_queue_calls":str
     }
+
     dates_columns = ["time_start", "time_answered", "time_end"]
     date_format = "%Y/%m/%d %H:%M:%S"
     date_format_out = "%Y/%m/%dT%H:%M:%S.078Z"
@@ -97,6 +99,7 @@ def parse_cdr(data):
         "call_time",
         "call_week",
         "day_of_week",
+        "filename"
     ]
     df_cdr_details = pd.DataFrame(columns=df_cdr_details_columns)
     df_cdr_details["cdr_historyid"] = df_cdr["historyid"]
@@ -144,6 +147,7 @@ def parse_cdr(data):
     df_cdr_details = df_cdr_details.astype(
         {"handling_time_seconds": int, "waiting_time_seconds": int}
     )
+    df_cdr_details["filename"] = filename
 
     df_cdr["time_start"] = df_cdr["time_start"].apply(
         lambda x: to_local_datetime(dt.strptime(x, date_format))
@@ -183,16 +187,18 @@ def push_cdr_api(cdr, cdr_details):
             r_cdr = requests.post(webapi_url_cdr,data=cdr, headers=headers)
             logger.info(r_cdr.status_code)
             logger.info(r_cdr.content)
+            mcdr=r_cdr.status_code
         else:
              logger.info("cdr existant")
-             r_cdr['status_code']="cdr existant"
-        if getcdrdetails.status_code == 404:
+             mcdr ="cdr existant"
+        if getcdrdetails.status_code == 404 and r_cdr.status_code == 200 :
             r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
             logger.info(r_cdrdetails.status_code)
             logger.info(r_cdrdetails.content)
+            mcdrdetails = r_cdrdetails.status_code
         else :
-             logger.info("cdr detail existant")
-             r_cdrdetails['status_code']="cdr detail existant"      
+            logger.info("cdr detail existant")
+            mcdrdetails="cdr detail existant"      
 
-        return r_cdr, r_cdrdetails
+        return mcdr, mcdrdetails
 

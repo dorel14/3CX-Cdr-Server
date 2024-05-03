@@ -3,7 +3,7 @@ import glob
 import os
 from datetime import datetime
 import shutil
-import requests
+
 from myhelpers.cdr import parse_cdr, push_cdr_api
 from myhelpers.logging import logger
 
@@ -45,9 +45,10 @@ def csv_files_read(filefolder, archivefolder):
                 break
             testline = line.split(',')
             if testline[0].startswith('Call'):
-                cdrs, cdrdetails = parse_cdr(line)
+                cdrs, cdrdetails = parse_cdr(line, f)
                 rcdr, rcdrdetails = push_cdr_api(cdrs, cdrdetails)
-                logger.info(rcdr.status_code, rcdrdetails.status_code)
+                logger.info(rcdr)
+                logger.info(rcdrdetails)
             logger.info("Line{}: {}".format(count, line.strip()))
         csv.close()
         files_move(f, archivefolder)
