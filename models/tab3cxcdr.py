@@ -41,6 +41,7 @@ class call_data_records(call_data_records_base, table=True):
 
 class call_data_records_read(call_data_records_base):
     id:int
+    
 
 class call_data_records_create(call_data_records_base):
     pass

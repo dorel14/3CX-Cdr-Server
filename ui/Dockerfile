@@ -1,5 +1,5 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3.9.17-slim-bullseye as builder
+FROM python:3.12-slim-bookworm as builder
 
 #Prepare apt files
 RUN apt update \
@@ -26,7 +26,7 @@ RUN python -m venv /opt/venv && \
 
 
 # final stage
-FROM python:3.9.17-slim-bullseye
+FROM python:3.12-slim-bookworm
 
 
 

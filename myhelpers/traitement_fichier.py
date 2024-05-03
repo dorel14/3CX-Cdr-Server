@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 import shutil
 import requests
-from myhelpers.cdr import parse_cdr
+from myhelpers.cdr import parse_cdr, push_cdr_api
 from myhelpers.logging import logger
 
 #filefolder = '/opt/cdrfiles'
@@ -46,22 +46,8 @@ def csv_files_read(filefolder, archivefolder):
             testline = line.split(',')
             if testline[0].startswith('Call'):
                 cdrs, cdrdetails = parse_cdr(line)
-                #logger.info('cdr: ' + cdrs)
-                #logger.info('cdrdetails: ' + cdrdetails)
-                webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
-                headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-                r_cdr = requests.post(webapi_url_cdr,data=cdrs, headers=headers)
-                logger.info(r_cdr.status_code)
-                logger.info(r_cdr.content)
-
-                #logger.info(r_cdr.status_code, r_cdr.content)
-
-                webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
-                r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdrdetails, headers=headers)
-                logger.info(r_cdrdetails.status_code)
-                logger.info(r_cdrdetails.content)
-                #logger.info(r_cdrdetails.status_code, r_cdrdetails.content)
-
+                rcdr, rcdrdetails = push_cdr_api(cdrs, cdrdetails)
+                logger.info(rcdr.status_code, rcdrdetails.status_code)
             logger.info("Line{}: {}".format(count, line.strip()))
         csv.close()
         files_move(f, archivefolder)

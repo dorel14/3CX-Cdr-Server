@@ -9,7 +9,7 @@ from setproctitle import setproctitle, getproctitle
 
 from dotenv import load_dotenv
 import requests
-from myhelpers.cdr import parse_cdr
+from myhelpers.cdr import parse_cdr, push_cdr_api
 from myhelpers.logging import logger
 
 
@@ -28,25 +28,12 @@ class traitementDonnées(socketserver.BaseRequestHandler):
         self.request.send(bytes(cdr, 'utf-8'))
         
         logger.info(cdr)
-        webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
+        
+
+        #webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
         cdrs, cdrdetails = parse_cdr(cdr)
-        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-        r_cdr = requests.post(webapi_url_cdr,data=cdrs, headers=headers)
-        logger.info(r_cdr.status_code)
-        logger.info(r_cdr.content)
-
-        print(r_cdr.status_code, r_cdr.content)
-
-        webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
-        r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdrdetails, headers=headers)
-        logger.info(r_cdrdetails.status_code)
-        logger.info(r_cdrdetails.content)
-        print(r_cdrdetails.status_code, r_cdrdetails.content)
-
-
-
-
-
+        rcdr, rcdrdetails = push_cdr_api(cdrs, cdrdetails)
+        print(rcdr.status_code, rcdrdetails.status_code)
 
         if cdr == 'shutdown':
             self.request.close()
