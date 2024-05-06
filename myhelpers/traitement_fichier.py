@@ -34,9 +34,8 @@ def csv_files_read(filefolder, archivefolder):
                        recursive=False)):
         logger.info(f)
         csv = open(f, 'r')
-        count = 0
-        while True:
-            count += 1
+        count = 1
+        while True:            
             # Get next line from file
             line = csv.readline()
             # if line is empty
@@ -50,6 +49,7 @@ def csv_files_read(filefolder, archivefolder):
                 logger.info(rcdr)
                 logger.info(rcdrdetails)
             logger.info("Line{}: {}".format(count, line.strip()))
+            count += 1
         csv.close()
         files_move(f, archivefolder)
 
