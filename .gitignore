@@ -15,6 +15,7 @@ env/
 .venv/
 .env
 test/
+*.csv
 
 # Ignore dynaconf secret files
 .secrets.*
