@@ -8,7 +8,7 @@ Cet outil permet l'enregistrement des CDR 3CX dans une base de données PostgreS
 
 ## Installation
 Pour bénéficier de l'ensemble des fonctions, il est nécessaire de faire l'installation via Docker. Cette image contient 5 conteneurs :
-- Serveur TCP / Client FTP
+- Serveur TCP / Client FTP - SFTP - SCP
 - Serveur webapi
 - Conteneur Postgres v12
 - Conteneur PgAdmin
@@ -21,7 +21,7 @@ Pour bénéficier de l'ensemble des fonctions, il est nécessaire de faire l'ins
 
 ### Paramétrage des CDR dans 3CX :
 - Pour un tansfert via TCP : assurez-vous d'indiquer "3CX CDR service is client / Active Socket" afin que le serveur 3CX se connecte sur notre serveur TCP.
-- Pour un transfert via FTP : assurez-vous de générer des fichiers . Je vous conseille de générer 1 fichier par appel afin que ceux-ci soient intégrés au fil de la journée .
+- Pour un transfert via FTP/SFTP/SCP: assurez-vous de générer des fichiers . Je vous conseille de générer 1 fichier par appel afin que ceux-ci soient intégrés au fil de la journée .
 Attention ce mode de fonctionnement nécéssite de mettre en place un serveur FTP dans lequel les fichiers CDR seront disponibles et que ce serveur soit accessible par l'application.
 Dans le fichier de paramétrage , vous pouvez choisir d'archiver les fichiers sur le serveur FTP , ils seront renommer en .old , ou de les supprimer.
 Dans tout les cas ,  les fichiers sont sauvegardés après traitement dans le dossier LOCAL_CDR_FOLDER_ARCHIVE indiqué dans le fichier .env et monté sur le serveur éxécutant la stack Docker.

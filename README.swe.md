@@ -8,7 +8,7 @@ Detta verktyg underlättar inspelning av 3CX CDR:er i en PostgreSql-databas och 
 
 ## Installation
 För att använda alla funktioner krävs installation via Docker. Denna bild innehåller 5 containrar:
-- TCP-server / FTP-klient
+- TCP-server / FTP - SFTP - SCP-klient
 - WebAPI-server
 - Postgres v12-container
 - PgAdmin-container
@@ -21,7 +21,7 @@ För att använda alla funktioner krävs installation via Docker. Denna bild inn
 
 ### Konfigurera CDR:er i 3CX:
 - För överföring via TCP: Se till att ange "3CX CDR-tjänsten är klient / aktivt socket" så att 3CX-servern kan ansluta till vår TCP-server.
-- För överföring via FTP: Se till att filgenerering är aktiverad. Det rekommenderas att generera 1 fil per samtal för sömlös integration under hela dagen. Observera att denna läge kräver att en FTP-server är konfigurerad där CDR-filer kommer att vara tillgängliga och åtkomliga av applikationen. I konfigurationsfilen kan du välja att arkivera filer på FTP-servern; de kommer att omdöpas till .old, eller att ta bort dem. I alla fall säkerhetskopieras filer efter bearbetning i katalogen LOCAL_CDR_FOLDER_ARCHIVE som anges i .env-filen och monteras på servern som kör Docker-stacken.
+- För överföring via FTP/SFTP/SCP: Se till att filgenerering är aktiverad. Det rekommenderas att generera 1 fil per samtal för sömlös integration under hela dagen. Observera att denna läge kräver att en FTP-server är konfigurerad där CDR-filer kommer att vara tillgängliga och åtkomliga av applikationen. I konfigurationsfilen kan du välja att arkivera filer på FTP-servern; de kommer att omdöpas till .old, eller att ta bort dem. I alla fall säkerhetskopieras filer efter bearbetning i katalogen LOCAL_CDR_FOLDER_ARCHIVE som anges i .env-filen och monteras på servern som kör Docker-stacken.
 - Konfigurationen av CDR:er i 3CX ska följa denna ordning:
 <ul>
 <li>historyid</li>
