@@ -17,7 +17,6 @@ services:
       timeout: 5s
       retries: 5
 
-
   webapi:
     build:
       context: .
@@ -106,7 +105,6 @@ services:
       - grafana-storage:/var/lib/grafana
       - ./grafana_init/provisioning/:/etc/grafana/provisioning/
       - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
-
 
 volumes:
    pgdata: {}
