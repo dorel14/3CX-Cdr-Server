@@ -9,9 +9,15 @@ FROM postgres:12-alpine
 #ENV LANG fr_FR.utf8
 
 #----Alpine----
+RUN apk update
 RUN apk add --no-cache --update musl musl-utils musl-locales tzdata
 
-ENV TZ=Europe/Paris
-RUN cp /usr/share/zoneinfo/Europe/Paris /etc/localtime
-RUN echo 'export LC_ALL=fr_FR.UTF-8' >> /etc/profile.d/locale.sh && \
-  sed -i 's|LANG=C.UTF-8|LANG=fr_FR.UTF-8|' /etc/profile.d/locale.sh
+ENV TZ=${TZ}
+ENV LANG ${LOCALE_LANGUAGE}.UTF-8
+ENV LANGUAGE ${LOCALE_LANGUAGE}.UTF-8
+ENV LC_ALL ${LOCALE_LANGUAGE}.UTF-8
+RUN ln -s /usr/share/zoneinfo/${TZ} /etc/localtime
+
+#RUN cp /usr/share/zoneinfo/${TZ} /etc/localtime
+#RUN echo 'export LC_ALL='${LOCALE_LANGUAGE}'.UTF-8' >> /etc/profile.d/locale.sh && \
+#  sed -i 's|LANG=C.UTF-8|LANG='${LOCALE_LANGUAGE}'.UTF-8|' /etc/profile.d/locale.sh

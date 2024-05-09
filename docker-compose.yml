@@ -1,5 +1,3 @@
-version: '3.3'
-
 services:
   db:
     build:
@@ -12,9 +10,10 @@ services:
       - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-q", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
-      interval: 10s
+      interval: 60s
       timeout: 5s
       retries: 5
 
@@ -28,7 +27,7 @@ services:
         condition: service_healthy
     ports: 
       - 8004:8000
-    command: bash -c  "/wait && alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
@@ -38,10 +37,11 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
       test: curl ${API_URL}/healthcheck || exit 1 
-      interval: 10s
+      interval: 60s
       timeout: 5s
       retries: 5
       start_period: 60s
+      
 
   # ui:
   #   build: 
@@ -54,11 +54,12 @@ services:
   #   ports: 
   #       - 8501:8501
 
+
   3cxcdrserver:
-    image: 3cxcdrserver
     build:
       context: .
       dockerfile: ./srv/Dockerfile
+    tty: true
     ports:
       - 5000:5000
     env_file:
@@ -66,18 +67,17 @@ services:
     depends_on:
       webapi:
         condition: service_healthy
-    command: bash -c "/wait && python srv/runserver.py"
+    restart: always
+    command: bash -c "/wait && python -m alembic upgrade head && python srv/runserver.py"
     environment:
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
-    #volumes:
-      #- cdr:/opt/cdrfiles
-      #- ${LOCAL_CDR_FOLDER_ARCHIVE}:/opt/cdrfiles_archives
-
-
+    volumes:
+      - cdr:/home/appuser/cdrfiles
+      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives
 
   pgadmin:
     image: dpage/pgadmin4
@@ -91,6 +91,7 @@ services:
     restart: unless-stopped
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
+
 
   grafana:
     image: grafana/grafana-oss
@@ -110,10 +111,6 @@ volumes:
    pgadmin_data: {}
    grafana-storage: {}
    cdr: {}
-    #driver_opts:
-      #type: "nfs"
-      #o: "addr=${CDR_SERVER_IP},nolock,soft,rw,nfsvers=3"
-      #device: :${CDR_FOLDER}
 
 
 

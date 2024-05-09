@@ -1,6 +1,6 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 # using ubuntu LTS version
-FROM python:3.9-slim AS builder-image
+FROM python:3.12-slim-bookworm AS builder-image
 
 # avoid stuck build due to user prompt
 ARG DEBIAN_FRONTEND=noninteractive
@@ -12,7 +12,7 @@ RUN	apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home myuser
 
 # Activate the virtual environment
-RUN python3.9 -m venv /home/myuser/venv
+RUN python -m venv /home/myuser/venv
 ENV PATH="/home/myuser/venv/bin:$PATH"
 
 RUN mkdir /home/myuser/app
@@ -26,11 +26,12 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 
 
-FROM python:3.9-slim AS runner-image
+FROM python:3.12-slim-bookworm AS runner-image
 RUN apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages net-tools \
      tzdata -y\
      curl\ 
      locales\
+     iputils-ping\
      locales-
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -46,6 +47,8 @@ COPY --from=builder-image /home/myuser/venv /home/appuser/venv
 
 RUN rm -rf /home/appuser/app
 RUN mkdir /home/appuser/app
+RUN mkdir /home/appuser/cdrfiles
+
 
 WORKDIR /home/appuser/app
 
@@ -58,14 +61,16 @@ RUN chmod +x /wait
 
 COPY . .
 
-RUN chown -R appuser  /home/appuser/app  
+# RUN chown -R appuser  /home/appuser/*
+RUN chown -R appuser  /home/appuser/app 
+RUN chown -R appuser  /home/appuser/cdrfiles
 
 USER appuser
 # Keeps Python from generating .pyc files in the container
 # Turns off buffering for easier container logging
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/home/appuser/venv/bin:$PATH"
 
 
 
@@ -74,6 +79,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # activate virtual environment
 ENV VIRTUAL_ENV=/home/appuser/venv
 ENV PATH="/home/appuser/venv/bin:$PATH"
+
+#RUN pip3 install --upgrade pip
+#RUN pip3 install alembic
 
 #Port d'écoute
 EXPOSE 5000
