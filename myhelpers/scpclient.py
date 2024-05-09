@@ -26,13 +26,15 @@ class scpclient():
             for f in fNames:                
                 logger.info(f"fichier {f}")
                 if not f.endswith('.old'):
-                    scp.get(remote_path=os.path.join(ftpfolder,f),
+                    scpfilename = os.path.join(ftpfolder,f)
+                    scp.get(remote_path=scpfilename,
                             local_path=os.path.join(localfolder, f))
-                    logger.info("file downloaded:" + f)
+                    logger.info("file downloaded:" + scpfilename)
                     if os.environ.get('SCP_3CX_ARCHIVE_OR_DELETE') == 'ARCHIVE':
-                        ssh.exec_command(f"sudo mv {f} .old")
+                        #ssh.exec_command(f"sudo mv {scpfilename} .old")
+                        sftp.rename(scpfilename,f"{scpfilename}.old")
                     elif os.environ.get('SCP_3CX_ARCHIVE_OR_DELETE') == 'DELETE':
-                        ssh.exec_command(f"sudo rm -f  {f}")
+                        ssh.exec_command(f"sudo rm -f  {scpfilename}")
             csv_files_read(localfolder, archivefolder)            
             sleep(interval)
 
