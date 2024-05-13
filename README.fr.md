@@ -57,5 +57,9 @@ Dans tout les cas ,  les fichiers sont sauvegardés après traitement dans le do
 <li>missed_queue_calls</li>
 </ul>
 
-### Journaux:
+Journaux:
 Les fichiers de log sont dans le dossier : /home/appuser/app/logs
+
+
+### Contributions
+Si vous appréciez mon travail n'hésitez à [m'offrir un café , une bière ou toute autre boisson][https://buymeacoffee.com/dorel14]
