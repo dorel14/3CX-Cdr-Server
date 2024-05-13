@@ -57,5 +57,5 @@ To utilize all features, installation via Docker is necessary. This image contai
 ### Logs:
 Log files are located in the directory: `/home/appuser/app/logs`.
 
-### Bidrag
-If you like my work, don't hesitate to [buy me a coffee, a beer or any other drink][https://buymeacoffee.com/dorel14]
+### Contributions
+If you like my work, don't hesitate to [buy me a coffee, a beer or any other drink](https://buymeacoffee.com/dorel14)
