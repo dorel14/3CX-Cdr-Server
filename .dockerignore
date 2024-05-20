@@ -25,3 +25,9 @@
 **/values.dev.yaml
 README.md
 *.csv
+**/pg_12/*/*
+**/datas/*/*
+
+#exceptions
+!**/pg_12/.gitkeep
+!**/datas/.gitkeep 

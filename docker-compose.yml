@@ -9,10 +9,19 @@ services:
     env_file:
       - .env
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./db_folder/pg_12:/var/lib/postgresql/data
       - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "pg_isready", "-q", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-q",
+          "-U",
+          "${POSTGRES_USER}",
+          "-d",
+          "${POSTGRES_DB}"
+        ]
       interval: 60s
       timeout: 5s
       retries: 5
@@ -25,7 +34,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports: 
+    ports:
       - 8004:8000
     command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
@@ -36,12 +45,11 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
-      test: curl ${API_URL}/healthcheck || exit 1 
+      test: curl ${API_URL}/healthcheck || exit 1
       interval: 60s
       timeout: 5s
       retries: 5
       start_period: 60s
-      
 
   # ui:
   #   build: 
@@ -76,7 +84,7 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     volumes:
-      - cdr:/home/appuser/cdrfiles
+      - ./srv/datas:/home/appuser/cdrfiles
       - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives
 
   pgadmin:
@@ -92,7 +100,6 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
 
-
   grafana:
     image: grafana/grafana-oss
     depends_on:
@@ -107,11 +114,5 @@ services:
       - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
 
 volumes:
-   pgdata: {}
-   pgadmin_data: {}
-   grafana-storage: {}
-   cdr: {}
-
-
-
-
+  pgadmin_data:
+  grafana-storage:

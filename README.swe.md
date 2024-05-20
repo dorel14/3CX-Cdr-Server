@@ -56,5 +56,5 @@ För att använda alla funktioner krävs installation via Docker. Denna bild inn
 ### Loggar:
 Loggfiler finns i katalogen: `/home/appuser/app/logs`.
 
-
-Om du gillar mitt arbete, tveka inte att [köpa mig en kaffe, en öl eller någon annan drink][https://buymeacoffee.com/dorel14]
+### Bidrag
+Om du gillar mitt arbete, tveka inte att [köpa mig en kaffe, en öl eller någon annan drink](https://buymeacoffee.com/dorel14)
