@@ -11,7 +11,7 @@ app.include_router(cdr_api.router)
 async def root():
     return{'message':'Hello World'}
 
-@app.get('/healthcheck', status_code=status.HTTP_200_OK)
+@app.get('/healthcheck', status_code=status.HTTP_200_OK, tags=["health"])
 def perform_healthcheck():
     '''
     Simple route for the GitHub Actions to healthcheck on.

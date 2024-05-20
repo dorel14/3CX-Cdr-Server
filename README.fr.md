@@ -7,19 +7,25 @@
 Cet outil permet l'enregistrement des CDR 3CX dans une base de données PostgreSql et la création de tableaux de bord avec l'outil Grafana.
 
 ## Installation
-Pour bénéficier de l'ensemble des fonctions, il est nécessaire de faire l'installation via Docker. Cette image contient 4 conteneurs :
-- Serveur TCP
+Pour bénéficier de l'ensemble des fonctions, il est nécessaire de faire l'installation via Docker. Cette image contient 5 conteneurs :
+- Serveur TCP / Client FTP - SFTP - SCP
+- Serveur webapi
 - Conteneur Postgres v12
 - Conteneur PgAdmin
 - Conteneur Grafana pour les dashboards
 
 ## Configuration
-1. Les paramètres de base doivent être renseignés dans un fichier `.env` à la racine du répertoire selon le modèle `.env_model`.
+1. Les paramètres de base doivent être renseignés dans un fichier `.env` à la racine du répertoire selon le modèle `.env_template`.
 2. Les paramétrages doivent être faits sur le serveur 3CX comme indiqué ci-dessous :
 </br><a href="https://www.3cx.com/docs/cdr-call-data-records">Paramétrage des CDR</a>
 
 ### Paramétrage des CDR dans 3CX :
-- Assurez-vous d'indiquer "3CX CDR service is client / Active Socket" afin que le serveur 3CX se connecte sur notre serveur TCP.
+- Pour un tansfert via TCP : assurez-vous d'indiquer "3CX CDR service is client / Active Socket" afin que le serveur 3CX se connecte sur notre serveur TCP.
+- Pour un transfert via FTP/SFTP/SCP: assurez-vous de générer des fichiers . Je vous conseille de générer 1 fichier par appel afin que ceux-ci soient intégrés au fil de la journée .
+Attention ce mode de fonctionnement nécéssite de mettre en place un serveur FTP dans lequel les fichiers CDR seront disponibles et que ce serveur soit accessible par l'application.
+Dans le fichier de paramétrage , vous pouvez choisir d'archiver les fichiers sur le serveur FTP , ils seront renommer en .old , ou de les supprimer.
+Dans tout les cas ,  les fichiers sont sauvegardés après traitement dans le dossier LOCAL_CDR_FOLDER_ARCHIVE indiqué dans le fichier .env et monté sur le serveur éxécutant la stack Docker.
+
 - Le paramétrage des CDR dans 3CX doit suivre cet ordre :
 <ul>
 <li>historyid</li>
@@ -51,3 +57,9 @@ Pour bénéficier de l'ensemble des fonctions, il est nécessaire de faire l'ins
 <li>missed_queue_calls</li>
 </ul>
 
+Journaux:
+Les fichiers de log sont dans le dossier : /home/appuser/app/logs
+
+
+### Contributions
+Si vous appréciez mon travail n'hésitez à [m'offrir un café , une bière ou toute autre boisson](https://buymeacoffee.com/dorel14)
