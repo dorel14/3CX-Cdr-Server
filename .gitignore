@@ -21,7 +21,6 @@ db_folder/pg_12/*
 srv/datas/*
 
 #exceptions
-!db_folder/pg_12/.gitkeep
 !srv/datas/.gitkeep 
 
 # Ignore dynaconf secret files
