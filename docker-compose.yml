@@ -75,7 +75,8 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     volumes:
-      - ./srv/datas:/home/appuser/cdrfiles
+      #- ./srv/datas:/home/appuser/cdrfiles
+      - cdr_datas:/home/appuser/cdrfiles
       - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives
 
   pgadmin:
