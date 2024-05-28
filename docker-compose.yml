@@ -108,3 +108,4 @@ services:
 volumes:
   pgadmin_data:
   grafana-storage:
+  cdr_datas:
