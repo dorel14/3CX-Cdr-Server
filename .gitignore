@@ -16,7 +16,7 @@ env/
 .env
 test/
 *.csv
-db_folder/pg_12/*
+db_folder/pg_*/*
 
 srv/datas/*
 

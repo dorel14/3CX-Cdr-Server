@@ -64,6 +64,7 @@ COPY . .
 # RUN chown -R appuser  /home/appuser/*
 RUN chown -R appuser  /home/appuser/app 
 RUN chown -R appuser  /home/appuser/cdrfiles
+RUN chmod -R 777 /home/appuser/app
 
 USER appuser
 # Keeps Python from generating .pyc files in the container
