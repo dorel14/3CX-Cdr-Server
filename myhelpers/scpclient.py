@@ -2,6 +2,7 @@
 from scp import SCPClient
 import paramiko
 import os
+import fnmatch
 from time import sleep
 from myhelpers.logging import logger
 from myhelpers.traitement_fichier import csv_files_read
@@ -25,8 +26,8 @@ class scpclient():
         with SCPClient(ssh.get_transport(), sanitize=lambda x: x) as scp:
             for f in fNames:                
                 logger.info(f"fichier {f}")
-                if not f.endswith('.old'):
-                    scpfilename = os.path.join(ftpfolder,f)
+                scpfilename = os.path.join(ftpfolder,f)
+                if fnmatch.fnmatch(f, os.environ.get('3CX_FILEEXT')) :                    
                     scp.get(remote_path=scpfilename,
                             local_path=os.path.join(localfolder, f))
                     logger.info("file downloaded:" + scpfilename)
