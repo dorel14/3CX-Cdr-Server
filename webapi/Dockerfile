@@ -4,7 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 
 
 RUN apt-get update && \
-    apt-get install -y curl 
+    apt-get install -y curl \
+    iputils-ping
 
 RUN mkdir /fastapi
 
