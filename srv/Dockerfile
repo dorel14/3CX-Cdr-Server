@@ -6,7 +6,7 @@ FROM python:3.12-slim-bookworm AS builder-image
 ARG DEBIAN_FRONTEND=noninteractive
 
 #Prepare apt files
-RUN apt-get update && apt-get install --no-install-recommends -y python3-pip python3-wheel gcc g++ curl libpq-dev
+RUN apt-get update && apt-get install --no-install-recommends -y python3-pip python3-wheel gcc g++ curl libpq-dev iputils-ping
 RUN	apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home myuser
@@ -42,7 +42,7 @@ ENV LANG ${LOCALE_LANGUAGE}.utf8
 RUN mkdir -p /opt/cdrfiles
 RUN mkdir -p /opt/cdrfiles_archives
 
-RUN useradd -u 5678 --disabled-password --gecos "" --create-home appuser 
+RUN useradd -u 5678  --create-home appuser 
 COPY --from=builder-image /home/myuser/venv /home/appuser/venv
 
 RUN rm -rf /home/appuser/app
