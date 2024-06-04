@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import glob
 import os
+from gettext import gettext as _
 from datetime import datetime
 import shutil
 
@@ -25,13 +26,13 @@ def files_move(file, savefolder):
     date = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
     check_directory_permissions(savefolder)
     if not os.path.exists(savefolder):
-        os.mkdir(savefolder, mode=0o777, exist_ok=False)
+        os.mkdir(savefolder, mode=0o777)
     savefolderd = os.path.join(savefolder, year)
     if not os.path.exists(savefolderd):
-        os.mkdir(savefolderd, mode=0o777, exist_ok=False)
+        os.mkdir(savefolderd, mode=0o777)
     savefolderd = os.path.join(savefolderd, month)
     if not os.path.exists(savefolderd):
-        os.mkdir(savefolderd, mode=0o777, exist_ok=False)
+        os.mkdir(savefolderd, mode=0o777)
     shutil.move(file, savefolderd + date + '_' + filename)  # to move files from
     logger.info(file + ' moved')
 
