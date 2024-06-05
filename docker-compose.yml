@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: ./db_folder/Dockerfile
     restart: always
+    networks:
+      - custom_network
     ports:
       - 5432:5432
     env_file:
@@ -25,6 +27,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - custom_network
     ports:
       - 8004:8000
     command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
@@ -59,6 +63,8 @@ services:
       context: .
       dockerfile: ./srv/Dockerfile
     tty: true
+    networks:
+      - custom_network
     ports:
       - 5000:5000
     env_file:
@@ -84,6 +90,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - custom_network
     ports:
       - 5555:80
     env_file:
@@ -96,6 +104,8 @@ services:
     image: grafana/grafana-oss
     depends_on:
       - db
+    networks:
+      - custom_network
     ports:
       - 3000:3000
     env_file:
@@ -109,3 +119,11 @@ volumes:
   pgadmin_data:
   grafana-storage:
   cdr_datas:
+
+networks:
+  custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET}
+          gateway: ${DOCKER_GATEWAY}
