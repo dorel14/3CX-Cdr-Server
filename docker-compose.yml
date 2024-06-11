@@ -83,7 +83,7 @@ services:
     volumes:
       #- ./srv/datas:/home/appuser/cdrfiles
       - cdr_datas:/home/appuser/cdrfiles
-      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives
+      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
 
   pgadmin:
     image: dpage/pgadmin4
