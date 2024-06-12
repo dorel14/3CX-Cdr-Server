@@ -22,7 +22,7 @@ class scpclient():
     
     def monitor(self, ftpfolder='', localfolder='',archivefolder='', interval=50):
         """
-        Monitors an FTP folder, downloads any new files matching a specified file extension, and optionally archives or deletes the downloaded files on the FTP server.
+        Monitors an SCP folder, downloads any new files matching a specified file extension, and optionally archives or deletes the downloaded files on the FTP server.
         
         Args:
             ftpfolder (str): The path to the FTP folder to monitor.

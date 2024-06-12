@@ -54,7 +54,7 @@ def files_move(file, savefolder):
     if not os.path.exists(savefolderd):
         os.mkdir(savefolderd, mode=0o777)
     check_directory_permissions(savefolderd)
-    shutil.move(file, savefolderd + date + '_' + filename)  # to move files from
+    shutil.move(file, os.path.join(savefolderd, date + '_' + filename))  # to move files from
     logger.info(file + ' moved')
 
 def csv_files_read(filefolder, archivefolder):
