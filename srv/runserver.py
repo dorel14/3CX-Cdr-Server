@@ -37,8 +37,12 @@ def create_client(server_type, **kwargs):
         from myhelpers.sftpclient import sftpclient
         return sftpclient(**kwargs)
     elif server_type == 'SCP':
+        host = kwargs.get('host')
+        user = kwargs.get('user')
+        password = kwargs.get('password')
+        ports=kwargs.get('port', 22)
         from myhelpers.scpclient import scpclient
-        return scpclient(**kwargs)
+        return scpclient(host, user, password, ports)
     else:
         raise ValueError(f"Invalid server type: {server_type}")
 
@@ -50,8 +54,8 @@ def run_server(server_type, client_config):
         port = int(os.environ.get('SERVER_PORT'))
         serveur.runserver(host, port)
     else:
-        with create_client(server_type, **client_config) as client:
-            client.monitor(client_config['server_dir'], filefolder, archivefolder, client_config['interval'])
+        client = create_client(server_type, **client_config)
+        client.monitor(client_config['server_dir'], filefolder, archivefolder, client_config['interval'])
 
 if __name__ == '__main__':
     server_type = os.environ.get('SERVER_TYPE')
