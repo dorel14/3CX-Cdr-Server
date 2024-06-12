@@ -1,4 +1,4 @@
-# Multilanguage README Pattern
+
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.md)
 
 # Inspelning av 3CX CDR:er i en PostgreSql-databas med Grafana
