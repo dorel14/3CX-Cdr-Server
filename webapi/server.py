@@ -1,11 +1,22 @@
 # -*- coding: UTF-8 -*-
-from fastapi import FastAPI, status
+from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from typing import Union
 from .routers import extensions_api, cdr_api
 
 app = FastAPI()
 app.include_router(extensions_api.router) #permet d'ajouter les routes d'un fichier externe
 app.include_router(cdr_api.router)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+    )
+
 
 @app.get('/')
 async def root():

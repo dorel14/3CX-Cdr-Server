@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 import requests
+from requests.exceptions import HTTPError
 import json
 
 
@@ -187,27 +188,70 @@ def push_cdr_api(cdr, cdr_details):
     cdr_historyid = cdrdict['historyid']
     cdrddict = json.loads(cdr_details)
     cdrd_historyid = cdrddict['cdr_historyid']
-    getcdr = requests.get(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
-    getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
-    logger.info(getcdr.status_code)
-    logger.info(getcdrdetails.status_code)
 
-    if getcdr.status_code == 404:
-        r_cdr = requests.post(webapi_url_cdr,data=cdr, headers=headers)
-        logger.info(r_cdr.status_code)
-        logger.info(r_cdr.content)
-        mcdr=r_cdr.status_code
+
+    try:
+        getcdr = requests.get(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
+        getcdr.raise_for_status()
+    except HTTPError as http_err:
+        if http_err.response.status_code == 422:
+            logger.error(f"Erreur 422 (Unprocessable Entity) lors de la récupération du CDR: {http_err}")
+            mcdr = http_err.response.status_code
+        else:
+            logger.error(f"Erreur HTTP lors de la récupération du CDR: {http_err}")
+            mcdr = http_err.response.status_code
     else:
-        logger.info("cdr existant")
-        mcdr ="cdr existant"
-    if getcdrdetails.status_code == 404 and r_cdr.status_code == 200 :
-        r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
-        logger.info(r_cdrdetails.status_code)
-        logger.info(r_cdrdetails.content)
-        mcdrdetails = r_cdrdetails.status_code
-    else :
-        logger.info("cdr detail existant")
-        mcdrdetails="cdr detail existant"      
+        logger.info(getcdr.status_code)
+        if getcdr.status_code == 404:
+            try:
+                r_cdr = requests.post(webapi_url_cdr, data=cdr, headers=headers)
+                r_cdr.raise_for_status()
+            except HTTPError as http_err:
+                if http_err.response.status_code == 422:
+                    logger.error(f"Erreur 422 (Unprocessable Entity) lors de l'envoi du CDR: {http_err}")
+                    mcdr = "Erreur 422"
+                else:
+                    logger.error(f"Erreur HTTP lors de l'envoi du CDR: {http_err}")
+                    mcdr = "Erreur HTTP"
+            else:
+                logger.info(r_cdr.status_code)
+                logger.info(r_cdr.content)
+                mcdr = r_cdr.status_code
+        else:
+            logger.info("cdr existant")
+            mcdr = "cdr existant"
+
+    try:
+        getcdrdetails = requests.get(f"{webapi_url_cdr}/historyid/{cdrd_historyid}")
+        getcdrdetails.raise_for_status()
+    except HTTPError as http_err:
+        if http_err.response.status_code == 422:
+            logger.error(f"Erreur 422 (Unprocessable Entity) lors de la récupération du CDR: {http_err}")
+            mcdrdetails = http_err.response.status_code
+        else:
+            logger.error(f"Erreur HTTP lors de la récupération du CDR: {http_err}")
+            mcdrdetails = http_err.response.status_code
+    else:
+        logger.info(getcdrdetails.status_code)
+        if getcdrdetails.status_code == 404:
+            try:
+                r_cdrdetails = requests.post(webapi_url_cdr, data=cdr_details, headers=headers)
+                r_cdrdetails.raise_for_status()
+            except HTTPError as http_err:
+                if http_err.response.status_code == 422:
+                    logger.error(f"Erreur 422 (Unprocessable Entity) lors de l'envoi du CDR: {http_err}")
+                    mcdrdetails = "Erreur 422"
+                else:
+                    logger.error(f"Erreur HTTP lors de l'envoi du CDR: {http_err}")
+                    mcdrdetails = "Erreur HTTP"
+            else:
+                logger.info(r_cdr.status_code)
+                logger.info(r_cdr.content)
+                mcdrdetails = r_cdrdetails.status_code
+        else:
+            logger.info("cdr existant")
+            mcdrdetails = "cdr existant"
+    
 
     return mcdr, mcdrdetails
 
