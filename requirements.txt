@@ -17,7 +17,7 @@ charset-normalizer==3.3.2
 click==8.1.7
 colorama==0.4.6
 colorclass==2.2.2
-cryptography==42.0.7
+cryptography==42.0.8
 Cython==0.29.37
 docopt==0.6.2
 fastapi==0.110.2
