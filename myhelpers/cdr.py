@@ -1,18 +1,27 @@
 # -*- coding: utf-8 -*-
-import calendar
-from datetime import datetime as dt, timedelta as td
-from babel.dates import format_date
-from myhelpers.logging import logger
 import os
+import json
+from time import time
+import pytz
+from babel.dates import format_date
 import pandas as pd
 import numpy as np
 from io import StringIO
+from datetime import datetime as dt
+from sqlmodel import Session
+from myhelpers.base import get_session
+
 import requests
 from requests.exceptions import HTTPError
-import json
+from myhelpers.logging import logger
 
+import sys
+sys.path.append(os.path.abspath("."))
+from models.tab3cxcdr import (
+    call_data_records, 
+    call_data_records_details)
 
-def to_local_datetime(utc_dt):
+def to_local_datetime(dt_obj):
     """
     convert from utc datetime to a locally aware datetime
      according to the host timezone
@@ -20,7 +29,8 @@ def to_local_datetime(utc_dt):
     :param utc_dt: utc datetime
     :return: local timezone datetime
     """
-    return dt.fromtimestamp(calendar.timegm(utc_dt.timetuple()))
+    tz = pytz.timezone(os.environ.get("TZ"))
+    return dt_obj.astimezone(tz=tz)
 
 
 def parse_cdr(data,filename=''):
@@ -77,7 +87,7 @@ def parse_cdr(data,filename=''):
         "time_start": str,
         "time_answered": str,
         "time_end": str,
-        "missed_queue_calls":str
+        "missed_queue_calls":str,
     }
 
     dates_columns = ["time_start", "time_answered", "time_end"]
@@ -94,6 +104,11 @@ def parse_cdr(data,filename=''):
         dtype=types,
     )
     logger.info(df_cdr)
+
+    pd.to_datetime(df_cdr["time_start"], format=date_format)
+    pd.to_datetime(df_cdr["time_answered"], format=date_format)
+    pd.to_datetime(df_cdr["time_end"], format=date_format)
+    pd.to_timedelta(df_cdr["duration"])
 
     df_cdr_details_columns = [
         "cdr_historyid",
@@ -180,6 +195,9 @@ def push_cdr_api(cdr, cdr_details):
             - 1 le statut d'intégration CDR
             - 1 le statut d'intégration de CDR détail
     """
+    if cdr is None or cdr_details is None:
+        logger.error("Données CDR ou détails CDR non valides")
+        return None, None
 
     webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
     webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
@@ -255,3 +273,33 @@ def push_cdr_api(cdr, cdr_details):
 
     return mcdr, mcdrdetails
 
+def validate_cdr(cdr, cdr_details):
+    cdr_data = [json.loads(row) for row in cdr.splitlines()]
+    cdr_details_data = [json.loads(row) for row in cdr_details.splitlines()]
+
+    cdr_errors = []
+    cdr_details_errors = []
+
+    for i, row in enumerate(cdr_data):
+        row["time_start"] = dt.fromtimestamp(row["time_start"] / 1000)
+        row["time_answered"] = dt.fromtimestamp(row["time_answered"] / 1000) if row["time_answered"] else None
+        row["time_end"] = dt.fromtimestamp(row["time_end"] / 1000)
+        try:
+            call_data_records(**row)
+        except Exception as e:
+            cdr_errors.append((i + 1, row, str(e)))
+
+    for i, row in enumerate(cdr_details_data):
+        try:
+            call_data_records_details(**row)
+        except Exception as e:
+            cdr_details_errors.append((i + 1, row, str(e)))
+
+    if not cdr_errors and not cdr_details_errors:
+        return True
+    else:
+        for line_number, row, error in cdr_errors:
+            logger.error(f"Erreur de validation ligne: {line_number} - Données: {row} - Erreur: {error}")
+        for line_number, row, error in cdr_details_errors:
+            logger.error(f"Erreur de validation ligne: {line_number} - Données: {row} - Erreur: {error}")
+        return False
