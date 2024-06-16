@@ -18,7 +18,7 @@ ENV PATH="/home/myuser/venv/bin:$PATH"
 RUN mkdir /home/myuser/app
 WORKDIR /home/myuser/app
 # Install pip requirements
-COPY requirements.txt .
+#COPY requirements.txt .
 
 RUN pip3 install --upgrade pip \
 && pip3 install --no-cache-dir wheel \
@@ -62,7 +62,7 @@ RUN rm -rf ${APP_DIR} \
 
 
 WORKDIR ${APP_DIR}
-COPY --chown=appuser:appgroup . .
+#COPY --chown=appuser:appgroup . .
 
 
 

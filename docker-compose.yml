@@ -62,7 +62,7 @@ services:
     build:
       context: .
       dockerfile: ./srv/Dockerfile
-    tty: true
+    tty: true     
     networks:
       - custom_network
     ports:
@@ -81,6 +81,7 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     volumes:
+      - app-code:/home/appuser/app
       #- ./srv/datas:/home/appuser/cdrfiles
       - cdr_datas:/home/appuser/cdrfiles
       - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
@@ -119,6 +120,12 @@ volumes:
   pgadmin_data:
   grafana-storage:
   cdr_datas:
+  app-code:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
 
 networks:
   custom_network:
