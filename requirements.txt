@@ -84,5 +84,5 @@ toolz==0.12.1
 typing_extensions==4.11.0
 tzdata==2024.1
 tzlocal==5.2
-urllib3==2.2.1
+urllib3==2.2.2
 zipp==3.19.2
