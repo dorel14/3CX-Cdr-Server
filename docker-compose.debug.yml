@@ -1,11 +1,157 @@
-version: '3.4'
-
 services:
-  3cxcdrtcpserver:
-    image: 3cxcdrtcpserver
+  db:
     build:
       context: .
-      dockerfile: ./Dockerfile
-    command: ["sh", "-c", "pip install debugpy -t /tmp && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 runserver.py "]
+      dockerfile: ./db_folder/Dockerfile
+    restart: always
+    networks:
+      - custom_network
     ports:
-      - 5678:5678
+      - 5432:5432
+    env_file:
+      - .env
+    volumes:
+      - ./db_folder/pg_12:/var/lib/postgresql/data
+      - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  webapi:
+    build:
+      context: .
+      dockerfile: ./webapi/Dockerfile
+    restart: always
+    volumes:
+      - api-dir:/fastapi
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - custom_network
+    ports:
+      - 8004:8000
+    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    environment:
+      - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
+      - WAIT_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
+    healthcheck:
+      test: curl ${API_URL}/healthcheck || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  ui:
+    build:
+      context: .
+      dockerfile: ./ui/Dockerfile
+    restart: always
+    networks:
+      - custom_network
+    volumes:
+      - ui-dir:/streamlit
+    depends_on:
+      webapi:
+        condition: service_healthy
+    ports:
+      - 8501:8501
+
+  3cxcdrserver:
+    build:
+      context: .
+      dockerfile: ./srv/Dockerfile
+    tty: true
+    networks:
+      - custom_network
+    ports:
+      - 5000:5000
+    env_file:
+      - .env
+    depends_on:
+      webapi:
+        condition: service_healthy
+    restart: always
+    command: bash -c "/wait && python -m alembic upgrade head && python srv/runserver.py"
+    environment:
+      - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
+      - WAIT_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
+    volumes:
+      - app-code:/home/appuser/app
+      #- ./srv/datas:/home/appuser/cdrfiles
+      - cdr_datas:/home/appuser/cdrfiles
+      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
+
+  pgadmin:
+    image: dpage/pgadmin4
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - custom_network
+    ports:
+      - 5555:80
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin/data
+
+  grafana:
+    image: grafana/grafana-oss
+    depends_on:
+      - db
+    networks:
+      - custom_network
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana_init/provisioning/:/etc/grafana/provisioning/
+      - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
+
+volumes:
+  pgadmin_data:
+  grafana-storage:
+  cdr_datas:
+  app-code:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+  api-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+  ui-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+
+networks:
+  custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET}
+          gateway: ${DOCKER_GATEWAY}

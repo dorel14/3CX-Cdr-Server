@@ -1,7 +1,13 @@
 # -*- coding: UTF-8 -*-
+from email.policy import default
 from typing import List, Optional
+from altair import Column
+from click import DateTime
+from sqlalchemy import Nullable
 from sqlmodel import Field, SQLModel
 from datetime import datetime, time, date
+import pytz
+import os
 metadata = SQLModel.metadata
 
 class call_data_records_base(SQLModel):
@@ -21,8 +27,8 @@ class call_data_records_base(SQLModel):
     final_number: Optional[str] = None
     final_dn: Optional[str] = None
     bill_code: Optional[str] = None
-    bill_rate: Optional[str] = None
-    bill_cost: Optional[str] = None
+    bill_rate: Optional[float] = None
+    bill_cost: Optional[float] = None
     bill_name: Optional[str] = None
     chain: Optional[str] = None
     from_type: Optional[str] = None
