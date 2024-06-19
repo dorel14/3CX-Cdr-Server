@@ -10,32 +10,13 @@ import pytz
 import os
 metadata = SQLModel.metadata
 
-
-class CustomDatetime(datetime):
-    """
-    Custom datetime type for SQLModel
-    """
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-    
-    @classmethod
-    def validate(cls, v, field):
-        if isinstance(v, str):
-            try:
-                return cls.strptime(v, "%Y/%m/%d %H:%M:%S")
-            except ValueError:
-                raise ValueError(f"{field.name} is not a valid datetime string")
-        return v
-
-
 class call_data_records_base(SQLModel):
     historyid: str = Field(sa_column_kwargs={'unique': True})  # - The ID you can use to link the call do the details
     callid: str = Field(sa_column_kwargs={'unique': True}) # - I'm guessing this is for something internal,not of use.
     duration: Optional[time] = None
-    time_start: CustomDatetime = Field(default=None, sa_column_kwargs={"nullable": True})  # - Start of the call, timestamp field
-    time_answered: CustomDatetime = Field(default=None, sa_column_kwargs={"nullable": True}) # Answer time, timestamp field
-    time_end: CustomDatetime = Field(default=None, sa_column_kwargs={"nullable": True})  # - End of the call, timestamp field
+    time_start: Optional[datetime] = None  # - Start of the call, timestamp field
+    time_answered: Optional[datetime] = None  # - Answer time, timestamp field
+    time_end: Optional[datetime] = None  # - End of the call, timestamp field
     reason_terminated: Optional[str] = None
     from_no: Optional[str] = None # - If its direct then this is the same as CallerID, if its to a group the group number is shown here, also if the call goes through a call menu the number of it is shown here
     to_no: Optional[str] = None

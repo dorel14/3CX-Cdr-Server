@@ -14,7 +14,11 @@ services:
       - ./db_folder/pg_12:/var/lib/postgresql/data
       - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      test:
+        [
+          "CMD-SHELL",
+          "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"
+        ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -24,6 +28,8 @@ services:
       context: .
       dockerfile: ./webapi/Dockerfile
     restart: always
+#    volumes:
+#      - api-dir:/fastapi
     depends_on:
       db:
         condition: service_healthy
@@ -46,23 +52,26 @@ services:
       retries: 5
       start_period: 60s
 
-  # ui:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./ui/Dockerfile
-  #   restart: always
-  #   depends_on:
-  #     webapi:
-  #       condition: service_healthy
-  #   ports: 
-  #       - 8501:8501
-
+  ui:
+    build:
+      context: .
+      dockerfile: ./ui/Dockerfile
+    restart: always
+    networks:
+      - custom_network
+  #  volumes:
+  #    - ui-dir:/streamlit
+    depends_on:
+      webapi:
+        condition: service_healthy
+    ports:
+      - 8501:8501
 
   3cxcdrserver:
     build:
       context: .
       dockerfile: ./srv/Dockerfile
-    tty: true     
+    tty: true
     networks:
       - custom_network
     ports:
@@ -81,7 +90,7 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     volumes:
-      - app-code:/home/appuser/app
+      #- app-code:/home/appuser/app
       #- ./srv/datas:/home/appuser/cdrfiles
       - cdr_datas:/home/appuser/cdrfiles
       - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
@@ -120,12 +129,24 @@ volumes:
   pgadmin_data:
   grafana-storage:
   cdr_datas:
-  app-code:
-    driver: local
-    driver_opts:
-      type: none
-      device: .
-      o: bind
+  #app-code:
+  #  driver: local
+  #  driver_opts:
+  #    type: none
+  #    device: .
+  #    o: bind
+  #api-dir:
+  #  driver: local
+  #  driver_opts:
+  #    type: none
+  #    device: .
+  #    o: bind
+  #ui-dir:
+  #  driver: local
+  #  driver_opts:
+  #    type: none
+  #    device: .
+  #    o: bind
 
 networks:
   custom_network:
