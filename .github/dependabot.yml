@@ -6,10 +6,9 @@
 version: 2
 updates:
   - package-ecosystem: "pip" # See documentation for possible values
-    directory: "/" # Location of package manifests
-    target-branch: "dev"
+    directory: "/" # Location of package manifest
     schedule:
-      interval: "weekly"
+      interval: "daily"
     commit-message:
       prefix: "pip prod"
       prefix-development: "pip dev"

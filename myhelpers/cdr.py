@@ -1,18 +1,27 @@
 # -*- coding: utf-8 -*-
-import calendar
-from datetime import datetime as dt, timedelta as td
-from babel.dates import format_date
-from myhelpers.logging import logger
 import os
+import json
+from time import time
+import pytz
+from babel.dates import format_date
+from urllib.parse import quote
 import pandas as pd
 import numpy as np
 from io import StringIO
+from datetime import datetime as dt
+from myhelpers.base import get_session
+
 import requests
 from requests.exceptions import HTTPError
-import json
+from myhelpers.logging import logger
 
+import sys
+sys.path.append(os.path.abspath("."))
+from models.tab3cxcdr import (
+    call_data_records, 
+    call_data_records_details)
 
-def to_local_datetime(utc_dt):
+def to_local_datetime(dt_obj):
     """
     convert from utc datetime to a locally aware datetime
      according to the host timezone
@@ -20,7 +29,8 @@ def to_local_datetime(utc_dt):
     :param utc_dt: utc datetime
     :return: local timezone datetime
     """
-    return dt.fromtimestamp(calendar.timegm(utc_dt.timetuple()))
+    tz = pytz.timezone(os.environ.get("TZ"))
+    return dt_obj.astimezone(tz=tz)
 
 
 def parse_cdr(data,filename=''):
@@ -74,10 +84,19 @@ def parse_cdr(data,filename=''):
         "dial_no": str,
         "final_number": str,
         "final_dn": str,
+        "bill_code": str,
+        "bill_name": str,
+        "chain": str,
         "time_start": str,
         "time_answered": str,
         "time_end": str,
-        "missed_queue_calls":str
+        "missed_queue_calls":str,
+        "from_type": str,
+        "to_type" : str,
+        "final_type": str,
+        "from_dispname": str,
+        "to_dispname": str,
+        "final_dispname": str
     }
 
     dates_columns = ["time_start", "time_answered", "time_end"]
@@ -93,7 +112,7 @@ def parse_cdr(data,filename=''):
         names=cdr_columns_names,
         dtype=types,
     )
-    logger.info(df_cdr)
+    logger.info(df_cdr)    
 
     df_cdr_details_columns = [
         "cdr_historyid",
@@ -158,6 +177,7 @@ def parse_cdr(data,filename=''):
     df_cdr["time_end"] = df_cdr["time_end"].apply(
         lambda x: to_local_datetime(dt.strptime(x, date_format))
     )
+    df_cdr["from_dispname"] = df_cdr["from_dispname"].apply(str)
     cdr = df_cdr.to_json(orient="records", lines=True)
     cdr_details = df_cdr_details.to_json(orient="records", lines=True)
 
@@ -167,6 +187,86 @@ def parse_cdr(data,filename=''):
     return cdr, cdr_details
 
 def push_cdr_api(cdr, cdr_details):
+
+    """Fonction permettant de poster le CDR et son détail vers l'API
+    Cette fonction teste si l'enregistrement existe avant de le poster
+
+    Args:
+        cdr (String): Json contenant le CDR 
+        cdr_details (String) : Json contenant le détail du CDR
+
+    Returns:
+        _String_: Renvoi 2 String :
+            - 1 le statut d'intégration CDR
+            - 1 le statut d'intégration de CDR détail
+    """
+
+    webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
+    webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
+    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+    cdrdict = json.loads(cdr)
+    cdr_historyid = cdrdict['historyid']
+    cdrddict = json.loads(cdr_details)
+    cdrd_historyid = cdrddict['cdr_historyid']
+    urlcdr = quote(f"{webapi_url_cdr}'/historyid/'{cdr_historyid}")
+    getcdr = requests.get(f"{webapi_url_cdr}'/historyid/'{cdr_historyid}")
+    urlcdrdetails = quote(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
+    getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
+    logger.info(f"Status get cdr: {getcdr.status_code}")
+    logger.info(f"Status get cdrdetail {getcdrdetails.status_code}")
+
+    if getcdr.status_code == 404:
+        r_cdr = requests.post(webapi_url_cdr,data=cdr, headers=headers)
+        logger.info(f"Statut get cdr {r_cdr.status_code}")
+        logger.info(f"Texte statut get cdr {r_cdr.content}")
+        mcdr=r_cdr.status_code
+    else:
+        logger.info("cdr existant")
+        mcdr ="cdr existant"
+    if getcdrdetails.status_code == 404 and r_cdr.status_code == 200 :
+        r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
+        logger.info(r_cdrdetails.status_code)
+        logger.info(r_cdrdetails.content)
+        mcdrdetails = r_cdrdetails.status_code
+    else :
+        logger.info("cdr detail existant")
+        mcdrdetails="cdr detail existant"      
+
+    return mcdr, mcdrdetails
+
+
+def validate_cdr(cdr, cdr_details):
+    cdr_data = [json.loads(row) for row in cdr.splitlines()]
+    cdr_details_data = [json.loads(row) for row in cdr_details.splitlines()]
+
+    cdr_errors = []
+    cdr_details_errors = []
+
+    for i, row in enumerate(cdr_data):
+        row["time_start"] = dt.fromtimestamp(row["time_start"] / 1000)
+        row["time_answered"] = dt.fromtimestamp(row["time_answered"] / 1000) if row["time_answered"] else None
+        row["time_end"] = dt.fromtimestamp(row["time_end"] / 1000)
+        try:
+            call_data_records(**row)
+        except Exception as e:
+            cdr_errors.append((i + 1, row, str(e)))
+
+    for i, row in enumerate(cdr_details_data):
+        try:
+            call_data_records_details(**row)
+        except Exception as e:
+            cdr_details_errors.append((i + 1, row, str(e)))
+
+    if not cdr_errors and not cdr_details_errors:
+        return True
+    else:
+        for line_number, row, error in cdr_errors:
+            logger.error(f"Erreur de validation ligne: {line_number} - Données: {row} - Erreur: {error}")
+        for line_number, row, error in cdr_details_errors:
+            logger.error(f"Erreur de validation ligne: {line_number} - Données: {row} - Erreur: {error}")
+        return False
+
+def push_cdr_api2(cdr, cdr_details):
 
     """Fonction permettant de poster le CDR et son détail vers l'API
     Cette fonction teste si l'enregistrement existe avant de le poster
@@ -254,4 +354,3 @@ def push_cdr_api(cdr, cdr_details):
     
 
     return mcdr, mcdrdetails
-

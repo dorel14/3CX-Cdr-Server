@@ -15,6 +15,7 @@ RUN apt install -y libpq-dev \
 ENV PATH="/opt/venv/bin:$PATH"
 
 RUN mkdir /streamlit
+RUN mkdir /data/files
 
 WORKDIR /streamlit
 

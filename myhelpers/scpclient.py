@@ -46,7 +46,13 @@ class scpclient():
             for f in fNames:                
                 logger.info(f"fichier {f}")
                 scpfilename = os.path.join(ftpfolder,f)
-                if fnmatch.fnmatch(f, os.environ.get('3CX_FILEEXT')) :                    
+                if fnmatch.fnmatch(f, os.environ.get('3CX_FILEEXT')) :
+                    try:
+                        sftp.stat(scpfilename)
+                    except IOError as e:
+                        logger.warning(f"Impossible de téléchareger {scpfilename} : {e}")
+                        continue
+                                       
                     scp.get(remote_path=scpfilename,
                             local_path=os.path.join(localfolder, f))
                     logger.info("file downloaded:" + scpfilename)

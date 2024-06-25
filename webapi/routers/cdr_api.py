@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import select, Session
 from typing import Union, List
 
+
 import os
 import sys
 
 sys.path.append(os.path.abspath("."))
 
 from myhelpers.base import get_session
+from myhelpers.logging import logger
 
 from models.tab3cxcdr import (
     call_data_records,
@@ -42,6 +44,7 @@ async def read_cdr_by_callid(*, session: Session = Depends(get_session), callid:
     db_cdr_by_cid = session.exec(select(call_data_records).where(call_data_records.callid==callid)).one_or_none()
     print(db_cdr_by_cid)
     if not db_cdr_by_cid:
+        logger.info(f"callid {callid} non trouvée")
         raise HTTPException(status_code=404, detail="cdr non trouvée")
     return db_cdr_by_cid
 
@@ -50,6 +53,7 @@ async def read_cdr_by_historyid(*, session: Session = Depends(get_session), hist
     db_cdr_by_hid = session.exec(select(call_data_records).where(call_data_records.historyid==historyid)).one_or_none()
     print(db_cdr_by_hid)
     if not db_cdr_by_hid:
+        logger.info(f"historyid {historyid} non trouvée")
         raise HTTPException(status_code=404, detail="cdr non trouvée")
     return db_cdr_by_hid
 
