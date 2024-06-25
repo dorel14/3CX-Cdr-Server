@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: ./db_folder/Dockerfile
-    restart: always
+    restart: unless-stopped
     networks:
       - custom_network
     ports:
@@ -27,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: ./webapi/Dockerfile
-    restart: always
+    restart: unless-stopped
 #    volumes:
 #      - api-dir:/fastapi
     depends_on:
@@ -56,7 +56,9 @@ services:
     build:
       context: .
       dockerfile: ./ui/Dockerfile
-    restart: always
+    env_file:
+      - webapi.env
+    restart: unless-stopped
     networks:
       - custom_network
   #  volumes:
@@ -78,10 +80,11 @@ services:
       - 5000:5000
     env_file:
       - .env
+      - webapi.env
     depends_on:
       webapi:
         condition: service_healthy
-    restart: always
+    restart: unless-stopped
     command: bash -c "/wait && python -m alembic upgrade head && python srv/runserver.py"
     environment:
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
@@ -116,6 +119,7 @@ services:
       - db
     networks:
       - custom_network
+    restart: unless-stopped
     ports:
       - 3000:3000
     env_file:

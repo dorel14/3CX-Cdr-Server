@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 from datetime import datetime as dt
-from sqlmodel import Session
 from myhelpers.base import get_session
 
 import requests
@@ -178,6 +177,7 @@ def parse_cdr(data,filename=''):
     df_cdr["time_end"] = df_cdr["time_end"].apply(
         lambda x: to_local_datetime(dt.strptime(x, date_format))
     )
+    df_cdr["from_dispname"] = df_cdr["from_dispname"].apply(str)
     cdr = df_cdr.to_json(orient="records", lines=True)
     cdr_details = df_cdr_details.to_json(orient="records", lines=True)
 
@@ -186,7 +186,7 @@ def parse_cdr(data,filename=''):
 
     return cdr, cdr_details
 
-def push_cdr_api2(cdr, cdr_details):
+def push_cdr_api(cdr, cdr_details):
 
     """Fonction permettant de poster le CDR et son détail vers l'API
     Cette fonction teste si l'enregistrement existe avant de le poster
@@ -266,7 +266,7 @@ def validate_cdr(cdr, cdr_details):
             logger.error(f"Erreur de validation ligne: {line_number} - Données: {row} - Erreur: {error}")
         return False
 
-def push_cdr_api(cdr, cdr_details):
+def push_cdr_api2(cdr, cdr_details):
 
     """Fonction permettant de poster le CDR et son détail vers l'API
     Cette fonction teste si l'enregistrement existe avant de le poster
