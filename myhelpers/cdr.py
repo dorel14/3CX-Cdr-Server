@@ -178,6 +178,10 @@ def parse_cdr(data,filename=''):
         lambda x: to_local_datetime(dt.strptime(x, date_format))
     )
     df_cdr["from_dispname"] = df_cdr["from_dispname"].apply(str)
+    df_cdr["to_dispname"] = df_cdr["to_dispname"].apply(str)
+    df_cdr["final_dispname"] = df_cdr["final_dispname"].apply(str)
+    df_cdr["final_number"] = df_cdr["final_number"].apply(str)
+    
     cdr = df_cdr.to_json(orient="records", lines=True)
     cdr_details = df_cdr_details.to_json(orient="records", lines=True)
 

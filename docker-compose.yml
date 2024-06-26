@@ -28,8 +28,8 @@ services:
       context: .
       dockerfile: ./webapi/Dockerfile
     restart: unless-stopped
-#    volumes:
-#      - api-dir:/fastapi
+    volumes:
+      - api-dir:/fastapi
     depends_on:
       db:
         condition: service_healthy
@@ -61,8 +61,8 @@ services:
     restart: unless-stopped
     networks:
       - custom_network
-  #  volumes:
-  #    - ui-dir:/streamlit
+    volumes:
+      - ui-dir:/streamlit
     depends_on:
       webapi:
         condition: service_healthy
@@ -93,7 +93,7 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     volumes:
-      #- app-code:/home/appuser/app
+      - app-code:/home/appuser/app
       #- ./srv/datas:/home/appuser/cdrfiles
       - cdr_datas:/home/appuser/cdrfiles
       - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
@@ -133,24 +133,24 @@ volumes:
   pgadmin_data:
   grafana-storage:
   cdr_datas:
-  #app-code:
-  #  driver: local
-  #  driver_opts:
-  #    type: none
-  #    device: .
-  #    o: bind
-  #api-dir:
-  #  driver: local
-  #  driver_opts:
-  #    type: none
-  #    device: .
-  #    o: bind
-  #ui-dir:
-  #  driver: local
-  #  driver_opts:
-  #    type: none
-  #    device: .
-  #    o: bind
+  app-code:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+  api-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+  ui-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
 
 networks:
   custom_network:
