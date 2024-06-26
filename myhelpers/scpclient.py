@@ -37,7 +37,7 @@ class scpclient():
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname=self.host, port=self.port, username= self.user, password= self.password, banner_timeout=200)
-        logger.info(ftpfolder)
+        #logger.info(ftpfolder)
         sftp = ssh.open_sftp()
         sftp.chdir(ftpfolder)
             

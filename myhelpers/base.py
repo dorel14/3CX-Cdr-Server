@@ -25,7 +25,7 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
 }
 
-print(dburl)
+#print(dburl)
 # create an engine
 engine = create_engine(dburl, echo=True, future=True)
 metadata = SQLModel.metadata
