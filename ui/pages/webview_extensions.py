@@ -24,7 +24,7 @@ def post_extensions(extensions):
     if not extensions.empty:
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
         webapi_url_extensions = api_base_url + '/api/v1/extensions'
-        
+
         list_of_jsons = df.to_json(orient='records', lines=True).splitlines()
         for js in list_of_jsons:
                 logger.info(js)            
@@ -49,9 +49,6 @@ def post_extensions(extensions):
 
 st.write("Uploader la liste des extensions à uploader au format csv")
 uploaded_file = st.file_uploader("Uploader le fichier", type="csv",)
-
-
-
 
 if uploaded_file:
     if not os.path.exists("/data/files"):
