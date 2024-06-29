@@ -14,7 +14,7 @@ WORKDIR /fastapi
 
 RUN pip install --upgrade pip && pip install -r requirements.txt 
 
-COPY . /fastapi
+#COPY . /fastapi
 
 EXPOSE 8000
 

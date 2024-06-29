@@ -60,7 +60,7 @@ RUN rm -rf ${APP_DIR} \
 
 
 WORKDIR ${APP_DIR}
-COPY --chown=appuser:appgroup . .
+#COPY --chown=appuser:appgroup . .
 
 
 

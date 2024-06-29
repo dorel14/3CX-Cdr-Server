@@ -213,8 +213,8 @@ def push_cdr_api(cdr, cdr_details):
     cdr_historyid = cdrdict['historyid']
     cdrddict = json.loads(cdr_details)
     cdrd_historyid = cdrddict['cdr_historyid']
-    urlcdr = quote(f"{webapi_url_cdr}'/historyid/'{cdr_historyid}")
-    getcdr = requests.get(f"{webapi_url_cdr}'/historyid/'{cdr_historyid}")
+    urlcdr = quote(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
+    getcdr = requests.get(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
     urlcdrdetails = quote(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
     getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
     logger.info(f"Status get cdr: {getcdr.status_code}")
