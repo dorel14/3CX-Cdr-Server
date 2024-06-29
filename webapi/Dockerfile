@@ -5,16 +5,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN apt-get update && \
     apt-get install -y curl \
-    iputils-ping
-
-RUN mkdir /fastapi
+    iputils-ping \
+    && mkdir /fastapi
 
 COPY requirements.txt /fastapi
 
 WORKDIR /fastapi
 
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt 
+RUN pip install --upgrade pip && pip install -r requirements.txt 
 
 COPY . /fastapi
 

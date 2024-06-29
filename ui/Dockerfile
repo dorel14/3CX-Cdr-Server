@@ -3,8 +3,8 @@ FROM python:3.12-slim-bookworm as builder
 
 #Prepare apt files
 RUN apt update \
-     && apt-get install -y apt-transport-https 
-RUN apt install -y libpq-dev \
+     && apt-get install -y apt-transport-https \
+&&  apt install -y libpq-dev \
     gcc \
     g++ \
     unixodbc \
@@ -14,10 +14,13 @@ RUN apt install -y libpq-dev \
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN mkdir /streamlit
-RUN mkdir /data/files
+RUN mkdir /streamlit \
+&& mkdir /data  \
+&& mkdir /data/files
+
 
 WORKDIR /streamlit
+
 
 # Install pip requirements
 COPY requirements.txt /streamlit/requirements.txt
@@ -33,8 +36,8 @@ FROM python:3.12-slim-bookworm
 
 #Prepare apt files
 RUN apt-get update \
-    && apt-get install -y apt-transport-https 
-RUN apt install -y libpq-dev \
+    && apt-get install -y apt-transport-https \
+&& apt install -y libpq-dev \
     gcc \
     g++ \
     unixodbc \
@@ -43,6 +46,7 @@ RUN apt install -y libpq-dev \
 
 # Keeps Python from generating .pyc files in the container
 # Turns off buffering for easier container logging
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1\
     PATH="/opt/venv/bin:$PATH"
@@ -50,9 +54,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY --from=builder /opt/venv /opt/venv
 
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-RUN mkdir /streamlit
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+&& mkdir /streamlit
 
 WORKDIR /streamlit
 
