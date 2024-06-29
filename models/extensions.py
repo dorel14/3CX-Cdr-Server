@@ -16,12 +16,12 @@ class extensiontoqueuelink(SQLModel, table=True):
 
 
 class extensionsBase(SQLModel):
-    extension: str = Field(index=True)
+    extension: str = Field(index=True, sa_column_kwargs={'unique': True})
     name: str = Field(index=True)
     mail: str
-    date_added: date = Field(default=date.today())
-    date_out: Optional[date]
-    out: bool = Field(default=False)
+    date_added: Optional[date] = Field(default=date.today())
+    date_out: Optional[date] =Field(default=None)
+    out: Optional[bool] = Field(default=False)
 
 
 class extensions(extensionsBase, table=True):

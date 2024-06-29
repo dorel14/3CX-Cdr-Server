@@ -63,4 +63,4 @@ WORKDIR /streamlit
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "./ui/app.py"]
+CMD ["streamlit", "run", "--no-reload" ,"./ui/app.py"]

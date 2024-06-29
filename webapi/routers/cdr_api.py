@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/v1")
 
 @router.post('/cdr', response_model=call_data_records_read, tags=["cdr"])
 async def create_cdr(*, session: Session = Depends(get_session), call_data_record:call_data_records_create):
-    db_cdr=call_data_records.from_orm(call_data_record)
+    db_cdr=call_data_records.model_validate(call_data_record)
     session.add(db_cdr)
     session.commit()
     session.refresh(db_cdr)
@@ -59,7 +59,7 @@ async def read_cdr_by_historyid(*, session: Session = Depends(get_session), hist
 
 @router.post('/cdrdetails', response_model=call_data_records_details_read, tags=["cdr_details"])
 async def create_cdr_details(*, session: Session=Depends(get_session), call_data_record_detail:call_data_records_details_create):
-    db_cdr_detail=call_data_records_details.from_orm(call_data_record_detail)
+    db_cdr_detail=call_data_records_details.model_validate(call_data_record_detail)
     session.add(db_cdr_detail)
     session.commit()
     session.refresh(db_cdr_detail)
@@ -77,7 +77,7 @@ async def read_cdr_details(*,
 @router.get("/cdrdetails/historyid/{historyid}", response_model=call_data_records_details_read, tags=["cdr_details"])
 async def read_cdrdetails_by_historyid(*, session: Session = Depends(get_session), historyid: str):
     db_cdr_by_hid = session.exec(select(call_data_records_details).where(call_data_records_details.cdr_historyid==historyid)).one_or_none()
-    print(db_cdr_by_hid)
+    logger.info(db_cdr_by_hid)
     if not db_cdr_by_hid:
         raise HTTPException(status_code=404, detail="cdr non trouvée")
     return db_cdr_by_hid
