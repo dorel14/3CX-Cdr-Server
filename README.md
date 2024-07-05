@@ -32,7 +32,3 @@ If you appreciate this project and would like to contribute, feel free to submit
 For more information on installing, configuring, and using this tool, please refer to the project's wiki.
 
 
-
-This README file presents the project in a concise manner, describing its main functionality, key features, technologies used, and an invitation to contribute. It does not include installation or configuration instructions, as these are assumed to be available in the project's wiki.
-
-Feel free to adapt it according to your specific needs.
