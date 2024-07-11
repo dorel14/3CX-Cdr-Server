@@ -1,23 +1,17 @@
-from operator import index
-import streamlit as st
-import requests
-from requests.exceptions import HTTPError
-import pandas as pd
-import os
-import sys
+# -*- coding: UTF-8 -*-
+
 import json
+import requests
+import os
+import pandas as pd
 
-
-sys.path.append(os.path.abspath("."))
+from requests.exceptions import HTTPError
 from myhelpers.logging import logger
 
-st.set_page_config(page_title="Extensions", 
-                   page_icon=":rocket:")
 
-from app import api_base_url
+api_base_url = os.environ.get('API_URL')
 
-
-def post_extensions(extensions):
+def post_extensions(extensions:str | pd.DataFrame):
     """Fonction permettant de poster les extensions au serveur
     Cette fonction teste si l'enregistrement existe avant de le poster
     """
@@ -25,7 +19,7 @@ def post_extensions(extensions):
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
         webapi_url_extensions = api_base_url + '/api/v1/extensions'
 
-        list_of_jsons = df.to_json(orient='records', lines=True).splitlines()
+        list_of_jsons = extensions.to_json(orient='records', lines=True).splitlines()
         for js in list_of_jsons:
                 logger.info(js)            
                 try:
@@ -42,24 +36,3 @@ def post_extensions(extensions):
                         logger.error(f"Erreur lors de l'intégration de l'extension: {http_err}")
                 else:
                     logger.info(f"Extension {js} postée avec succès")
-
-
-                
-
-
-st.write("Uploader la liste des extensions à uploader au format csv")
-uploaded_file = st.file_uploader("Uploader le fichier", type="csv",)
-
-if uploaded_file:
-    if not os.path.exists("/data/files"):
-        os.makedirs("/data/files/", exist_ok=True)
-    # Enregistrer le fichier dans le dossier "uploads"
-    with open("/data/files/extensions.csv", "wb") as f:
-        f.write(uploaded_file.getbuffer())
-df=pd.read_csv(uploaded_file)
-st.dataframe(df)
-
-st.button(label='Valider', on_click=post_extensions(df))
-
-
-

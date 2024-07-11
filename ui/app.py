@@ -7,7 +7,7 @@ load_dotenv()
 
 
 
-api_base_url = os.environ.get('API_URL')
 
-st.title("test d' appli streamlit")
+
+st.title("3CX CDR Server Dashboard")
 
