@@ -206,8 +206,8 @@ def push_cdr_api(cdr, cdr_details):
             - 1 le statut d'intégration de CDR détail
     """
 
-    webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
-    webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
+    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr'
+    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     cdrdict = json.loads(cdr)
     cdr_historyid = cdrdict['historyid']
@@ -286,8 +286,8 @@ def push_cdr_api2(cdr, cdr_details):
             - 1 le statut d'intégration de CDR détail
     """
 
-    webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
-    webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
+    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr'
+    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     cdrdict = json.loads(cdr)
     cdr_historyid = cdrdict['historyid']

@@ -20,7 +20,7 @@ from models.tab3cxcdr import (
     call_data_records_details_create,
     call_data_records_details_read
 )
-router = APIRouter(prefix="/api/v1")
+router = APIRouter(prefix="/v1")
 
 @router.post('/cdr', response_model=call_data_records_read, tags=["cdr"])
 async def create_cdr(*, session: Session = Depends(get_session), call_data_record:call_data_records_create):

@@ -17,7 +17,7 @@ def post_extensions(extensions:str | pd.DataFrame):
     """
     if not extensions.empty:
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
-        webapi_url_extensions = api_base_url + '/api/v1/extensions'
+        webapi_url_extensions = api_base_url + '/v1/extensions'
 
         list_of_jsons = extensions.to_json(orient='records', lines=True).splitlines()
         for js in list_of_jsons:

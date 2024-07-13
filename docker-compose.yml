@@ -27,6 +27,7 @@ services:
     build:
       context: .
       dockerfile: ./webapi/Dockerfile
+    container_name: webapi
     restart: unless-stopped
     volumes:
       - api-dir:/fastapi
@@ -58,6 +59,7 @@ services:
       dockerfile: ./ui/Dockerfile
     env_file:
       - webapi.env
+    container_name: webui
     restart: unless-stopped
     networks:
       - custom_network
@@ -100,6 +102,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
+    container_name: pgadmin
     depends_on:
       db:
         condition: service_healthy

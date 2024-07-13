@@ -19,7 +19,7 @@ from models.extensions import (
     extensionUpdate
 )
 
-router = APIRouter(prefix="/api/v1", tags=["extensions"])
+router = APIRouter(prefix="/v1", tags=["extensions"])
 
 @router.post("/extensions", response_model=extensionsBase, tags=["extensions"])
 async def create_extensions(

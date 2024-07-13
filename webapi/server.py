@@ -1,9 +1,12 @@
 # -*- coding: UTF-8 -*-
+from venv import logger
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from typing import Union
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+
 from .routers import extensions_api, cdr_api
 
 app = FastAPI()
@@ -39,3 +42,14 @@ def perform_healthcheck():
     }
     '''
     return {'healthcheck': 'Everything OK!'}
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html(req: Request):
+    root_path = req.scope.get("root_path", "").rstrip("/")
+    openapi_url = root_path + app.openapi_url
+    return get_swagger_ui_html(
+        openapi_url=openapi_url,
+        title="API",
+    )
+
+    
