@@ -44,7 +44,7 @@ services:
       dockerfile: ./webapi/Dockerfile
     restart: unless-stopped
     env_file:
-      - webapi.env
+      - .env
     volumes:
       - api-dir:/fastapi
     depends_on:

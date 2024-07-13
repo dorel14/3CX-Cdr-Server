@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 from dotenv import load_dotenv
 from sqlmodel import create_engine, Session as  SQLModelSession, SQLModel
-from sqlalchemy.orm import sessionmaker
 import os
 
 load_dotenv()

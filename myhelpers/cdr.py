@@ -327,7 +327,7 @@ def push_cdr_api2(cdr, cdr_details):
             mcdr = "cdr existant"
 
     try:
-        getcdrdetails = requests.get(f"{webapi_url_cdr}/historyid/{cdrd_historyid}")
+        getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
         getcdrdetails.raise_for_status()
     except HTTPError as http_err:
         if http_err.response.status_code == 422:
@@ -340,7 +340,7 @@ def push_cdr_api2(cdr, cdr_details):
         logger.info(getcdrdetails.status_code)
         if getcdrdetails.status_code == 404:
             try:
-                r_cdrdetails = requests.post(webapi_url_cdr, data=cdr_details, headers=headers)
+                r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
                 r_cdrdetails.raise_for_status()
             except HTTPError as http_err:
                 if http_err.response.status_code == 422:

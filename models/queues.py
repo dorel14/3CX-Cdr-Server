@@ -1,7 +1,5 @@
 # -*- coding: UTF-8 -*-
-from typing import List, Optional
-from sqlmodel import Field, SQLModel, Relationship
-from datetime import date
+from sqlmodel import Field, SQLModel
 metadata = SQLModel.metadata
 
 class queueBase(SQLModel):

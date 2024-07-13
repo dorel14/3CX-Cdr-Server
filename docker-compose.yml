@@ -53,12 +53,14 @@ services:
       retries: 5
       start_period: 60s
 
-  ui:
+  3cxcdrtcpserver_ui:
     build:
       context: .
       dockerfile: ./ui/Dockerfile
     env_file:
       - webapi.env
+    environment:
+      - API_URL=http://webapi:8000
     container_name: webui
     restart: unless-stopped
     networks:
@@ -82,13 +84,13 @@ services:
       - 5000:5000
     env_file:
       - .env
-      - webapi.env
     depends_on:
       webapi:
         condition: service_healthy
     restart: unless-stopped
     command: bash -c "/wait && python -m alembic upgrade head && python srv/runserver.py"
     environment:
+      - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
@@ -129,6 +131,7 @@ services:
       - .env
     volumes:
       - grafana-storage:/var/lib/grafana
+      - ./grafana/custom.ini:/grafana/etc/custom.ini
       - ./grafana_init/provisioning/:/etc/grafana/provisioning/
       - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
 

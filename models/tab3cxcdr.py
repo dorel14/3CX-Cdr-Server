@@ -1,13 +1,7 @@
 # -*- coding: UTF-8 -*-
-from email.policy import default
-from typing import List, Optional
-from altair import Column
-from click import DateTime
-from sqlalchemy import Nullable
+from typing import Optional
 from sqlmodel import Field, SQLModel
 from datetime import datetime, time, date
-import pytz
-import os
 metadata = SQLModel.metadata
 
 class call_data_records_base(SQLModel):
