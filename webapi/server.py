@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+import queue
 from venv import logger
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
@@ -7,11 +8,12 @@ from fastapi.responses import JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 
-from .routers import extensions_api, cdr_api
+from .routers import extensions_api, cdr_api,queues_api
 
 app = FastAPI()
 app.include_router(extensions_api.router) #permet d'ajouter les routes d'un fichier externe
 app.include_router(cdr_api.router)
+app.include_router(queues_api.router)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

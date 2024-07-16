@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 from sqlmodel import Field, SQLModel
+from typing import Optional
 metadata = SQLModel.metadata
 
 class queueBase(SQLModel):
@@ -13,3 +14,9 @@ class queues(queueBase, table=True):
 class queuesCreate(queueBase):
     pass
 
+class queuesRead(queueBase):
+    id: int
+
+class queueUpdate(SQLModel):
+    queue: Optional[str]=None
+    queuename: Optional[str]=None 

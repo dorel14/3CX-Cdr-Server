@@ -52,18 +52,19 @@ services:
         condition: service_healthy
     networks:
       - custom_network
-   # ports:
-   #   - 8004:8000
+    ports:
+      - 8004:8000
     command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /api"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
+      - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
-      test: curl ${API_URL}/healthcheck || exit 1
+      test: curl http://webapi:8000/healthcheck || exit 1
       interval: 30s
       timeout: 5s
       retries: 5
@@ -148,7 +149,7 @@ services:
       - .env
     volumes:
       - grafana-storage:/var/lib/grafana
-      - ./grafana/custom.ini:/grafana/etc/custom.ini
+      - ./grafana/custom.ini:/etc/grafana/custom.ini
       - ./grafana_init/provisioning/:/etc/grafana/provisioning/
       - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
 
