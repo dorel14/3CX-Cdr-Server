@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import select, Session
-from typing import Union, List
+from typing import List
 
 
 import os
@@ -13,7 +13,6 @@ from myhelpers.logging import logger
 
 from models.tab3cxcdr import (
     call_data_records,
-    call_data_records_base,
     call_data_records_create,
     call_data_records_read,
     call_data_records_details,

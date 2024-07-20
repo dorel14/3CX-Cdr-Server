@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import json
-from time import time
-import calendar
 import pytz
 from babel.dates import format_date
 from urllib.parse import quote
@@ -10,7 +8,6 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 from datetime import datetime as dt
-from myhelpers.base import get_session
 
 import requests
 from requests.exceptions import HTTPError
@@ -131,7 +128,7 @@ def parse_cdr(data,filename=''):
 
     df_cdr_details["abandonned"] = np.where((df_cdr["reason_terminated"].str.contains("TerminatedBySrc"))
                                             & (df_cdr["final_dn"].isna() |df_cdr["final_dn"].isnull() )
-                                            & (df_cdr["from_no"].str.contains("Ext.*", regex=True)==False),
+                                            & (df_cdr["from_no"].str.contains("Ext.*", regex=True) is False),
                                             True,
                                             False)
 

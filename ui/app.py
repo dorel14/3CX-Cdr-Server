@@ -2,12 +2,12 @@ import streamlit as st
 import streamlit_antd_components as sac
 import sys
 import os
-from dotenv import load_dotenv
-from modulus.Extensions import Extensions
+from modulus.extensions_view import Extensions
+from modulus.queues_view import Queues
 
 sys.path.append(os.path.abspath("."))
 from modules.version import __version__
-load_dotenv()
+host= os.environ.get('NGINX_SERVER_NAME')
 
 
 st.set_page_config(
@@ -15,7 +15,7 @@ st.set_page_config(
     layout='centered',
     page_icon='🤷',
     menu_items={
-        'about': f'''App resume \: Cette application permet de stocker les Call Data Records issus de 3CX **  
+        'about': f'''App resume \: 3CX CDR Server app is a simple app to store Call Data Records (CDR) from 3CX **  
         Version {__version__}*'''
     }
 )
@@ -23,8 +23,13 @@ st.set_page_config(
 def Home():
     st.header('Welcome to 3CX CDR Server app')
 
-    st.markdown('''3CX CDR Server app is a simple app to store Call Data Records (CDR) from 3CX.''')
+    st.markdown('''3CX CDR Server app is a simple app to store Call Data Records (CDR) from 3CX. 
+                You can also make some reporting with Grafana .''')
 
+    st.markdown(f'Here are the differents Urls you can use : + Api docs : http://{host}/api/docs \
+                + Pg Admin : http://{host}/pgadmin \
+                + Grafana : http://{host}/grafana \
+                ')
 def main():
     with st.sidebar:
         menu_item = sac.menu(
@@ -38,17 +43,7 @@ def main():
                     icon='box-fill',
                     children=[
                         sac.MenuItem('Extensions', icon='people'),
-
-                        #sac.MenuItem(
-                        #    'Google',
-                        #    icon='google',
-                        #    children=[
-                        #        sac.MenuItem('Android', icon='android2'),
-                        #        sac.MenuItem('Finance', icon='bank'),
-                        #    ],
-                        #),
-
-                        #sac.MenuItem('Samsung', icon='phone-flip'),
+                        sac.MenuItem('Queues', icon='OrderedListOutlined'),
                     ]
                 ),
 
@@ -61,6 +56,7 @@ def main():
     menu_actions = {
         'Home': Home,
         'Extensions': Extensions,
+        'Queues': Queues,
 
     }
 

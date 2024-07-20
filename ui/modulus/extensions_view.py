@@ -1,7 +1,5 @@
 # -*- coding: UTF-8 -*-
 
-from operator import index
-from re import A
 import streamlit as st
 import requests
 
@@ -13,7 +11,7 @@ import sys
 
 def Extensions():
     sys.path.append(os.path.abspath("."))
-    from myhelpers.logging import logger
+
 
     api_base_url = os.environ.get('API_URL')
     
@@ -23,13 +21,23 @@ def Extensions():
     with Tab1:
         st.header("Extensions View")
         extensions = requests.get(f"{api_base_url}/api/v1/extensions").json()
-        st.dataframe(extensions)
+        if not extensions:
+            headers = ["extension", "name", "mail"]
+            df = pd.DataFrame(columns=headers)
+            st.dataframe(df)
+            csv=df.to_csv(index=False)
+            st.download_button(
+                label="Download template CSV",
+                data=csv,
+                file_name='extensions.csv',
+                mime='text/csv',
+            )
+        else:
+            st.dataframe(extensions)
 
     with Tab2:
         st.header("Extensions Import")
         from myhelpers.extensions_import import post_extensions
-           
-
 
         st.write("Uploader la liste des extensions à uploader au format csv")
         uploaded_file = st.file_uploader("Uploader le fichier", type="csv",)

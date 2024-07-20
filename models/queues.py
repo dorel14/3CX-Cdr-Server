@@ -1,7 +1,10 @@
 # -*- coding: UTF-8 -*-
 from sqlmodel import Field, SQLModel
-from typing import Optional
+from typing import Optional, List
+# from extensions import extensionsextensiontoqueuelink
 metadata = SQLModel.metadata
+
+
 
 class queueBase(SQLModel):
     queue: str
@@ -10,6 +13,7 @@ class queueBase(SQLModel):
 
 class queues(queueBase, table=True):
     id: int = Field(default=None, primary_key=True, nullable=False)
+
 
 class queuesCreate(queueBase):
     pass
