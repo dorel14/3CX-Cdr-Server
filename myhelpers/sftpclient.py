@@ -52,9 +52,9 @@ class sftpclient():
                 if not f.endswith('old'):
                     sftp.get(f, os.path.join(localfolder, f))
                     logger.info("file downloaded:" + f)
-                    if os.environ.get('FTP_3CX_ARCHIVE_OR_DELETE') == 'ARCHIVE':
+                    if os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'ARCHIVE':
                         sftp.rename(f, f + ".old")
-                    elif os.environ.get('FTP_3CX_ARCHIVE_OR_DELETE') == 'DELETE':
+                    elif os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'DELETE':
                         sftp.remove(f)
             csv_files_read(localfolder, archivefolder)            
             sleep(interval)
