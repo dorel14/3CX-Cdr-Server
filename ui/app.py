@@ -26,10 +26,10 @@ def Home():
     st.markdown('''3CX CDR Server app is a simple app to store Call Data Records (CDR) from 3CX. 
                 You can also make some reporting with Grafana .''')
 
-    st.markdown(f'Here are the differents Urls you can use : + Api docs : http://{host}/api/docs \
-                + Pg Admin : http://{host}/pgadmin \
-                + Grafana : http://{host}/grafana \
-                ')
+    st.markdown(f'Here are the differents Urls you can use : ')
+    st.markdown(f'- Api docs : http://{host}/api/docs')
+    st.markdown(f'- Pg Admin : http://{host}/pgadmin')
+    st.markdown(f'- Grafana : http://{host}/grafana')
 def main():
     with st.sidebar:
         menu_item = sac.menu(
@@ -40,10 +40,10 @@ def main():
 
                 sac.MenuItem(
                     '3cx Parameters',
-                    icon='box-fill',
+                    icon='PhoneOutlined',
                     children=[
                         sac.MenuItem('Extensions', icon='people'),
-                        sac.MenuItem('Queues', icon='OrderedListOutlined'),
+                        sac.MenuItem('Queues', icon='MenuUnfoldOutlined'),
                     ]
                 ),
 

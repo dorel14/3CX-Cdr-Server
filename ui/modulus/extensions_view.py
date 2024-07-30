@@ -24,7 +24,8 @@ def Extensions():
         if not extensions:
             headers = ["extension", "name", "mail"]
             df = pd.DataFrame(columns=headers)
-            st.dataframe(df)
+            st.dataframe(df,
+                         use_container_width=True)
             csv=df.to_csv(index=False)
             st.download_button(
                 label="Download template CSV",
@@ -33,7 +34,8 @@ def Extensions():
                 mime='text/csv',
             )
         else:
-            st.dataframe(extensions)
+            st.dataframe(extensions,
+                         use_container_width=True)
 
     with Tab2:
         st.header("Extensions Import")
@@ -49,7 +51,8 @@ def Extensions():
             with open("/data/files/extensions.csv", "wb") as f:
                 f.write(uploaded_file.getbuffer())
             df=pd.read_csv(uploaded_file)
-            st.dataframe(df)
+            st.dataframe(df,
+                         use_container_width=True)
 
             st.button(label='Valider', on_click=post_extensions(df))
 

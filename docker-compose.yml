@@ -114,6 +114,9 @@ services:
       - 5555:80
     env_file:
       - .env
+    environment:
+      - PGADMIN_LISTEN_PORT=8006
+      - PGADMIN_DISABLE_POSTFIX=true
     restart: unless-stopped
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data

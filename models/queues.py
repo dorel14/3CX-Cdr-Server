@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 from sqlmodel import Field, SQLModel
-from typing import Optional, List
+from typing import Optional
 # from extensions import extensionsextensiontoqueuelink
 metadata = SQLModel.metadata
 
