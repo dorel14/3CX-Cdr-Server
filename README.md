@@ -1,4 +1,6 @@
 
+# 3CX CDR SERVER APPLICATION
+
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.md)
 [![fr](https://img.shields.io/badge/lang-fr-green.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.fr.md)
 [![swe](https://img.shields.io/badge/lang-swe-blue.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.swe.md)
@@ -32,6 +34,3 @@ It allows you to collect call data from your 3CX telephony system and store it i
 If you appreciate this project and would like to contribute, feel free to submit pull requests or report issues. Any contribution is welcome!
 
 For more information on installing, configuring, and using this tool, please refer to the project's wiki.
-
-
-

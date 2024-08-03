@@ -1,4 +1,6 @@
 
+# 3CX CDR SERVER APPLICATION
+
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.md)
 
 # Registrering av 3CX CDR i en PostgreSQL-databas med Grafana
@@ -30,4 +32,3 @@ Det gör det möjligt att samla in samtalsdata från ditt 3CX-telefonsystem och 
 Om du uppskattar detta projekt och vill bidra, är du välkommen att skicka pull-förfrågningar eller rapportera problem. Alla bidrag är välkomna!
 
 För mer information om installation, konfiguration och användning av detta verktyg, se projektets wiki.
-

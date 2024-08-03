@@ -30,6 +30,7 @@ def Home():
     st.markdown(f'- Api docs : http://{host}/api/docs')
     st.markdown(f'- Pg Admin : http://{host}/pgadmin')
     st.markdown(f'- Grafana : http://{host}/grafana')
+    
 def main():
     with st.sidebar:
         menu_item = sac.menu(

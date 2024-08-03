@@ -5,7 +5,6 @@ import requests
 import pandas as pd
 import os
 import sys
-from datetime import date
 
 sys.path.append(os.path.abspath("."))
 from myhelpers.extensions_import import post_extensions
@@ -47,18 +46,18 @@ def Extensions():
     with Tab2:
         st.header("Extensions Import")
         st.write("Uploader la liste des extensions à uploader au format csv")
-        uploaded_file = st.file_uploader("Uploader le fichier", type="csv",)
+        uploaded_extensions_file = st.file_uploader("Uploader le fichier", type="csv",key="extensions_file")
 
-        if uploaded_file:
+        if uploaded_extensions_file:
             if not os.path.exists("/data/files"):
                 os.makedirs("/data/files/", exist_ok=True)
             # Enregistrer le fichier dans le dossier "uploads"
             with open("/data/files/extensions.csv", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            df=pd.read_csv(uploaded_file)
+                f.write(uploaded_extensions_file.getbuffer())
+            df=pd.read_csv(uploaded_extensions_file)
             st.dataframe(df,
                          use_container_width=True)
-            st.button(label='Valider', on_click=post_extensions(df))
+            st.button(label='Import', on_click=post_extensions(df))
     with Tab3:
         st.header("Extensions Add, Modify")
         extensions = requests.get(f"{api_base_url}/api/v1/extensions").json()

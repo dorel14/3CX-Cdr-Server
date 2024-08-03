@@ -14,8 +14,8 @@ from myhelpers.queues_import import post_queues
 
 def data_editor_getchanged(original_df, result_df): 
     #result_df = ss.edited_df
-    print("original_df: ", original_df)
-    print("result_df: ", result_df)
+    #print("original_df: ", original_df)
+    #print("result_df: ", result_df)
     final_df = pd.concat([original_df, result_df]).drop_duplicates(keep=False).reset_index(drop=True)
     final_df = final_df.drop_duplicates(keep='last', subset=['id']).reset_index(drop=True)
     print("final_df: ", final_df)
@@ -52,16 +52,17 @@ def Queues():
     with Tab2:
         st.header("Queues Import")
         st.write("Uploader la liste des queues à uploader au format csv")
-        uploaded_file = st.file_uploader("Uploader le fichier", type="csv",)
-        if uploaded_file:
+        uploaded_queue_file = st.file_uploader("Uploader le fichier", type="csv",key='queue_file')
+        if uploaded_queue_file:
             if not os.path.exists("/data/files"):
                 os.makedirs("/data/files/", exist_ok=True)
             # Enregistrer le fichier dans le dossier "uploads"
             with open("/data/files/queues.csv", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            df=pd.read_csv(uploaded_file)
+                f.write(uploaded_queue_file.getbuffer())
+            df=pd.read_csv(uploaded_queue_file)
             st.dataframe(df)
-            st.button(label='Import', on_click=post_queues(df))
+            st.button(label='Import',
+                      on_click=post_queues(df))
     with Tab3:
         st.header("Queues Add or Edit")
         st.write("Ajouter ou modifier une queue")
@@ -87,6 +88,9 @@ def Queues():
         else:
             df = pd.DataFrame(queues)
             edited_df = st.data_editor(df,
+                                       column_config={
+                                           "id":None
+                                       },
                                        use_container_width=True,
                                        num_rows="dynamic"
                                        )
