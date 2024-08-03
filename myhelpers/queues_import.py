@@ -21,17 +21,18 @@ def post_queues(queues:str | pd.DataFrame):
         webapi_url_queues = api_base_url + '/v1/queues'
         list_of_jsons = queues.to_json(orient='records', lines=True).splitlines()
         for js in list_of_jsons:
-                logger.info(js)
+                logger.info(f'datas: {js}')
                 try:
                     j = json.loads(js)
-                    testqueue = requests.get(f"{webapi_url_queues}/byqueue/{j['queue']}")
+                    testqueue = requests.get(f"{webapi_url_queues}/bynumber/{j['queue']}")
                     if not testqueue.status_code == 200:
                         response = requests.post(webapi_url_queues, headers=headers, data=js)
                         response.raise_for_status()
-                        logger.info(js)
+                        logger.info(f'js post : {js}')
                     elif testqueue.status_code == 200:
                         queueid = testqueue.json()['id']
                         logger.info(f"Queue {js} déjà présente")
+                        logger.info(js)
                         response = requests.patch(f"{webapi_url_queues}/{queueid}", headers=headers, data=js)
                         logger.info(f"Queue {js} mise à jour avec succès")
                     else:

@@ -64,4 +64,4 @@ WORKDIR /streamlit
 EXPOSE 8501
 
 
-CMD ["streamlit", "run", "--server.runOnSave=true", "--server.fileWatcherType=poll", "./ui/app.py"]
+CMD ["streamlit", "run", "--server.runOnSave=true", "./ui/app.py"]

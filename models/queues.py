@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 from sqlmodel import Field, SQLModel
 from typing import Optional
+from datetime import datetime
 # from extensions import extensionsextensiontoqueuelink
 metadata = SQLModel.metadata
 
@@ -9,6 +10,8 @@ metadata = SQLModel.metadata
 class queueBase(SQLModel):
     queue: str
     queuename: str
+    date_added: Optional[datetime] = Field(default=datetime.now())
+    date_modified: Optional[datetime] = Field(default=datetime.now())
 
 
 class queues(queueBase, table=True):
@@ -16,6 +19,7 @@ class queues(queueBase, table=True):
 
 
 class queuesCreate(queueBase):
+    date_added: Optional[datetime] = Field(default=datetime.now())
     pass
 
 class queuesRead(queueBase):
@@ -23,4 +27,5 @@ class queuesRead(queueBase):
 
 class queueUpdate(SQLModel):
     queue: Optional[str]=None
-    queuename: Optional[str]=None 
+    queuename: Optional[str]=None
+    date_modified: Optional[datetime] = Field(default=datetime.now())

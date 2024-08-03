@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import select, Session
-from typing import Union, List
-
+from typing import List
+from datetime import datetime
 
 import os
 import sys
@@ -74,7 +74,11 @@ async def update_extension(
     db_extension = session.get(extensions, extension_id)
     if not db_extension:
         raise HTTPException(status_code=404, detail="Extension non trouvée")
+    logger.info(f'db_extensions: {db_extension}')
+    logger.info(f' Extension: {extension}')
     extension_data = extension.dict(exclude_unset=True)
+    print(f'extensiondata: {extension_data}')    
+    extension_data["date_modified"] = datetime.now()
     for key, value in extension_data.items():
         setattr(db_extension, key, value)
     session.add(db_extension)

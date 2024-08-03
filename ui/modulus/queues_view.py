@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 
+
 import streamlit as st
 import requests
 
@@ -7,10 +8,30 @@ import pandas as pd
 import os
 import sys
 
+sys.path.append(os.path.abspath("."))
+from myhelpers.queues_import import post_queues
+
+
+def data_editor_getchanged(original_df, result_df): 
+    #result_df = ss.edited_df
+    print("original_df: ", original_df)
+    print("result_df: ", result_df)
+    final_df = pd.concat([original_df, result_df]).drop_duplicates(keep=False).reset_index(drop=True)
+    final_df = final_df.drop_duplicates(keep='last', subset=['id']).reset_index(drop=True)
+    print("final_df: ", final_df)
+    post_queues(final_df)
 
 def Queues():
-    sys.path.append(os.path.abspath("."))
-    from myhelpers.queues_import import post_queues
+    """
+    The `Queues()` function is the main entry point for the Queues view in the application. It sets up three tabs: "Queues View", "Queues Import", and "Queues Add or Edit". Each tab contains functionality related to managing queues in the system.
+
+    The "Queues View" tab displays a table of existing queues fetched from the API. If no queues are available, an empty dataframe is displayed.
+
+    The "Queues Import" tab allows the user to upload a CSV file containing queue data. The uploaded file is saved to the "/data/files/" directory, and the data is displayed in a dataframe. A button is provided to initiate the import process.
+
+    The "Queues Add or Edit" tab provides a data editor interface for creating or modifying queue data. If no queues exist, a blank dataframe is displayed, and the user can add new queues. If queues exist, the existing data is displayed in the data editor, and the user can make changes. A button is provided to save the changes, but the functionality is not yet implemented.
+    """
+
 
     api_base_url = os.environ.get('API_URL')
 
@@ -45,6 +66,7 @@ def Queues():
         st.header("Queues Add or Edit")
         st.write("Ajouter ou modifier une queue")
         queues = requests.get(f"{api_base_url}/api/v1/queues").json()
+
         if not queues:
             headers = ["queue", "queuename"]
             df = pd.DataFrame(columns=headers)
@@ -60,13 +82,16 @@ def Queues():
                 mime='text/csv'
                 )
             right_column.button(label="Save",
-                                on_click=post_queues(edited_df))
+                                on_click=data_editor_getchanged,
+                                args=(df,edited_df ))
         else:
-            edited_df = st.data_editor(queues,
+            df = pd.DataFrame(queues)
+            edited_df = st.data_editor(df,
                                        use_container_width=True,
-                                       num_rows="dynamic")
-            left_column,right_column = st.columns(2)
-            left_column.button(label="Save",
-                               on_click=post_queues(edited_df))
+                                       num_rows="dynamic"
+                                       )
+            st.button(label="Save",
+                               on_click=data_editor_getchanged,
+                               args=(df,edited_df ))
 
     

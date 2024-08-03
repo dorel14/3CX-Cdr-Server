@@ -12,10 +12,10 @@ host= os.environ.get('NGINX_SERVER_NAME')
 
 st.set_page_config(
     page_title="3CX CDR Server app",
-    layout='centered',
+    layout='wide',
     page_icon='🤷',
     menu_items={
-        'about': f'''App resume \: 3CX CDR Server app is a simple app to store Call Data Records (CDR) from 3CX **  
+        'about': f'''App resume : 3CX CDR Server app is a simple app to store Call Data Records (CDR) from 3CX **  
         Version {__version__}*'''
     }
 )
@@ -26,7 +26,7 @@ def Home():
     st.markdown('''3CX CDR Server app is a simple app to store Call Data Records (CDR) from 3CX. 
                 You can also make some reporting with Grafana .''')
 
-    st.markdown(f'Here are the differents Urls you can use : ')
+    st.markdown('Here are the differents Urls you can use : ')
     st.markdown(f'- Api docs : http://{host}/api/docs')
     st.markdown(f'- Pg Admin : http://{host}/pgadmin')
     st.markdown(f'- Grafana : http://{host}/grafana')
@@ -35,15 +35,16 @@ def main():
         menu_item = sac.menu(
             index=0,  # refers to the Home
             open_all=False,
+            color='indigo',
             items=[
                 sac.MenuItem('Home', icon='house-fill'),
 
                 sac.MenuItem(
                     '3cx Parameters',
-                    icon='PhoneOutlined',
+                    icon='bi bi-headset',
                     children=[
                         sac.MenuItem('Extensions', icon='people'),
-                        sac.MenuItem('Queues', icon='MenuUnfoldOutlined'),
+                        sac.MenuItem('Queues', icon='bi bi-hourglass-split'),
                     ]
                 ),
 

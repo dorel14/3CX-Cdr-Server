@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import select, Session
-from typing import Union, List
+from typing import List
+from datetime import datetime
 
 
 import os
@@ -51,7 +52,7 @@ async def read_queue(*, session: Session = Depends(get_session), queue_id: int):
         raise HTTPException(status_code=404, detail="Queue not found")
     return db_queue
 
-@router.get("/queues/queuebyname/{queue}", response_model=queuesRead, tags=["queues"])
+@router.get("/queues/byname/{queue}", response_model=queuesRead, tags=["queues"])
 async def read_queue_by_name(
     *, session: Session = Depends(get_session), queue: str
 ):
@@ -62,7 +63,7 @@ async def read_queue_by_name(
         raise HTTPException(status_code=404, detail="Queue not found")
     return db_queue
 
-@router.get("/queues/queuebynumber/{queue}", response_model=queuesRead, tags=["queues"])
+@router.get("/queues/bynumber/{queue}", response_model=queuesRead, tags=["queues"])
 async def read_queue_by_number(
     *, session: Session = Depends(get_session), queue: str):
     db_queue = (
@@ -91,12 +92,11 @@ async def update_queue(
         raise HTTPException(status_code=404, detail="Queue not found")
     logger.info(queue)
     queue_data = queue.dict(exclude_unset=True)
+    queue_data['date_modified'] = datetime.now()
     for key, value in queue_data.items():
         setattr(db_queue, key, value)
     session.add(db_queue)
     session.commit()
     session.refresh(db_queue)
     return db_queue
-
-
 
