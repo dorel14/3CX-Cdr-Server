@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
-from typing import List, Optional
-from sqlmodel import Field, SQLModel, Relationship
-from datetime import date
+from typing import Optional
+from sqlmodel import Field, SQLModel
+from datetime import date, datetime
 
 metadata = SQLModel.metadata
 
@@ -16,12 +16,13 @@ class extensiontoqueuelink(SQLModel, table=True):
 
 
 class extensionsBase(SQLModel):
-    extension: str = Field(index=True)
+    extension: str = Field(index=True, sa_column_kwargs={'unique': True})
     name: str = Field(index=True)
     mail: str
-    date_added: date = Field(default=date.today())
-    date_out: Optional[date]
-    out: bool = Field(default=False)
+    date_added: Optional[datetime] = Field(default=datetime.now())
+    date_out: Optional[date] =Field(default=None)
+    out: Optional[bool] = Field(default=False)
+    date_modified: Optional[datetime] = Field(default=datetime.now())
 
 
 class extensions(extensionsBase, table=True):
@@ -33,6 +34,7 @@ class extensions(extensionsBase, table=True):
 
 
 class extensionsCreate(extensionsBase):
+    date_added: Optional[datetime] = Field(default=datetime.now())
     pass
 
 
@@ -46,3 +48,4 @@ class extensionUpdate(SQLModel):
     date_added: Optional[date]=None
     date_out: Optional[date]=None
     out: Optional[bool]=False
+    date_modified: Optional[datetime] = Field(default=datetime.now())

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import json
-from time import time
 import pytz
 from babel.dates import format_date
 from urllib.parse import quote
@@ -9,7 +8,6 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 from datetime import datetime as dt
-from myhelpers.base import get_session
 
 import requests
 from requests.exceptions import HTTPError
@@ -130,7 +128,7 @@ def parse_cdr(data,filename=''):
 
     df_cdr_details["abandonned"] = np.where((df_cdr["reason_terminated"].str.contains("TerminatedBySrc"))
                                             & (df_cdr["final_dn"].isna() |df_cdr["final_dn"].isnull() )
-                                            & (df_cdr["from_no"].str.contains("Ext.*", regex=True)==False),
+                                            & (df_cdr["from_no"].str.contains("Ext.*", regex=True) is False),
                                             True,
                                             False)
 
@@ -205,15 +203,15 @@ def push_cdr_api(cdr, cdr_details):
             - 1 le statut d'intégration de CDR détail
     """
 
-    webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
-    webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
+    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr'
+    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     cdrdict = json.loads(cdr)
     cdr_historyid = cdrdict['historyid']
     cdrddict = json.loads(cdr_details)
     cdrd_historyid = cdrddict['cdr_historyid']
-    urlcdr = quote(f"{webapi_url_cdr}'/historyid/'{cdr_historyid}")
-    getcdr = requests.get(f"{webapi_url_cdr}'/historyid/'{cdr_historyid}")
+    urlcdr = quote(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
+    getcdr = requests.get(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
     urlcdrdetails = quote(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
     getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
     logger.info(f"Status get cdr: {getcdr.status_code}")
@@ -285,8 +283,8 @@ def push_cdr_api2(cdr, cdr_details):
             - 1 le statut d'intégration de CDR détail
     """
 
-    webapi_url_cdr = os.environ.get('API_URL') + '/api/v1/cdr'
-    webapi_url_cdr_details = os.environ.get('API_URL') + '/api/v1/cdrdetails'
+    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr'
+    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     cdrdict = json.loads(cdr)
     cdr_historyid = cdrdict['historyid']
@@ -326,7 +324,7 @@ def push_cdr_api2(cdr, cdr_details):
             mcdr = "cdr existant"
 
     try:
-        getcdrdetails = requests.get(f"{webapi_url_cdr}/historyid/{cdrd_historyid}")
+        getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
         getcdrdetails.raise_for_status()
     except HTTPError as http_err:
         if http_err.response.status_code == 422:
@@ -339,7 +337,7 @@ def push_cdr_api2(cdr, cdr_details):
         logger.info(getcdrdetails.status_code)
         if getcdrdetails.status_code == 404:
             try:
-                r_cdrdetails = requests.post(webapi_url_cdr, data=cdr_details, headers=headers)
+                r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
                 r_cdrdetails.raise_for_status()
             except HTTPError as http_err:
                 if http_err.response.status_code == 422:

@@ -2,8 +2,10 @@
 runOnSave = true
 headless = true
 maxUploadSize = 2000
+port = 8501
 # you will need this if running docker on windows host:
-fileWatcherType = "poll"
+fileWatcherType = "auto"
+
 
 [browser]
 gatherUsageStats = false

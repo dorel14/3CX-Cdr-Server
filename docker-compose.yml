@@ -1,4 +1,19 @@
 services:
+  nginx:
+    image: nginx:latest
+    depends_on:
+      - webapi
+      - 3cxcdrtcpserver_ui
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - 80:80
+    networks:
+      - custom_network
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/html:/var/www/html
   db:
     build:
       context: .
@@ -27,6 +42,7 @@ services:
     build:
       context: .
       dockerfile: ./webapi/Dockerfile
+    container_name: webapi
     restart: unless-stopped
     volumes:
       - api-dir:/fastapi
@@ -37,27 +53,31 @@ services:
       - custom_network
     ports:
       - 8004:8000
-    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /api"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
+      - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
-      test: curl ${API_URL}/healthcheck || exit 1
+      test: curl http://webapi:8000/healthcheck || exit 1
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 60s
 
-  ui:
+  3cxcdrtcpserver_ui:
     build:
       context: .
       dockerfile: ./ui/Dockerfile
+    container_name: 3cxcdrtcpserver_ui
     env_file:
-      - webapi.env
+      - .env
+    environment:
+      - API_URL=http://webapi:8000
     restart: unless-stopped
     networks:
       - custom_network
@@ -66,8 +86,8 @@ services:
     depends_on:
       webapi:
         condition: service_healthy
-    ports:
-      - 8501:8501
+    # ports:
+      #- 8501:8501
 
   3cxcdrserver:
     build:
@@ -80,13 +100,13 @@ services:
       - 5000:5000
     env_file:
       - .env
-      - webapi.env
     depends_on:
       webapi:
         condition: service_healthy
     restart: unless-stopped
     command: bash -c "/wait && python -m alembic upgrade head && python srv/runserver.py"
     environment:
+      - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
@@ -100,21 +120,25 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
+    container_name: pgadmin
     depends_on:
       db:
         condition: service_healthy
     networks:
       - custom_network
-    ports:
-      - 5555:80
+    #ports:
+    #  - 5555:80
     env_file:
       - .env
+    environment:
+      - PGADMIN_LISTEN_PORT=8006
+      - PGADMIN_DISABLE_POSTFIX=true
     restart: unless-stopped
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
 
   grafana:
-    image: grafana/grafana-oss
+    image: grafana/grafana:latest
     depends_on:
       - db
     networks:
@@ -126,6 +150,7 @@ services:
       - .env
     volumes:
       - grafana-storage:/var/lib/grafana
+      - ./grafana/custom.ini:/etc/grafana/custom.ini
       - ./grafana_init/provisioning/:/etc/grafana/provisioning/
       - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
 

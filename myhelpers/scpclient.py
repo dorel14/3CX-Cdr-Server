@@ -37,7 +37,7 @@ class scpclient():
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname=self.host, port=self.port, username= self.user, password= self.password, banner_timeout=200)
-        logger.info(ftpfolder)
+        #logger.info(ftpfolder)
         sftp = ssh.open_sftp()
         sftp.chdir(ftpfolder)
             
@@ -56,10 +56,10 @@ class scpclient():
                     scp.get(remote_path=scpfilename,
                             local_path=os.path.join(localfolder, f))
                     logger.info("file downloaded:" + scpfilename)
-                    if os.environ.get('SCP_3CX_ARCHIVE_OR_DELETE') == 'ARCHIVE':
+                    if os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'ARCHIVE':
                         #ssh.exec_command(f"sudo mv {scpfilename} .old")
                         sftp.rename(scpfilename,f"{scpfilename}.old")
-                    elif os.environ.get('SCP_3CX_ARCHIVE_OR_DELETE') == 'DELETE':
+                    elif os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'DELETE':
                         ssh.exec_command(f"sudo rm -f  {scpfilename}")
             csv_files_read(localfolder, archivefolder)            
             sleep(interval)
