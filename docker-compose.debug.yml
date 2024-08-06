@@ -90,6 +90,26 @@ services:
         condition: service_healthy
    # ports:
       #- 8501:8501
+  
+  webapp:
+    build:
+      context: .
+      dockerfile: ./ui_new/Dockerfile
+    container_name: webapp
+    restart: unless-stopped
+    networks:
+      - custom_network
+    ports:
+      - 8080:8080
+    volumes:
+      - webapp-dir:/webapp
+    env_file:
+        - .env
+    environment:
+      - API_URL=http://webapi:8000
+    depends_on:
+        webapi:
+          condition: service_healthy
 
   3cxcdrserver:
     build:
@@ -178,6 +198,13 @@ volumes:
       type: none
       device: .
       o: bind
+  webapp-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+
 
 networks:
   custom_network:
