@@ -4,17 +4,17 @@ import json
 import requests
 import os
 import pandas as pd
-
 from requests.exceptions import HTTPError
 from myhelpers.logging import logger
 
 
 api_base_url = os.environ.get('API_URL')
 
-def post_extensions(extensions:str | pd.DataFrame):
+def post_extensions(extensions_file):
     """Fonction permettant de poster les extensions au serveur
     Cette fonction teste si l'enregistrement existe avant de le poster
     """
+    extensions = pd.read_csv(extensions_file, delimiter=",")
     if len(extensions) > 0:
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
         webapi_url_extensions = api_base_url + '/v1/extensions'
@@ -40,3 +40,4 @@ def post_extensions(extensions:str | pd.DataFrame):
                         logger.error(f"Erreur lors de l'intégration de l'extension: {http_err}")
                 else:
                     logger.info(f"Extension {js} postée avec succès")
+        return 'Successfully posted'
