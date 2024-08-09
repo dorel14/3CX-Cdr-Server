@@ -3,7 +3,7 @@ services:
     image: nginx:latest
     depends_on:
       - webapi
-      - 3cxcdrtcpserver_ui
+      - webapp
     restart: unless-stopped
     env_file:
       - .env
@@ -71,25 +71,45 @@ services:
       retries: 5
       start_period: 60s
 
-  3cxcdrtcpserver_ui:
+  #3cxcdrtcpserver_ui:
+  #  build:
+  #    context: .
+  #    dockerfile: ./ui/Dockerfile
+  #  container_name: 3cxcdrtcpserver_ui
+  #  env_file:
+  #    - .env
+  #  environment:
+  #    - API_URL=http://webapi:8000
+  #  restart: unless-stopped
+  #  networks:
+  #    - custom_network
+  #  volumes:
+  #    - ui-dir:/streamlit
+  #  depends_on:
+  #    webapi:
+  #      condition: service_healthy
+   # ports:
+      #- 8501:8501
+  
+  webapp:
     build:
       context: .
-      dockerfile: ./ui/Dockerfile
-    container_name: 3cxcdrtcpserver_ui
-    env_file:
-      - .env
-    environment:
-      - API_URL=http://webapi:8000
+      dockerfile: ./ui_new/Dockerfile
+    container_name: webapp
     restart: unless-stopped
     networks:
       - custom_network
+    ports:
+      - 8080:8080
     volumes:
-      - ui-dir:/streamlit
+      - webapp-dir:/webapp
+    env_file:
+        - .env
+    environment:
+      - API_URL=http://webapi:8000
     depends_on:
-      webapi:
-        condition: service_healthy
-   # ports:
-      #- 8501:8501
+        webapi:
+          condition: service_healthy
 
   3cxcdrserver:
     build:
@@ -178,6 +198,13 @@ volumes:
       type: none
       device: .
       o: bind
+  webapp-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+
 
 networks:
   custom_network:
