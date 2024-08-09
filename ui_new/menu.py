@@ -10,16 +10,16 @@ def menu() -> None:
             with ui.item_section():
                 ui.label('Home')
         with ui.expansion(text='3cx parameters'):
-            with ui.item(on_click=lambda: ui.open('/queues')):
-                with ui.item_section().props('avatar'):
-                    ui.icon('ti-more')
-                with ui.item_section():
-                    ui.label('Queues')
             with ui.item(on_click=lambda: ui.open('/extensions')):
                 with ui.item_section().props('avatar'):
                     ui.icon('ti-headphone-alt')
                 with ui.item_section():
                     ui.label('Extensions')
+            with ui.item(on_click=lambda: ui.open('/queues')):
+                with ui.item_section().props('avatar'):
+                    ui.icon('ti-more')
+                with ui.item_section():
+                    ui.label('Queues')
             
 
 
