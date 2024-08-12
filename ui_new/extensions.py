@@ -16,6 +16,48 @@ api_base_url = os.environ.get('API_URL')
 data_folder = "/data/files"
 data_files = os.path.join(data_folder, "extensions.csv")
 
+
+@ui.refreshable
+def refresh_extensions():
+    extensions = requests.get(f"{api_base_url}/api/v1/extensions").json()
+    df = pd.DataFrame(extensions)
+    column_defs = []
+    for column in df.columns:
+        col_def = {'headerName': column.capitalize(), 'field': column}
+        col_def['sortable'] = 'true'
+        col_def['filter'] = 'true'
+        col_def['floatingFilter'] = 'False'
+        if df[column].dtype in ['int64', 'float64']:
+            col_def['type'] = 'numericColumn',
+            col_def['filter'] = 'agNumberColumnFilter'
+        else :
+            col_def['type'] = 'textColumn'
+            col_def['filter'] = 'agTextColumnFilter'
+        if df[column].dtype == 'datetime64[ns]':
+            col_def['type'] = 'datetimeColumn'
+            col_def['filter'] = 'agDateColumnFilter'
+        if df[column].dtype == 'bool':
+            col_def['filter'] = 'agBooleanColumnFilter'
+        if column == 'id':
+            col_def['pinned'] = 'left'
+            col_def['width']= 50
+        if column in ['name', 'mail', 'out']:
+            col_def['editable']= True
+        column_defs.append(col_def)
+    grid_options = {
+        'columnDefs': column_defs,
+        'defaultColDef': {
+            'flex': 1,
+            'minWidth': 30,
+            'resizable': True,
+            'cellStyle': {'fontSize': '14px'},
+            },
+            'horizontalScroll': True,
+            'rowSelection': 'single',
+            "stopEditingWhenCellsLoseFocus": True,
+            }  
+    ui.aggrid.from_pandas(df, options=grid_options).classes('grid-flow-col').on("cellValueChanged", update_data_from_table_change)
+
 async def click_import():
     response = await run.io_bound(post_extensions, data_files)
     ui.notify(f'Extensions {response}')
@@ -60,7 +102,7 @@ async def update_data_from_table_change(e):
     else:
         ui.notify(f'Update failed')  # noqa: F541
 
-async def add_extension(data,dialog,table):
+async def add_extension(data,dialog):
     #data = e.args["data"]
     ui.notify(f"Add extension {data['extension']} ?")
     print(data)
@@ -77,9 +119,8 @@ async def add_extension(data,dialog,table):
     response = requests.post(f"{webapi_url_extensions}", headers=headers, data=js)
     if response.status_code == 200:
         ui.notify(f'Extensions added successfully')  # noqa: F541
-        btn.delete()
-        table.add_rows([data])
         dialog.close()
+        refresh_extensions.refresh()
         ui.tab('Extensions_list').update()  
     else:
         ui.notify(f'Add failed {response.status_code} {response.content}')  # noqa: F541)
@@ -100,54 +141,14 @@ def extension_page():
             extensions = requests.get(f"{api_base_url}/api/v1/extensions").json()
             if not extensions:
                 headers = ["extension", "name", "mail"]
-                df = pd.DataFrame(columns=headers)
-                df.to_csv(path_or_buf='extension.csv', index=False)
+                emptydf = pd.DataFrame(columns=headers)
+                emptydf.to_csv(path_or_buf='extension.csv', index=False)
                 ui.button('Download template CSV',
                           icon='download',
                           on_click=lambda: ui.download(src='extensions.csv',filename='extensions.csv',media_type='csv')).classes('ml-auto text-xs')
-                ui.aggrid().from_pandas(df).classes('grid-flow-col')
+                ui.aggrid().from_pandas(emptydf).classes('grid-flow-col')
             else:
-                df = pd.DataFrame(extensions)
-                column_defs = []
-                for column in df.columns:
-                    col_def = {'headerName': column.capitalize(), 'field': column}
-                    col_def['sortable'] = 'true'
-                    col_def['filter'] = 'true'
-                    if df[column].dtype in ['int64', 'float64']:
-                         col_def['type'] = 'numericColumn',
-                         col_def['filter'] = 'agNumberColumnFilter'
-                         col_def['floatingFilter']= False
-                    else :
-                         col_def['type'] = 'textColumn'
-                         col_def['filter'] = 'agTextColumnFilter'
-                         col_def['floatingFilter']= False
-                    if df[column].dtype == 'datetime64[ns]':
-                         col_def['type'] = 'datetimeColumn'
-                         col_def['filter'] = 'agDateColumnFilter'
-                         col_def['floatingFilter']= False
-                    if df[column].dtype == 'bool':
-                         col_def['filter'] = 'agBooleanColumnFilter'
-                         col_def['floatingFilter']= False
-                    if column == 'id':
-                         col_def['pinned'] = 'left'
-                         col_def['width']= 50
-                    if column in ['name', 'mail', 'out']:
-                         col_def['editable']= True
-                    column_defs.append(col_def)
-                grid_options = {
-                     'columnDefs': column_defs,
-                     'defaultColDef': {
-                          'flex': 1,
-                          'minWidth': 30,
-                          'resizable': True,
-                          'cellStyle': {'fontSize': '14px'},
-                          },
-                          'horizontalScroll': True,
-                          'rowSelection': 'single',
-                          "stopEditingWhenCellsLoseFocus": True,
-                          }            
-                df.to_csv(path_or_buf='extension.csv', index=False)                
-                table = ui.aggrid.from_pandas(df, options=grid_options).classes('grid-flow-col').on("cellValueChanged", update_data_from_table_change)
+                refresh_extensions()
                 with ui.dialog() as dialog, ui.card():
                     data={}
                     ui.label('Extension details')
@@ -159,7 +160,7 @@ def extension_page():
                     ui.input(label='Mail', on_change=lambda e: data.update({'mail': e.value}))
                     ui.label('Out')
                     ui.select({'False':False,'True':True}, on_change=lambda e: data.update({'out': e.value}))
-                    ui.button('Save', on_click=lambda: add_extension(data, dialog, table)).classes('text-xs')
+                    ui.button('Save', on_click=lambda: add_extension(data, dialog)).classes('text-xs')
                 ui.button('Add extension', icon='add', on_click=dialog.open).classes('text-xs')
                 ui.button('Download CSV',
                           icon='download',
