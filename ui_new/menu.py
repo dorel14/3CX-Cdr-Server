@@ -9,6 +9,11 @@ def menu() -> None:
                 ui.icon('house')
             with ui.item_section():
                 ui.label('Home')
+        with ui.item(on_click=lambda: ui.open('/events')):
+            with ui.item_section().props('avatar'):
+                    ui.icon('ti-calendar')
+            with ui.item_section():
+                    ui.label('Events')
         with ui.expansion(text='3cx parameters'):
             with ui.item(on_click=lambda: ui.open('/extensions')):
                 with ui.item_section().props('avatar'):

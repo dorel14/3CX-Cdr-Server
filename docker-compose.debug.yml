@@ -148,8 +148,8 @@ services:
         condition: service_healthy
     networks:
       - custom_network
-    #ports:
-    #  - 5555:80
+    ports:
+      - 5555:80
     env_file:
       - .env
     environment:

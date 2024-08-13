@@ -7,12 +7,13 @@ from fastapi.responses import JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 
 
-from .routers import extensions_api, cdr_api,queues_api
+from .routers import extensions_api, cdr_api,queues_api, extra_events_api
 
 app = FastAPI()
 app.include_router(extensions_api.router) #permet d'ajouter les routes d'un fichier externe
 app.include_router(cdr_api.router)
 app.include_router(queues_api.router)
+app.include_router(extra_events_api.router)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

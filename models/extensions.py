@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 from typing import Optional
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 from datetime import date, datetime
 
 metadata = SQLModel.metadata
@@ -23,7 +23,8 @@ class extensionsBase(SQLModel):
     date_out: Optional[date] =Field(default=None)
     out: Optional[bool] = Field(default=False)
     date_modified: Optional[datetime] = Field(default=datetime.now())
-
+    
+ 
 
 class extensions(extensionsBase, table=True):
     """
@@ -35,11 +36,13 @@ class extensions(extensionsBase, table=True):
 
 class extensionsCreate(extensionsBase):
     date_added: Optional[datetime] = Field(default=datetime.now())
+    queues: Optional[list["queues"]] = Relationship(back_populates="extensions", link_model=extensiontoqueuelink)  # type: ignore
     pass
 
 
 class extensionsRead(extensionsBase):
     id: int
+    queues: Optional[list["queues"]] = Relationship(back_populates="extensions", link_model=extensiontoqueuelink)  # type: ignore
 
 class extensionUpdate(SQLModel):
     extension: Optional[str]=None
@@ -49,3 +52,4 @@ class extensionUpdate(SQLModel):
     date_out: Optional[date]=None
     out: Optional[bool]=False
     date_modified: Optional[datetime] = Field(default=datetime.now())
+    queues: Optional[list["queues"]] = Relationship(back_populates="extensions", link_model=extensiontoqueuelink)  # type: ignore
