@@ -1,6 +1,6 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 # using ubuntu LTS version
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.12.5-slim-bookworm AS builder
 
 # avoid stuck build due to user prompt
 ARG DEBIAN_FRONTEND=noninteractive

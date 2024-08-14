@@ -19,7 +19,7 @@ data_files = os.path.join(data_folder, "queues.csv")
 
 @ui.refreshable
 def refresh_queues():
-    queues = requests.get(f"{api_base_url}/api/v1/queues").json()
+    queues = requests.get(f"{api_base_url}/v1/queues").json()
     df = pd.DataFrame(queues)
     column_defs = []
     for column in df.columns:
@@ -135,7 +135,7 @@ def queue_page():
     with ui.tab_panels(tabs, value=queues_list).classes('w-full'):
               
         with ui.tab_panel(queues_list):
-            queues = requests.get(f"{api_base_url}/api/v1/queues").json()
+            queues = requests.get(f"{api_base_url}/v1/queues").json()
             if not queues:
                 headers = ["queue", "queuename"]
                 emptydf = pd.DataFrame(columns=headers)

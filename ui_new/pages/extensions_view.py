@@ -19,7 +19,7 @@ data_files = os.path.join(data_folder, "extensions.csv")
 
 @ui.refreshable
 def refresh_extensions():
-    extensions = requests.get(f"{api_base_url}/api/v1/extensions").json()
+    extensions = requests.get(f"{api_base_url}/v1/extensions").json()
     df = pd.DataFrame(extensions)
     column_defs = []
     for column in df.columns:
@@ -138,7 +138,7 @@ def extension_page():
     with ui.tab_panels(tabs, value=Extensions_list).classes('w-full'):
               
         with ui.tab_panel(Extensions_list):
-            extensions = requests.get(f"{api_base_url}/api/v1/extensions").json()
+            extensions = requests.get(f"{api_base_url}/v1/extensions").json()
             if not extensions:
                 headers = ["extension", "name", "mail"]
                 emptydf = pd.DataFrame(columns=headers)

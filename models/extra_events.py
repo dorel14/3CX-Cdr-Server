@@ -8,11 +8,12 @@ metadata = SQLModel.metadata
 class extraEventsBase(SQLModel):
     event_title: str
     event_start: Optional[datetime] = Field(default=datetime.now())
-    event_end: Optional[datetime] = Field(default=datetime.now())
-    event_explanation: Optional[str] = Field(default=None)
+    event_end: Optional[datetime] = Field(default=None)
+    event_description: Optional[str] = Field(default=None)
     event_impact: Optional[str] = Field(default=None)
     date_added: Optional[datetime] = Field(default=datetime.now())
     date_modified: Optional[datetime] = Field(default=datetime.now())
+    all_day: Optional[bool] = Field(default=False)
 
 class extraEvents(extraEventsBase, table=True):
     id: int = Field(default=None, primary_key=True, nullable=False)

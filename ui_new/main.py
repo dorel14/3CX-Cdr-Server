@@ -34,5 +34,5 @@ app.include_router(events_view.router)
 language = os.environ.get('LOCALE_LANGUAGE').split('_')[0] #here to get 2 letters language
 ui.run(port=8080,
        title='3CX CDR Server app',
-       language=language, 
+       language=language,
        )
