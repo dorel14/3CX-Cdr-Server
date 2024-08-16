@@ -25,7 +25,7 @@ RUN pip3 install --upgrade pip \
 
 
 
-FROM python:3.12-slim-bookworm AS runner
+FROM python:3.12.5-slim-bookworm AS runner
 RUN apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages net-tools \
      tzdata -y\
      curl\ 

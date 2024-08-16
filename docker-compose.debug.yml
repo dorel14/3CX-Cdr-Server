@@ -192,12 +192,6 @@ volumes:
       type: none
       device: .
       o: bind
-  ui-dir:
-    driver: local
-    driver_opts:
-      type: none
-      device: .
-      o: bind
   webapp-dir:
     driver: local
     driver_opts:

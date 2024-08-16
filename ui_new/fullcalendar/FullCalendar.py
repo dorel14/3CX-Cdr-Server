@@ -7,7 +7,9 @@ from nicegui.events import handle_event
 
 class FullCalendar(Element, component='fullcalendar.js'):
 
-    def __init__(self, options: Dict[str, Any], on_click: Optional[Callable] = None) -> None:
+    def __init__(self, options: Dict[str, Any], 
+                 on_click: Optional[Callable] = None, 
+                 on_Dateclick:Optional[Callable] = None) -> None:
         """FullCalendar
 
         An element that integrates the FullCalendar library (https://fullcalendar.io/) to create an interactive calendar display.

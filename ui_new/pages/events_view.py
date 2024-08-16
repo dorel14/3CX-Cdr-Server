@@ -31,13 +31,22 @@ impact_levels={
         '3': 'High',
         '4': 'Critical',
     }
-
+mintime = '00:00:00'
+maxtime = '23:59:00'
 today = date.today().strftime("%Y-%m-%d")
 nowhour = datetime.now().strftime("%H:%M")
 
+
+    
+
+
 def handle_click(event: events.GenericEventArguments):
     if 'info' in event.args:
-        ui.notify(event.args['info']['event'])
+        if 'event' in event.args['info']:
+            ui.notify(f'event: {event.args['info']['event']}')
+        else: 
+            ui.notify(f'event: {event.args['info']['date']}')
+
 
 def get_events():
     url = f'{api_base_url}/v1/extra_events'
@@ -58,7 +67,6 @@ def get_events():
                     'allDay': event['all_day'],
             }
             )
-        print()
         return events
     else:
         return []
@@ -73,8 +81,6 @@ def add_event_to_db(data, dialog):
         'event_description': data['event_description'],
         'event_impact': data['event_impact'],
     }
-    print(e)
-    print(f'json: {json.dumps(e, default=str)}')
     j=json.dumps(e, default=str)
     headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
     response = requests.post(url, headers=headers, data=j)
@@ -90,15 +96,20 @@ def create_calendar():
     options = {
         'locale': os.environ.get('LOCALE_LANGUAGE').split('_')[0],
         'initialView': 'dayGridMonth',
-        'headerToolbar': {'left': 'title','right': 'dayGridYear, dayGridMonth, dayGridWeek, dayGridDay'},
-        'footerToolbar': {'right': 'prev,next today'},
-        'slotMinTime': '05:00:00',
-        'slotMaxTime': '22:00:00',
+        'headerToolbar': {'left': 'today', 
+                          'center':'title',
+                          'right': 'multiMonthYear, dayGridMonth, timeGridWeek, timeGridDay, listWeek'
+                          },
+        'footerToolbar': {'right': 'prev,next'},
+        'slotMinTime': mintime,
+        'slotMaxTime': maxtime,
+        'duration': '01:00:00',
         'allDaySlot': False,
         'timeZone': os.environ.get('TZ'),
         'height': 'auto',
-        'width': 'auto',
-        #'selectable': True,
+        #'width': 'auto',
+        'selectable': True,
+        'weekNumbers': True,
         'events': get_events(),
         }
     fullcalendar(options, on_click=handle_click) 
@@ -112,7 +123,6 @@ def events_view():
         ui.label('')
         #message('Extensions')
     create_calendar()
-    ui.label(today)
     with ui.dialog() as add_event, ui.card():
         data={}
         ui.label('Add Event')
@@ -163,7 +173,7 @@ def events_view():
         ui.textarea('Event Description', placeholder='Event description').on_value_change(lambda e: data.update({'event_description': e.value})).classes('w-full')
         with ui.row():
             ui.button('Add Event', on_click=lambda: add_event_to_db(data,add_event), icon='add').classes('text-xs')
-            ui.button('Cancel', icon='close', on_click=add_event.close).classes('text-xs')
+            ui.button('Cancel', icon='close', on_click=add_event.close).classes('text-xs')  
     ui.button('Add Event', on_click=add_event.open).classes('text-xs')
 
 

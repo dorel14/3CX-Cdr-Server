@@ -9,7 +9,8 @@ RUN apt update \
     g++ \
     unixodbc \
     unixodbc-dev\
-    curl
+    curl \
+&&	apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
@@ -30,7 +31,7 @@ RUN python -m venv /opt/venv && \
 
 
 # final stage
-FROM python:3.12-slim-bookworm
+FROM python:3.12.5-slim-bookworm
 
 
 
@@ -42,8 +43,9 @@ RUN apt-get update \
     g++ \
     unixodbc \
     unixodbc-dev\
-    curl
-
+    curl\
+&&	apt-get clean && rm -rf /var/lib/apt/lists/* \
+&& ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Keeps Python from generating .pyc files in the container
 # Turns off buffering for easier container logging
 
