@@ -6,7 +6,8 @@ from datetime import datetime
 import sys
 import os
 sys.path.append(os.path.abspath("."))
-from models.extensions import extensiontoqueuelink
+#from models import extensions
+#from models.extensions import extensiontoqueuelink
 
 metadata = SQLModel.metadata
 
@@ -21,19 +22,18 @@ class queueBase(SQLModel):
 
 class queues(queueBase, table=True):
     id: int = Field(default=None, primary_key=True, nullable=False)
+    #extensions: Optional[list["extensions"]] = Relationship(back_populates="queues", link_model=extensiontoqueuelink)  # type: ignore
 
 
 class queuesCreate(queueBase):
-    date_added: Optional[datetime] = Field(default=datetime.now())
-    extensions: Optional[list["extensions"]] = Relationship(back_populates="queues", link_model=extensiontoqueuelink)  # type: ignore
+    date_added: Optional[datetime] = Field(default=datetime.now())    
     pass
 
 class queuesRead(queueBase):
     id: int
-    extensions: Optional[list["extensions"]] = Relationship(back_populates="queues", link_model=extensiontoqueuelink)  # type: ignore
 
 class queueUpdate(SQLModel):
     queue: Optional[str]=None
     queuename: Optional[str]=None
     date_modified: Optional[datetime] = Field(default=datetime.now())
-    extensions: Optional[list["extensions"]] = Relationship(back_populates="queues", link_model=extensiontoqueuelink)  # type: ignore
+
