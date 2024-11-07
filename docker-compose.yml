@@ -3,7 +3,7 @@ services:
     image: nginx:latest
     depends_on:
       - webapi
-      - 3cxcdrtcpserver_ui
+      - webapp
     restart: unless-stopped
     env_file:
       - .env
@@ -171,6 +171,12 @@ volumes:
       device: .
       o: bind
   ui-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+  webapp-dir:
     driver: local
     driver_opts:
       type: none
