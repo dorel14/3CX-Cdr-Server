@@ -16,7 +16,6 @@ def get_client_config(server_type):
         'SCP_3CX_PASSWORD': os.environ.get('SCP_3CX_PASSWORD'),
         'SCP_3CX_PORT': int(os.environ.get('SCP_3CX_PORT', '22')),
         'SCP_3CX_SRVDIR': os.environ.get('SCP_3CX_SRVDIR'),
-        'SERVER_PORT': int(os.environ.get('SERVER_PORT', '5000')),
     }
 
     if server_type == 'FTP':
