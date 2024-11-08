@@ -143,7 +143,7 @@ def queue_page():
                 ui.button('Download template CSV',
                           icon='download',
                           on_click=lambda: ui.download(src='queues.csv',filename='queues.csv',media_type='csv')).classes('ml-auto text-xs')
-                ui.aggrid().from_pandas(emptydf).classes('grid-flow-col')
+                ui.aggrid.from_pandas(emptydf).classes('grid-flow-col')
             else:
                 refresh_queues()
                 with ui.dialog() as dialog, ui.card():
