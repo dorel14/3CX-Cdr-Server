@@ -142,11 +142,11 @@ def extension_page():
             if not extensions:
                 headers = ["extension", "name", "mail"]
                 emptydf = pd.DataFrame(columns=headers)
-                emptydf.to_csv(path_or_buf='extension.csv', index=False)
+                emptydf.to_csv(path_or_buf='extensions.csv', index=False)
                 ui.button('Download template CSV',
                           icon='download',
                           on_click=lambda: ui.download(src='extensions.csv',filename='extensions.csv',media_type='csv')).classes('ml-auto text-xs')
-                ui.aggrid().from_pandas(emptydf).classes('grid-flow-col')
+                ui.aggrid.from_pandas(emptydf).classes('grid-flow-col')
             else:
                 refresh_extensions()
                 with ui.dialog() as dialog, ui.card():
