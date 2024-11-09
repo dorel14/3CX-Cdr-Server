@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 import glob
 import os
-from gettext import gettext as _
 from datetime import datetime
 import shutil
 
@@ -10,6 +9,10 @@ from myhelpers.logging import logger
 
 #filefolder = '/opt/cdrfiles'
 #savefolder = '/opt/cdrfiles_archives'
+
+def sanitize_filepath(filepath):
+    # Nettoie le chemin en ne gardant que le nom de base du fichier
+    return os.path.basename(os.path.normpath(filepath))
 
 def check_directory_permissions(directory_path):
     """
@@ -27,35 +30,43 @@ def check_directory_permissions(directory_path):
 
 def files_move(file, savefolder):
     """
-    Moves a file to a specified save folder, creating the necessary directory structure if it doesn't exist.
-    
-    This function is used to archive files by moving them to a designated save folder, organizing them by year and month. It checks the permissions of the save folder and any newly created subdirectories to ensure the necessary read, write, and execute permissions are set.
+    Moves a file to an archive folder, creating the necessary directory structure based on the current date.
     
     Args:
-        file (str): The path of the file to be moved.
-        savefolder (str): The base directory where the file will be moved to.
+        file (str): The path to the file to be moved.
+        savefolder (str): The path to the archive folder where the file will be moved.
+    
+    Raises:
+        ValueError: If the final path for the file is not within the specified archive folder.
     
     Returns:
         None
     """
-    filename = str(os.path.basename(file))
-    logger.info(filename)
+        # Nettoyer le nom du fichier
+    filename = sanitize_filepath(file)
+    # Nettoyer le chemin du dossier de sauvegarde
+    savefolder = os.path.abspath(savefolder)
+    
     year = datetime.now().strftime("%Y")
     month = datetime.now().strftime("%m")
-    date = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")    
-    if not os.path.exists(savefolder):
-        os.mkdir(savefolder, mode=0o777)
-    check_directory_permissions(savefolder)
-    savefolderd = os.path.join(savefolder, year)
-    if not os.path.exists(savefolderd):
-        os.mkdir(savefolderd, mode=0o777)
-    check_directory_permissions(savefolderd)
-    savefolderd = os.path.join(savefolderd, month)
-    if not os.path.exists(savefolderd):
-        os.mkdir(savefolderd, mode=0o777)
-    check_directory_permissions(savefolderd)
-    shutil.move(file, os.path.join(savefolderd, date + '_' + filename))  # to move files from
-    logger.info(file + ' moved')
+    date = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+    
+    # Vérifier que le chemin final reste dans le dossier prévu
+    final_path = os.path.join(savefolder, year, month)
+    if not os.path.commonprefix([os.path.abspath(final_path), savefolder]) == savefolder:
+        raise ValueError("Chemin de destination invalide")
+        
+    # Création des dossiers avec vérification
+    for folder in [savefolder, os.path.join(savefolder, year), final_path]:
+        if not os.path.exists(folder):
+            os.makedirs(folder, mode=0o777)
+        check_directory_permissions(folder)
+    
+    # Déplacement sécurisé du fichier
+    source = os.path.abspath(file)
+    destination = os.path.join(final_path, date + '_' + filename)
+    shutil.move(source, destination)
+    logger.info(f'{source} déplacé vers {destination}')
 
 def csv_files_read(filefolder, archivefolder):
     """
@@ -71,7 +82,7 @@ def csv_files_read(filefolder, archivefolder):
     logger.info(filefolder)
     os.chdir(filefolder)
     for f in list(glob.glob(os.environ.get('3CX_FILEEXT'),
-                       recursive=False)):
+                    recursive=False)):
         logger.info(f)
         csv = open(f, 'r')
         count = 1

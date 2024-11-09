@@ -1,10 +1,26 @@
 api:
   dashboard: true
+  
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    defaultRule: "Host(`{{ env `WEB_SERVER_NAME` }}`) && PathPrefix(`/{{ index .Labels \"com.docker.compose.service\" }}`)"
 
 entryPoints:
   web:
     address: ":80"
+  dashboard:
+    address: ":8081"
 
-providers:
-  docker:
-    exposedByDefault: false
+log:
+  level: DEBUG
+
+middlewares:
+  strip-prefix:
+    stripPrefix:
+      prefixes: 
+        - "/webapi"
+        - "/webapp"
+        - "/pgadmin"
+        - "/grafana"

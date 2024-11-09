@@ -32,7 +32,7 @@ app.include_router(queues_view.router)
 app.include_router(events_view.router)
 
 
-@app.get('/healthcheck', status_code=status.HTTP_200_OK, tags=["health"])
+app.get('/healthcheck', status_code=status.HTTP_200_OK, tags=["health"])
 def perform_healthcheck():
     '''
     Simple route for the GitHub Actions to healthcheck on.
