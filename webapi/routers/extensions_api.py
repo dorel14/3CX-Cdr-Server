@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import select, Session
 from typing import List
 from datetime import datetime
-
+from sqlalchemy.orm import selectinload
 import os
 import sys
 
@@ -18,6 +18,7 @@ from models.extensions import (
     extensionsCreate,
     extensionUpdate
 )
+
 
 router = APIRouter(prefix="/v1", tags=["extensions"])
 

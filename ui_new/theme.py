@@ -19,7 +19,6 @@ def frame(navigation_title: str):
     ui.add_head_html('<link href="https://unpkg.com/eva-icons@1.1.3/style/eva-icons.css" rel="stylesheet" />')
     ui.add_head_html('<link href="https://cdn.jsdelivr.net/themify-icons/0.1.2/css/themify-icons.css" rel="stylesheet" />')
 
-
     with ui.dialog() as about, ui.card().classes('items-center'):
         ui.label('Informations').classes('text-lg')
         ui.label(f'Version {__version__}')
