@@ -75,9 +75,9 @@ class FTPClient:
                 if not remote_file.endswith('.old'):
                     ftp.download_if_newer(remote_file, local_file)
                     logger.info("file downloaded:" + remote_file)
-                    if os.environ.get('FTP_3CX_ARCHIVE_OR_DELETE') == 'ARCHIVE':
+                    if os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'ARCHIVE':
                         ftp.rename(remote_file, remote_file + ".old")
-                    elif os.environ.get('FTP_3CX_ARCHIVE_OR_DELETE') == 'DELETE':
+                    elif os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'DELETE':
                         ftp.remove(remote_file)
                     new_files.append(local_file)
         return new_files
@@ -114,7 +114,7 @@ class FTPClient:
             if new_files:
                 logger.info('New files detected')
                 csv_files_read(local_folder, archive_folder)
-               #self.move_files(new_files, archive_folder)
+                #self.move_files(new_files, archive_folder)
             sleep(interval)
 
     def monitor(self, ftp_folder, local_folder, archive_folder, interval):
