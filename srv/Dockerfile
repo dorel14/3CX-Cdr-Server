@@ -1,15 +1,14 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 # using ubuntu LTS version
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.13-slim AS builder
 
 # avoid stuck build due to user prompt
 ARG DEBIAN_FRONTEND=noninteractive
 
 #Prepare apt files
-RUN apt-get update && apt-get install --no-install-recommends -y python3-pip python3-wheel gcc g++ curl libpq-dev iputils-ping
-RUN	apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN useradd --create-home myuser
+RUN apt-get update && apt-get install --no-install-recommends -y python3-pip python3-wheel gcc g++ curl libpq-dev iputils-ping \
+&&	apt-get clean && rm -rf /var/lib/apt/lists/* \
+&& useradd --create-home myuser 
 
 # Activate the virtual environment
 RUN python -m venv /home/myuser/venv
@@ -26,16 +25,15 @@ RUN pip3 install --upgrade pip \
 
 
 
-FROM python:3.12-slim-bookworm AS runner
+FROM python:3.13-slim AS runner
 RUN apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages net-tools \
-     tzdata -y\
-     curl\ 
-     locales\
-     iputils-ping\
-     locales-
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+    tzdata -y\
+    curl\ 
+    locales\
+    iputils-ping\
+    locales- \
+&& apt-get clean && rm -rf /var/lib/apt/lists/* \
+&& ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 #RUN localedef -i ${LOCALE_LANGUAGE} -c -f UTF-8 -A /usr/share/locale/locale.alias ${LOCALE_LANGUAGE}.UTF-8
 ENV LANG ${LOCALE_LANGUAGE}.utf8
@@ -62,7 +60,7 @@ RUN rm -rf ${APP_DIR} \
 
 
 WORKDIR ${APP_DIR}
-COPY --chown=appuser:appgroup . .
+#COPY --chown=appuser:appgroup . .
 
 
 

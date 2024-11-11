@@ -7,7 +7,7 @@ def get_client_config(server_type):
         'FTP_3CX_LOGIN': os.environ.get('FTP_3CX_LOGIN'),
         'FTP_3CX_PASSWORD': os.environ.get('FTP_3CX_PASSWORD'),
         'FTP_3CX_SRVDIR': os.environ.get('FTP_3CX_SRVDIR'),
-        'FTP_3CX_INTERVAL': int(os.environ.get('FTP_3CX_INTERVAL', '60')),
+        '3CX_FILES_INTERVAL': int(os.environ.get('3CX_FILES_INTERVAL', '60')),
         'FTP_3CX_PORT': int(os.environ.get('FTP_3CX_PORT', '22')),
         'FTP_3CX_PRIVATE_KEY_PATH': os.environ.get('FTP_3CX_PRIVATE_KEY_PATH'),
         'FTP_3CX_PRIVATE_KEY_PASSWORD': os.environ.get('FTP_3CX_PRIVATE_KEY_PASSWORD'),
@@ -15,8 +15,8 @@ def get_client_config(server_type):
         'SCP_3CX_LOGIN': os.environ.get('SCP_3CX_LOGIN'),
         'SCP_3CX_PASSWORD': os.environ.get('SCP_3CX_PASSWORD'),
         'SCP_3CX_PORT': int(os.environ.get('SCP_3CX_PORT', '22')),
-        'SCP_3CX_SRVDIR': os.environ.get('SCP_3CX_SRVDIR'),
-        'SCP_3CX_INTERVAL': int(os.environ.get('SCP_3CX_INTERVAL', '60')),
+        'SCP_3CX_SRVDIR': os.environ.get('SCP_3CX_SRVDIR'),        
+        'SERVER_PORT': int(os.environ.get('SERVER_PORT', '5000')),
     }
 
     if server_type == 'FTP':
@@ -25,7 +25,7 @@ def get_client_config(server_type):
             'user': env_vars['FTP_3CX_LOGIN'],
             'password': env_vars['FTP_3CX_PASSWORD'],
             'server_dir': env_vars['FTP_3CX_SRVDIR'],
-            'interval': env_vars['FTP_3CX_INTERVAL'],
+            'interval': env_vars['3CX_FILES_INTERVAL'],
         }
     elif server_type == 'SFTP':
         return {
@@ -36,7 +36,7 @@ def get_client_config(server_type):
             'private_key': env_vars['FTP_3CX_PRIVATE_KEY_PATH'],
             'private_key_pass': env_vars['FTP_3CX_PRIVATE_KEY_PASSWORD'],
             'server_dir': env_vars['FTP_3CX_SRVDIR'],
-            'interval': env_vars['FTP_3CX_INTERVAL'],
+            'interval': env_vars['3CX_FILES_INTERVAL'],
         }
     elif server_type == 'SCP':
         return {
@@ -45,7 +45,7 @@ def get_client_config(server_type):
             'password': env_vars['SCP_3CX_PASSWORD'],
             'port': env_vars['SCP_3CX_PORT'],
             'server_dir': env_vars['SCP_3CX_SRVDIR'],
-            'interval': env_vars['SCP_3CX_INTERVAL'],
+            'interval': env_vars['3CX_FILES_INTERVAL'],
         }
     elif server_type == 'TCP':
         return {

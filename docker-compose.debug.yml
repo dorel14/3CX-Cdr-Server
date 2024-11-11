@@ -15,10 +15,7 @@ services:
       - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"
-        ]
+        ["CMD","pg_isready", "-U","${POSTGRES_USER}"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -27,9 +24,10 @@ services:
     build:
       context: .
       dockerfile: ./webapi/Dockerfile
+    container_name: webapi
     restart: unless-stopped
     env_file:
-      - webapi.env
+      - .env
     volumes:
       - api-dir:/fastapi
     depends_on:
@@ -39,38 +37,64 @@ services:
       - custom_network
     ports:
       - 8004:8000
-    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /webapi"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
+      - CONTAINER_NAME=api
+      - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
-      test: curl ${API_URL}/healthcheck || exit 1
+      test: curl http://webapi:8000/healthcheck || exit 1
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapi.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/webapi`)"
+      - "traefik.http.services.webapi.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.webapi-strip.stripprefix.prefixes=/webapi"
+      - "traefik.http.routers.webapi.middlewares=webapi-strip@docker"
 
-  ui:
+  
+  webapp:
     build:
       context: .
-      dockerfile: ./ui/Dockerfile
-    env_file:
-      - .env
-      - webapi.env
+      dockerfile: ./ui_new/Dockerfile
+    container_name: webapp
     restart: unless-stopped
     networks:
       - custom_network
-    volumes:
-      - ui-dir:/streamlit
-    depends_on:
-      webapi:
-        condition: service_healthy
     ports:
-      - 8501:8501
+      - 8181:8181
+    volumes:
+      - webapp-dir:/webapp
+    env_file:
+        - .env
+    healthcheck:
+      test: curl http://webapp:8181/healthcheck || exit 1
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s    
+    environment:
+      - CONTAINER_NAME=webapp
+      - API_URL=http://webapi:8000
+    depends_on:
+        webapi:
+          condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/webapp`)"
+      - "traefik.http.services.webapp.loadbalancer.server.port=8181"
+      - "traefik.http.middlewares.webapp-strip.stripprefix.prefixes=/webapp"
+      - "traefik.http.routers.webapp.middlewares=webapp-strip@docker"
+
+
 
   3cxcdrserver:
     build:
@@ -82,14 +106,14 @@ services:
     ports:
       - 5000:5000
     env_file:
-      - .env
-      - webapi.env
+      - .env  
     depends_on:
       webapi:
         condition: service_healthy
     restart: unless-stopped
     command: bash -c "/wait && python -m alembic upgrade head && python srv/runserver.py"
     environment:
+      - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
@@ -103,21 +127,37 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
+    container_name: pgadmin
     depends_on:
       db:
         condition: service_healthy
     networks:
       - custom_network
     ports:
-      - 5555:80
+      - 5555:80    
     env_file:
       - .env
+    environment:
+      - CONTAINER_NAME = pgadmin
+      - PGADMIN_LISTEN_PORT=8006
+      - PGADMIN_DISABLE_POSTFIX=true
     restart: unless-stopped
     volumes:
       - pgadmin_data:/var/lib/pgadmin/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/pgadmin`)"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=8006"
+      - "traefik.http.middlewares.pgadmin-strip.stripprefix.prefixes=/pgadmin"
+      - "traefik.http.middlewares.pgadmin-headers.headers.customRequestHeaders.X-Script-Name=/pgadmin"
+      - "traefik.http.middlewares.pgadmin-headers.headers.customRequestHeaders.X-Scheme=http"
+      - "traefik.http.routers.pgadmin.middlewares=pgadmin-strip@docker,pgadmin-headers@docker"
+
 
   grafana:
-    image: grafana/grafana-oss
+    image: grafana/grafana:latest
+    environment:
+      - CONTAINER_NAME=grafana
     depends_on:
       - db
     networks:
@@ -129,8 +169,37 @@ services:
       - .env
     volumes:
       - grafana-storage:/var/lib/grafana
+      - ./grafana/custom.ini:/etc/grafana/custom.ini
       - ./grafana_init/provisioning/:/etc/grafana/provisioning/
       - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/grafana`)"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+
+  traefik:
+    image: traefik:v2.10
+    env_file:
+      - .env
+    ports:
+      - 80:80
+      - 8080:8080
+    depends_on:
+      webapp:
+        condition: service_started
+    environment:
+      - CONTAINER_NAME=traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/traefik.toml:/etc/traefik/traefik.toml
+    networks:
+      - custom_network
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.traefik-api.rule=Host(`${WEB_SERVER_NAME}`)"
+    - "traefik.http.routers.traefik-api.service=api@internal"
+
 
 volumes:
   pgadmin_data:
@@ -148,12 +217,13 @@ volumes:
       type: none
       device: .
       o: bind
-  ui-dir:
+  webapp-dir:
     driver: local
     driver_opts:
       type: none
       device: .
       o: bind
+
 
 networks:
   custom_network:

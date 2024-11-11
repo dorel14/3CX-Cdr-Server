@@ -1,14 +1,19 @@
 # -*- coding: UTF-8 -*-
+
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from typing import Union
-from .routers import extensions_api, cdr_api
+from fastapi.openapi.docs import get_swagger_ui_html
+
+
+from .routers import extensions_api, cdr_api,queues_api, extra_events_api
 
 app = FastAPI()
 app.include_router(extensions_api.router) #permet d'ajouter les routes d'un fichier externe
 app.include_router(cdr_api.router)
+app.include_router(queues_api.router)
+app.include_router(extra_events_api.router)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -35,7 +40,16 @@ def perform_healthcheck():
     case something goes south.
     Additionally, it also returns a JSON response in the form of:
     {
-      'healtcheck': 'Everything OK!'
+        'healtcheck': 'Everything OK!'
     }
     '''
     return {'healthcheck': 'Everything OK!'}
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html(req: Request):
+    root_path = req.scope.get("root_path", "").rstrip("/")
+    openapi_url = root_path + app.openapi_url
+    return get_swagger_ui_html(
+        openapi_url=openapi_url,
+        title="API",
+    )
