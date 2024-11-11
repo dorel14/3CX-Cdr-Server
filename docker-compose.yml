@@ -12,7 +12,7 @@ services:
       - .env
     volumes:
       - ./db_folder/pg_12:/var/lib/postgresql/data
-      - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db_folder/db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test:
         ["CMD","pg_isready", "-U","${POSTGRES_USER}"]
@@ -23,8 +23,8 @@ services:
   webapi:
     build:
       context: .
-      dockerfile: ./webapi/Dockerfile
-    container_name: webapi
+      dockerfile: ./backend-api/Dockerfile
+    hostname: webapi
     restart: unless-stopped
     env_file:
       - .env
@@ -37,7 +37,7 @@ services:
       - custom_network
     ports:
       - 8004:8000
-    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /webapi"
+    command: bash -c  "/wait && uvicorn backend-api.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /webapi"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
       - CONTAINER_NAME=api
@@ -64,8 +64,8 @@ services:
   webapp:
     build:
       context: .
-      dockerfile: ./ui_new/Dockerfile
-    container_name: webapp
+      dockerfile: ./frontend/Dockerfile
+    hostname: webapp
     restart: unless-stopped
     networks:
       - custom_network
@@ -99,7 +99,7 @@ services:
   3cxcdrserver:
     build:
       context: .
-      dockerfile: ./srv/Dockerfile
+      dockerfile: ./backend/Dockerfile
     tty: true
     networks:
       - custom_network

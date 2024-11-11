@@ -12,7 +12,7 @@ services:
       - .env
     volumes:
       - ./db_folder/pg_12:/var/lib/postgresql/data
-      - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db_folder/db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test:
         ["CMD","pg_isready", "-U","${POSTGRES_USER}"]
@@ -23,8 +23,8 @@ services:
   webapi:
     build:
       context: .
-      dockerfile: ./webapi/Dockerfile
-    container_name: webapi
+      dockerfile: ./backendapi/Dockerfile
+    hostname: webapi
     restart: unless-stopped
     env_file:
       - .env
@@ -37,10 +37,10 @@ services:
       - custom_network
     ports:
       - 8004:8000
-    command: bash -c  "/wait && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /webapi"
+    command: bash -c  "/wait && uvicorn backendapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /webapi"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
-      - CONTAINER_NAME=api
+      - CONTAINER_NAME=webapi
       - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
       - WAIT_TIMEOUT=300
@@ -59,14 +59,14 @@ services:
       - "traefik.http.services.webapi.loadbalancer.server.port=8000"
       - "traefik.http.middlewares.webapi-strip.stripprefix.prefixes=/webapi"
       - "traefik.http.routers.webapi.middlewares=webapi-strip@docker"
-
   
   webapp:
     build:
       context: .
-      dockerfile: ./ui_new/Dockerfile
-    container_name: webapp
+      dockerfile: ./frontend/Dockerfile
+    hostname: webapp
     restart: unless-stopped
+    command: bash -c "python ./frontend/main.py"
     networks:
       - custom_network
     ports:
@@ -99,7 +99,7 @@ services:
   3cxcdrserver:
     build:
       context: .
-      dockerfile: ./srv/Dockerfile
+      dockerfile: ./backend/Dockerfile
     tty: true
     networks:
       - custom_network
@@ -111,7 +111,7 @@ services:
       webapi:
         condition: service_healthy
     restart: unless-stopped
-    command: bash -c "/wait && python -m alembic upgrade head && python srv/runserver.py"
+    command: bash -c "/wait && python -m alembic upgrade head && python backend/runserver.py"
     environment:
       - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
@@ -127,7 +127,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
-    container_name: pgadmin
+    hostname: pgadmin
     depends_on:
       db:
         condition: service_healthy
@@ -170,8 +170,8 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/custom.ini:/etc/grafana/custom.ini
-      - ./grafana_init/provisioning/:/etc/grafana/provisioning/
-      - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
+      - ./grafana/grafana_init/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/grafana`)"
