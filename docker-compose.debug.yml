@@ -70,13 +70,13 @@ services:
     networks:
       - custom_network
     ports:
-      - 8081:8181
+      - 8181:8181
     volumes:
       - webapp-dir:/webapp
     env_file:
         - .env
     healthcheck:
-      test: curl http://webapi:8000/healthcheck || exit 1
+      test: curl http://webapp:8181/healthcheck || exit 1
       interval: 1m30s
       timeout: 30s
       retries: 5
@@ -88,13 +88,13 @@ services:
         webapi:
           condition: service_healthy
     labels:
-    - "traefik.enable=true"
-    - "traefik.http.routers.webapp.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/webapp`)"
-    - "traefik.http.services.webapp.loadbalancer.server.port=8080"
-    - "traefik.http.middlewares.webapp-strip.stripprefix.prefixes=/webapp"
-    - "traefik.http.middlewares.webapp-headers.headers.customRequestHeaders.X-Script-Name=/webapp"
-    - "traefik.http.middlewares.webapp-headers.headers.customRequestHeaders.X-Forwarded-Prefix=/webapp"
-    - "traefik.http.routers.webapp.middlewares=webapp-strip@docker,webapp-headers@docker"
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/webapp`)"
+      - "traefik.http.services.webapp.loadbalancer.server.port=8181"
+      - "traefik.http.middlewares.webapp-strip.stripprefix.prefixes=/webapp"
+      - "traefik.http.routers.webapp.middlewares=webapp-strip@docker"
+
+
 
   3cxcdrserver:
     build:
@@ -176,8 +176,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/grafana`)"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-      - "traefik.http.middlewares.grafana-strip.stripprefix.prefixes=/grafana"
-      - "traefik.http.routers.grafana.middlewares=grafana-strip@docker"
+
 
   traefik:
     image: traefik:v2.10
@@ -185,7 +184,7 @@ services:
       - .env
     ports:
       - 80:80
-      - 8181:8181
+      - 8080:8080
     depends_on:
       webapp:
         condition: service_started
@@ -193,17 +192,15 @@ services:
       - CONTAINER_NAME=traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik/traefik.toml:/etc/traefik/traefik.toml
     networks:
       - custom_network
     labels:
     - "traefik.enable=true"
-    - "traefik.http.routers.traefik-dashboard.rule=Host(`${WEB_SERVER_NAME}`) && PathPrefix(`/traefik`)"
-    - "traefik.http.routers.traefik-dashboard.service=api@internal"
-    - "traefik.http.routers.traefik-dashboard.entrypoints=web"
-    - "traefik.http.middlewares.traefik-strip.stripprefix.prefixes=/traefik"
-    - "traefik.http.routers.traefik-dashboard.middlewares=traefik-strip@docker"
-    - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_USER}:${TRAEFIK_PASSWORD}"
+    - "traefik.http.routers.traefik-api.rule=Host(`${WEB_SERVER_NAME}`)"
+    - "traefik.http.routers.traefik-api.service=api@internal"
+
+
 volumes:
   pgadmin_data:
   grafana-storage:
