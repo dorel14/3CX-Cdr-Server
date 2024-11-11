@@ -1,56 +1,20 @@
 # -*- coding: UTF-8 -*-
-from typing import Optional
-from sqlmodel import Field, Relationship, SQLModel
-from datetime import date, datetime
+from sqlalchemy import Column, Integer, String,  DateTime
+
+from sqlalchemy.sql import func
 
 
-metadata = SQLModel.metadata
+from ..helpers.base import Base
 
+class Extensions(Base):
+    __tablename__ = "extensions"
 
-class extensiontoqueuelink(SQLModel, table=True):
-    extension_id: Optional[int] = Field(
-        default=None, foreign_key="extensions.id", primary_key=True, nullable=False
-    )
-    queue_id: Optional[int] = Field(
-        default=None, foreign_key="queues.id", primary_key=True, nullable=False
-    )
-
-
-class extensionsBase(SQLModel):
-    extension: str = Field(index=True, sa_column_kwargs={'unique': True})
-    name: str = Field(index=True)
-    mail: str
-    date_added: Optional[datetime] = Field(default=datetime.now())
-    date_out: Optional[date] =Field(default=None)
-    out: Optional[bool] = Field(default=False)
-    date_modified: Optional[datetime] = Field(default=datetime.now())
-
-
-class extensions(extensionsBase, table=True):
-    """
-    Table listant les extensions(n° 3cx)
-    """
-
-    id: int = Field(default=None, primary_key=True,nullable=False)
-    #queues: Optional[list["queues"]] = Relationship(back_populates="extensions", link_model=extensiontoqueuelink)  # type: ignore
-
-
-class extensionsCreate(extensionsBase):
-    date_added: Optional[datetime] = Field(default=datetime.now())
-    
-    pass
-
-
-class extensionsRead(extensionsBase):
-    id: int
-    
-
-class extensionUpdate(SQLModel):
-    extension: Optional[str]=None
-    name: Optional[str]=None 
-    mail: Optional[str]=None
-    date_added: Optional[date]=None
-    date_out: Optional[date]=None
-    out: Optional[bool]=False
-    date_modified: Optional[datetime] = Field(default=datetime.now())
+    id = Column(Integer, primary_key=True)
+    extension = Column(String(255), nullable=False, unique=True, index=True)
+    name = Column(String(255), nullable=True, index=True)
+    mail = Column(String(255), nullable=True, index=True)
+    date_added = Column(DateTime, default=func.now())
+    date_out = Column(DateTime, default=None, nullable=True)
+    out = Column(Integer, default=False)
+    date_modified = Column(DateTime, default=func.now())
     
