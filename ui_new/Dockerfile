@@ -1,5 +1,5 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3.12.5-slim-bookworm AS builder
+FROM python:3.13-slim AS builder
 
 #Prepare apt files
 RUN apt update \
@@ -31,7 +31,7 @@ RUN python -m venv /opt/venv && \
 
 
 # final stage
-FROM python:3.12.5-slim-bookworm
+FROM python:3.13-slim
 
 
 

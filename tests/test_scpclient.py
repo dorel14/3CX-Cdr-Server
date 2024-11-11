@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import unittest
 from unittest.mock import patch, Mock
 from sourcegraph.scpclient import SCPClient

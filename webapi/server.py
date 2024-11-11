@@ -40,7 +40,7 @@ def perform_healthcheck():
     case something goes south.
     Additionally, it also returns a JSON response in the form of:
     {
-      'healtcheck': 'Everything OK!'
+        'healtcheck': 'Everything OK!'
     }
     '''
     return {'healthcheck': 'Everything OK!'}
@@ -53,5 +53,3 @@ async def custom_swagger_ui_html(req: Request):
         openapi_url=openapi_url,
         title="API",
     )
-
-    

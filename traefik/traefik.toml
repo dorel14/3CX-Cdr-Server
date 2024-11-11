@@ -1,0 +1,30 @@
+[accessLog]
+
+[logs]
+  level = "INFO"
+
+[ping]
+  entryPoint = "web"
+  
+[entryPoints]
+  [entryPoints.web]
+    address = ":80"
+  [entryPoints.websecure]
+    address = ":443"
+
+[providers.docker]
+  exposedByDefault = false # Traefik va ignorer les containers qui n'ont pas le label "traefik.enable=true"
+  network = "custom_network" # Limite le scope de Traefik au network docker "proxy"
+
+[api]
+  dashboard = true # active le dashboard et l'api
+
+[metrics]
+  [metrics.prometheus]
+  entryPoint = "traefik"
+
+
+[experimental.plugins.traefik-plugin-rewrite-headers]
+  moduleName = "github.com/XciD/traefik-plugin-rewrite-headers"
+  version = "v0.0.4"
+  
