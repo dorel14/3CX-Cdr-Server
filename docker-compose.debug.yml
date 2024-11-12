@@ -94,8 +94,6 @@ services:
       - "traefik.http.middlewares.webapp-strip.stripprefix.prefixes=/webapp"
       - "traefik.http.routers.webapp.middlewares=webapp-strip@docker"
 
-
-
   3cxcdrserver:
     build:
       context: .

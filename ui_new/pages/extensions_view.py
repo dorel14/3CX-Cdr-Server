@@ -59,7 +59,8 @@ def refresh_extensions():
     ui.aggrid.from_pandas(df, options=grid_options).classes('grid-flow-col').on("cellValueChanged", update_data_from_table_change)
 
 async def click_import():
-    response = await run.io_bound(post_extensions, data_files)
+    df = pd.read_csv(data_files, delimiter=",")
+    response = await run.io_bound(post_extensions, df)
     ui.notify(f'Extensions {response}')
     ui.tab('Extensions_list').update()
 
