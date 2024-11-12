@@ -59,7 +59,8 @@ def refresh_queues():
     ui.aggrid.from_pandas(df, options=grid_options).classes('grid-flow-col').on("cellValueChanged", update_data_from_table_change)
 
 async def click_import():
-    response = await run.io_bound(post_queues, data_files)
+    df = pd.read_csv(data_files, delimiter=",")
+    response = await run.io_bound(post_queues, df)
     ui.notify(f'queues {response}')
     ui.tab('queues_list').update()
 

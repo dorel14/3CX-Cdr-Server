@@ -19,7 +19,10 @@ def post_queues(queues:str | pd.DataFrame):
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
 
         webapi_url_queues = api_base_url + '/v1/queues'
-        list_of_jsons = queues.to_json(orient='records', lines=True).splitlines()
+        if isinstance(queues, str):
+            list_of_jsons=[queues]
+        elif isinstance(queues, pd.DataFrame):
+            list_of_jsons = queues.to_json(orient='records', lines=True).splitlines()
         for js in list_of_jsons:
                 logger.info(f'datas: {js}')
                 try:
