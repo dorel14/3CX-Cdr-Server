@@ -22,7 +22,8 @@ dburl=os.environ.get('DATABASE_URL')
 # access to the values within the .ini file in use.
 config = context.config
 dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
-print(dburl)
+sanitized_dburl = f'postgresql://{dbUser}:****@{dbServer}:{dbPort}/{dbName}'
+print(sanitized_dburl)
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
