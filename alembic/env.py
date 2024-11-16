@@ -4,11 +4,21 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from sqlmodel import SQLModel
 from alembic import context
-from helpers.base import dburl
-from model import *
+import os
+from models import *
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+dbUser = os.environ.get('POSTGRES_USER')
+dbPassword = os.environ.get('POSTGRES_PASSWORD')
+dbServer = os.environ.get('POSTGRES_SERVER')
+dbPort = os.environ.get('POSTGRES_PORT')
+dbName = os.environ.get('POSTGRES_DB')
+dburl=os.environ.get('DATABASE_URL')
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -8,14 +8,22 @@ from alembic import context
 import os
 import sys
 sys.path.append(os.path.abspath('.'))
-from myhelpers.base import dburl
+
 from models import *
 
+dbUser = os.environ.get('POSTGRES_USER')
+dbPassword = os.environ.get('POSTGRES_PASSWORD')
+dbServer = os.environ.get('POSTGRES_SERVER')
+dbPort = os.environ.get('POSTGRES_PORT')
+dbName = os.environ.get('POSTGRES_DB')
+dburl=os.environ.get('DATABASE_URL')
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
+dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
+sanitized_dburl = f'postgresql://{dbUser}:****@{dbServer}:{dbPort}/{dbName}'
+print(sanitized_dburl)
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
