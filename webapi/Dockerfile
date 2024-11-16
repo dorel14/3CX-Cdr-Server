@@ -2,6 +2,8 @@ FROM tiangolo/uvicorn-gunicorn:python3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 
+#Permet de forcer le vidage de cahche des varaibles d'environnement
+ARG CACHEBUST=1
 
 RUN apt-get update && \
     apt-get install -y curl \

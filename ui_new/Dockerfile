@@ -58,6 +58,8 @@ COPY --from=builder /opt/venv /opt/venv
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
 && mkdir /webapp
+#Permet de forcer le vidage de cahche des varaibles d'environnement
+ARG CACHEBUST=1
 
 WORKDIR /webapp
 

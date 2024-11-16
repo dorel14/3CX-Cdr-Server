@@ -32,8 +32,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends --allow-change-
     locales\
     iputils-ping\
     locales- \
+    grep \
 && apt-get clean && rm -rf /var/lib/apt/lists/* \
 && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+#Permet de forcer le vidage de cahche des varaibles d'environnement
+ARG CACHEBUST=$(date +%s)
 
 #RUN localedef -i ${LOCALE_LANGUAGE} -c -f UTF-8 -A /usr/share/locale/locale.alias ${LOCALE_LANGUAGE}.UTF-8
 ENV LANG ${LOCALE_LANGUAGE}.utf8
