@@ -4,7 +4,7 @@ from .menu import menu
 
 from nicegui import ui
 
-from modules.version import __version__
+from ...modules.version import __version__
 
 
 

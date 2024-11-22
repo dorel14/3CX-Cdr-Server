@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta
 import time
-from base import engine
+from backendapi.helpers.base import engine
 
 
 def detect_abnormal_cdr_count():

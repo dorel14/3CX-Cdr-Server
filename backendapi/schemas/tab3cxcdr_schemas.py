@@ -38,7 +38,7 @@ class CallDataRecord(CallDataRecordBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CallDataRecordDetailsBase(BaseModel):
     cdr_historyid: str
@@ -58,4 +58,4 @@ class CallDataRecordDetails(CallDataRecordDetailsBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

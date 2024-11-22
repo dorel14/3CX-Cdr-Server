@@ -17,7 +17,7 @@ dburl=os.environ.get('DATABASE_URL')
 #dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}' # os.environ.get('DATABASE_URL')
 #os.environ.update('DATABASE_URL',dburl)
 
-dburl = f'postgresql+aynspg://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}' # os.environ.get('DATABASE_URL')
+dburl = f'postgresql+asyncpg://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}' # os.environ.get('DATABASE_URL')
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -33,9 +33,9 @@ AsyncSessionLocal  = sessionmaker(engine, class_=AsyncSession, expire_on_commit=
 Base = declarative_base()
 Base.metadata.naming_convention = NAMING_CONVENTION
 
-def get_session():
-    session = AsyncSessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
+async def get_session():
+    async with AsyncSession(engine) as session:
+        try:
+            yield session
+        finally:
+            await session.close()

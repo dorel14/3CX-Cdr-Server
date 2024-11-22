@@ -2,20 +2,29 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from sqlmodel import SQLModel
+from sqlalchemy.ext.declarative import declarative_base
 from alembic import context
+
 import os
+import sys
+sys.path.append(os.path.abspath('.'))
 
+from backendapi.models  import *
 
-
-from backendapi.models import *
-
+dbUser = os.environ.get('POSTGRES_USER')
+dbPassword = os.environ.get('POSTGRES_PASSWORD')
+dbServer = os.environ.get('POSTGRES_SERVER')
+dbPort = os.environ.get('POSTGRES_PORT')
+dbName = os.environ.get('POSTGRES_DB')
 dburl=os.environ.get('DATABASE_URL')
 
+Base = declarative_base()
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
+dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
+sanitized_dburl = f'postgresql://{dbUser}:****@{dbServer}:{dbPort}/{dbName}'
+print(sanitized_dburl)
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -26,7 +35,7 @@ context.config.set_main_option('sqlalchemy.url', dburl)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = SQLModel.metadata
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -52,7 +61,6 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        user_module_prefix="sqlmodel.sql.sqltypes.",
     )
 
     with context.begin_transaction():
@@ -77,7 +85,6 @@ def run_migrations_online() -> None:
             connection=connection, 
             target_metadata=target_metadata,
             render_as_batch=True,
-            user_module_prefix="sqlmodel.sql.sqltypes.",
         )
 
         with context.begin_transaction():

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Time, Date, ForeignKey
-from helpers.base import Base
+from ..helpers.base import Base
 
 class CallDataRecords(Base):
     __tablename__ = "call_data_records"

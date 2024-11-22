@@ -9,7 +9,7 @@ import json
 import sys
 import os
 sys.path.append(os.path.abspath("."))
-from helpers.queues_import import post_queues
+from ..helpers.queues_import import post_queues
 
 router = APIRouter(prefix='/queues')
 api_base_url = os.environ.get('API_URL')

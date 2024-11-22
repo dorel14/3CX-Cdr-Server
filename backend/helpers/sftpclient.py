@@ -2,8 +2,8 @@
 import pysftp
 import os
 from time import sleep
-from myhelpers.logging import logger
-from myhelpers.traitement_fichier import csv_files_read
+from helpers.logging import logger
+from helpers.traitement_fichier import csv_files_read
 
 from pathlib import Path
 path = Path(__file__).resolve()
@@ -44,7 +44,7 @@ class sftpclient():
             None
         """
                 
-        with pysftp.Connection(hostname=self.host, port=self.port,
+        with pysftp.Connection(host=self.host, port=self.port,
                                 username=self.user, password=self.password, 
                                 private_key=None, private_key_pass=None) as sftp :
             sftp.chdir(ftpfolder)

@@ -9,7 +9,7 @@ import json
 
 import os
 
-from helpers.extensions_import import post_extensions
+from ..helpers.extensions_import import post_extensions
 
 router = APIRouter(prefix='/extensions')
 api_base_url = os.environ.get('API_URL')

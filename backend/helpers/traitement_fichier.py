@@ -4,8 +4,8 @@ import os
 from datetime import datetime
 import shutil
 
-from myhelpers.cdr import parse_cdr, push_cdr_api, validate_cdr
-from myhelpers.logging import logger
+from helpers.cdr import parse_cdr, push_cdr_api, validate_cdr
+from helpers.logging import logger
 
 #filefolder = '/opt/cdrfiles'
 #savefolder = '/opt/cdrfiles_archives'

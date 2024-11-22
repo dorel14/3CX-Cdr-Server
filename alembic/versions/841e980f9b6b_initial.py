@@ -51,8 +51,8 @@ def upgrade() -> None:
     sa.Column('missed_queue_calls', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_call_data_records')),
     sa.UniqueConstraint('callid', name=op.f('uq_call_data_records_callid')),
-    sa.UniqueConstraint('historyid', name=op.f('uq_call_data_records_historyid'))
-    )
+    sa.UniqueConstraint('historyid', name=op.f('uq_call_data_records_historyid')),
+    if_not_exists=True)
     op.create_table('extensions',
     sa.Column('extension', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -61,8 +61,8 @@ def upgrade() -> None:
     sa.Column('date_out', sa.Date(), nullable=True),
     sa.Column('out', sa.Boolean(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=True),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_extensions'))
-    )
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_extensions')),
+    if_not_exists=True)
     with op.batch_alter_table('extensions', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_extensions_extension'), ['extension'], unique=False)
         batch_op.create_index(batch_op.f('ix_extensions_name'), ['name'], unique=False)
@@ -71,8 +71,8 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=True),
     sa.Column('queue', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('queuename', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_queues'))
-    )
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_queues')),
+    if_not_exists=True)
     op.create_table('call_data_records_details',
     sa.Column('id', sa.Integer(), nullable=True),
     sa.Column('cdr_historyid', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -83,15 +83,15 @@ def upgrade() -> None:
     sa.Column('call_time', sa.Time(), nullable=False),
     sa.Column('day_of_week', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.ForeignKeyConstraint(['cdr_historyid'], ['call_data_records.historyid'], name=op.f('fk_call_data_records_details_cdr_historyid_call_data_records')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_call_data_records_details'))
-    )
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_call_data_records_details')),
+    if_not_exists=True)
     op.create_table('extensiontoqueuelink',
     sa.Column('extension_id', sa.Integer(), nullable=True),
     sa.Column('queue_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['extension_id'], ['extensions.id'], name=op.f('fk_extensiontoqueuelink_extension_id_extensions')),
     sa.ForeignKeyConstraint(['queue_id'], ['queues.id'], name=op.f('fk_extensiontoqueuelink_queue_id_queues')),
-    sa.PrimaryKeyConstraint('extension_id', 'queue_id', name=op.f('pk_extensiontoqueuelink'))
-    )
+    sa.PrimaryKeyConstraint('extension_id', 'queue_id', name=op.f('pk_extensiontoqueuelink')),
+    if_not_exists=True)
     # ### end Alembic commands ###
 
 

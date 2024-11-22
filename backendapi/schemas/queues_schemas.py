@@ -15,7 +15,7 @@ class Queue(QueueBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class QueueUpdate(BaseModel):
     queue: Optional[str] = None

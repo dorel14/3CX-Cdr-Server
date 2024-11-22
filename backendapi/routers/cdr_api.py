@@ -1,7 +1,10 @@
 
+
 from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from pydantic import ValidationError
-from sqlmodel import select, Session
+from datetime import datetime
 from typing import List
 
 
@@ -10,36 +13,47 @@ from typing import List
 from ..helpers.base import get_session
 from ..helpers.logging import logger
 
-from ..models.tab3cxcdr import (
-    call_data_records,
-    call_data_records_create,
-    call_data_records_read,
-    call_data_records_details,
-    call_data_records_details_create,
-    call_data_records_details_read
+from ..models.tab3cxcdr import (CallDataRecords as call_data_records, 
+                                CallDataRecordsDetails as call_data_records_details
+                                )
+from ..schemas.tab3cxcdr_schemas import (
+    CallDataRecordBase as call_data_records_read,
+    CallDataRecordCreate as call_data_records_create,
+    CallDataRecordDetailsBase as call_data_records_details_read,
+    CallDataRecordDetailsCreate as call_data_records_details_create
 )
+
 router = APIRouter(prefix="/v1")
 
 @router.post('/cdr', response_model=call_data_records_read, tags=["cdr"])
-async def create_cdr(*, session: Session = Depends(get_session), call_data_record:call_data_records_create):
-    db_cdr=call_data_records.model_validate(call_data_record)
-    session.add(db_cdr)
-    session.commit()
-    session.refresh(db_cdr)
-    return db_cdr
+async def create_cdr(call_data_record:call_data_records_create,
+                    session: AsyncSession = Depends(get_session), ):
+    try:
+        db_cdr=call_data_records(**call_data_record.dict())
+        session.add(db_cdr)
+        await session.commit()
+        await session.refresh(db_cdr)
+        logger.info(f"CDR created successfully with callid: {db_cdr.callid}")
+        return db_cdr
+    except Exception as e:
+        logger.error(f"Error creating CDR: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create CDR record")
 
 @router.get('/cdr', response_model=List[call_data_records_read], tags=["cdr"])
 async def read_cdr(*,
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
     offset: int = 0,
     limit: int = Query(default=100, lte=100),
     ):
-    db_cdr=session.exec(select(call_data_records).offset(offset).limit(limit)).all()
+    result = await session.execute(select(call_data_records).offset(offset).limit(limit))
+    db_cdr=result.scalars().all()
     return db_cdr
 
 @router.get("/cdr/{callid}", response_model=call_data_records_read, tags=["cdr"])
-async def read_cdr_by_callid(*, session: Session = Depends(get_session), callid: str):
-    db_cdr_by_cid = session.exec(select(call_data_records).where(call_data_records.callid==callid)).one_or_none()
+async def read_cdr_by_callid(callid: str,
+                            session: AsyncSession = Depends(get_session), ):
+    result  = await session.execute(select(call_data_records).where(call_data_records.callid==callid))
+    db_cdr_by_cid = result.scalar_one_or_none()
     print(db_cdr_by_cid)
     if not db_cdr_by_cid:
         logger.info(f"callid {callid} non trouvée")
@@ -47,34 +61,61 @@ async def read_cdr_by_callid(*, session: Session = Depends(get_session), callid:
     return db_cdr_by_cid
 
 @router.get("/cdr/historyid/{historyid}", response_model=call_data_records_read, tags=["cdr"])
-async def read_cdr_by_historyid(*, session: Session = Depends(get_session), historyid: str):
-    db_cdr_by_hid = session.exec(select(call_data_records).where(call_data_records.historyid==historyid)).one_or_none()
+async def read_cdr_by_historyid(historyid: str,
+                                session: AsyncSession = Depends(get_session), ):
+    result  = await session.execute(select(call_data_records).where(call_data_records.historyid==historyid))
+    db_cdr_by_hid = result.scalar_one_or_none()
     print(db_cdr_by_hid)
     if not db_cdr_by_hid:
         logger.info(f"historyid {historyid} non trouvée")
         raise HTTPException(status_code=404, detail="cdr non trouvée")
     return db_cdr_by_hid
 
+@router.get('/cdr/search', response_model=List[call_data_records_read], tags=["cdr"])
+async def search_cdr(
+    *,
+    session: AsyncSession = Depends(get_session),
+    start_date: datetime = Query(None),
+    end_date: datetime = Query(None),
+    limit: int = Query(default=100, lte=100)
+):
+    query = select(call_data_records)
+    if start_date and end_date:
+        query = query.where(
+            call_data_records.timestart.between(start_date, end_date)
+        )
+    result = await session.execute(query.limit(limit))
+    return result.scalars().all()
+
+
 @router.post('/cdrdetails', response_model=call_data_records_details_read, tags=["cdr_details"])
-async def create_cdr_details(*, session: Session=Depends(get_session), call_data_record_detail:call_data_records_details_create):
-    db_cdr_detail=call_data_records_details.model_validate(call_data_record_detail)
-    session.add(db_cdr_detail)
-    session.commit()
-    session.refresh(db_cdr_detail)
-    return db_cdr_detail
+async def create_cdr_details(call_data_record_detail:call_data_records_details_create,
+                            session: AsyncSession=Depends(get_session), ):
+    try:
+        db_cdr_detail=call_data_records_details(**call_data_record_detail.dict())
+        session.add(db_cdr_detail)
+        await session.commit()
+        await session.refresh(db_cdr_detail)
+        return db_cdr_detail
+    except Exception as e:
+        logger.error(f"Error creating CDR details: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create CDR details record")
 
 @router.get('/cdrdetails', response_model=List[call_data_records_details_read], tags=["cdr_details"])
-async def read_cdr_details(*,
-    session: Session = Depends(get_session),
+async def read_cdr_details(
+    session: AsyncSession = Depends(get_session),
     offset: int = 0,
     limit: int = Query(default=100, lte=100),
     ):
-    db_cdr_details=session.exec(select(call_data_records_details).offset(offset).limit(limit)).all()
+    result = await session.execute(select(call_data_records_details).offset(offset).limit(limit))
+    db_cdr_details=result.scalars().all()
     return db_cdr_details
 
 @router.get("/cdrdetails/historyid/{historyid}", response_model=call_data_records_details_read, tags=["cdr_details"])
-async def read_cdrdetails_by_historyid(*, session: Session = Depends(get_session), historyid: str):
-    db_cdr_by_hid = session.exec(select(call_data_records_details).where(call_data_records_details.cdr_historyid==historyid)).one_or_none()
+async def read_cdrdetails_by_historyid(historyid: str,
+                                    session: AsyncSession = Depends(get_session), ):
+    result  = await session.execute(select(call_data_records_details).where(call_data_records_details.cdr_historyid==historyid))
+    db_cdr_by_hid = result.scalar_one_or_none()
     logger.info(db_cdr_by_hid)
     if not db_cdr_by_hid:
         raise HTTPException(status_code=404, detail="cdr non trouvée")
@@ -82,7 +123,7 @@ async def read_cdrdetails_by_historyid(*, session: Session = Depends(get_session
 
 
 @router.post("/cdr/validate", status_code=200)
-async def validate_cdr(cdr: call_data_records):
+async def validate_cdr(cdr: call_data_records_create):
     try:
         #La validation est faites par pydantic
         return {"status":"valid"}
@@ -90,7 +131,7 @@ async def validate_cdr(cdr: call_data_records):
         raise HTTPException(status_code=422, detail=str(e))
 
 @router.post("/cdrdatails/validate", status_code=200)
-async def validate_cdr_details(cdr_details: call_data_records_details):
+async def validate_cdr_details(cdr_details: call_data_records_details_create):
     try:
         #Validation faite par Pydantic
         return {"status": "valid"}

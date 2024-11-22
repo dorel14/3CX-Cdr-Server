@@ -6,7 +6,7 @@ import os
 import pandas as pd
 
 from requests.exceptions import HTTPError
-from helpers.logging import logger
+from .logging import logger
 
 
 api_base_url = os.environ.get('API_URL')

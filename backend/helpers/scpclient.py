@@ -4,8 +4,8 @@ import paramiko
 import os
 import fnmatch
 from time import sleep
-from myhelpers.logging import logger
-from myhelpers.traitement_fichier import csv_files_read
+from helpers.logging import logger
+from helpers.traitement_fichier import csv_files_read
 
 class scpclient():
     """

@@ -1,10 +1,9 @@
 # -*- coding: UTF-8 -*-
-
-import pages.homepage as homepage
-from pages.generals import theme
-import pages.extensions_view as extensions_view
-import pages.queues_view as queues_view
-import pages.events_view as events_view
+from .pages import homepage
+from .pages.generals import theme
+from .pages import extensions_view
+from .pages import events_view
+from .pages import queues_view
 from fastapi import status
 from nicegui import app, ui
 import os

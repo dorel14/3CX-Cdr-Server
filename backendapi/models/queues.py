@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
-from helpers.base import Base
+from ..helpers.base import Base
 
 
 

@@ -19,7 +19,7 @@ class Extension(ExtensionBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ExtensionUpdate(BaseModel):
     extension: Optional[str] = None
