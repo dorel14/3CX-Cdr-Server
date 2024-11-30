@@ -5,11 +5,11 @@ import threading
 import os
 
 import chardet
-from setproctitle import setproctitle, getproctitle
+from setproctitle import setproctitle
 
 
-from helpers.cdr import parse_cdr, push_cdr_api
-from helpers.logging import logger
+from .cdr import parse_cdr, push_cdr_api
+from .logging import logger
 
 
 class traitementDonnées(socketserver.BaseRequestHandler):

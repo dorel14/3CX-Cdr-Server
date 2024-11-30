@@ -65,7 +65,12 @@ WORKDIR ${APP_DIR}
 
 
 # RUN chown -R appuser  /home/appuser/*
+# Install pip requirements
+COPY requirements.txt .
 
+RUN pip3 install --upgrade pip \
+&& pip3 install --no-cache-dir wheel \
+&& pip3 install --no-cache-dir -r requirements.txt
 
 
 
@@ -83,6 +88,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # activate virtual environment
 ENV VIRTUAL_ENV=/home/appuser/venv
 ENV PATH="/home/appuser/venv/bin:$PATH"
+
+COPY requirements.txt .
+
+RUN pip3 install --upgrade pip \
+&& pip3 install --no-cache-dir wheel \
+&& pip3 install --no-cache-dir -r requirements.txt
 
 
 #Port d'écoute

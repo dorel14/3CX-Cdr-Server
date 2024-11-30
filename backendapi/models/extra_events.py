@@ -1,6 +1,10 @@
 # -*- coding: UTF-8 -*-
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy.orm import relationship
 from datetime import datetime
+
+
+
 from ..helpers.base import Base
 
 class ExtraEvents(Base):
@@ -15,3 +19,4 @@ class ExtraEvents(Base):
     date_added = Column(DateTime, default=datetime.now())
     date_modified = Column(DateTime, default=datetime.now())
     all_day = Column(Boolean, default=False)
+    extensionslist = relationship("Extensions", secondary='ExtensionsEvents',back_populates="extraevent")

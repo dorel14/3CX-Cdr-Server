@@ -16,7 +16,7 @@ services:
       - .env
     user: root
     volumes:
-      - ./db_folder/pg_12b:/var/lib/postgresql/data
+      - ./db_folder/pg_12:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
       interval: 30s
@@ -112,7 +112,7 @@ services:
       webapi:
         condition: service_healthy
     restart: unless-stopped
-    command: bash -c "/wait && python -m alembic upgrade head && python backend/runserver.py"
+    command: bash -c "/wait && python -m backend.init_db && python -m backend.runserver"
     environment:
       - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}

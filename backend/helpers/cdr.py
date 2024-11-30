@@ -11,7 +11,7 @@ from datetime import datetime as dt
 
 import requests
 from requests.exceptions import HTTPError
-from helpers.logging import logger
+from .logging import logger
 
 import sys
 sys.path.append(os.path.abspath("."))

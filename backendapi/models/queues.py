@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
 from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
+from sqlalchemy.orm import relationship
+
 from ..helpers.base import Base
 
 
@@ -13,3 +15,4 @@ class Queues(Base):
     queuename = Column(String)
     date_added = Column(DateTime, default=datetime.now())
     date_modified = Column(DateTime, default=datetime.now())
+    extensionslist = relationship("Extensions", secondary='Extensiontoqueuelink',back_populates="queues")
