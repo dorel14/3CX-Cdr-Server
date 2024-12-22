@@ -1,7 +1,8 @@
 [accessLog]
-
-[logs]
+  filePath = "/var/log/traefik/access.log"
+[log]
   level = "INFO"
+  filePath = "/var/log/traefik/traefik.log"
 
 [ping]
   entryPoint = "web"
@@ -9,6 +10,8 @@
 [entryPoints]
   [entryPoints.web]
     address = ":80"
+  [entryPoints.webapp]
+    address = ":8181"
   [entryPoints.websecure]
     address = ":443"
 
@@ -18,6 +21,9 @@
 
 [api]
   dashboard = true # active le dashboard et l'api
+  insecure = true # active l'api en mode non sécurisé
+  debug = true # active le mode debug
+
 
 [metrics]
   [metrics.prometheus]
@@ -27,4 +33,59 @@
 [experimental.plugins.traefik-plugin-rewrite-headers]
   moduleName = "github.com/XciD/traefik-plugin-rewrite-headers"
   version = "v0.0.4"
+
+[http.routers]
+  # Routeur pour l'accès via le domaine standard
+  [http.routers.webapp-domain]
+    rule = "Host(`${WEB_SERVER_NAME:-localhost}`) && PathPrefix(`/webapp`)"
+    service = "webapp"
+    entryPoints = ["web"]
+    middlewares = ["strip-webapp"]
+
+  # Routeur pour l'accès via localhost:8181
+  [http.routers.webapp-port]
+    rule = "Host(`localhost:8181`) && (Path(`/`) || PathPrefix(`/webapp`))"
+    service = "webapp"
+    entryPoints = ["webapp"]
+    middlewares = ["strip-webapp"]
   
+  # Routeur pour rediriger les requêtes à la racine vers /webapp
+  [http.routers.webapp-port-root]
+    rule = "Host(`localhost:8181`) && Path(`/`)" 
+    service = "webapp"
+    entryPoints = ["webapp"]
+    middlewares = ["redirect-to-webapp"]
+
+  # Routeur pour l'accès via l'adresse IP
+  [http.routers.webapp-ip]
+    rule = "HostRegexp(`{ip:[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+}:8181`) && (Path(`/`) || PathPrefix(`/webapp`))"
+    service = "webapp"
+    entryPoints = ["webapp"]
+    middlewares = ["strip-webapp"]
+  
+  # Routeur pour rediriger les requêtes à la racine vers /webapp via l'adresse IP
+  [http.routers.webapp-ip-root]
+    rule = "HostRegexp(`{ip:[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+}:8181`) && Path(`/`)"
+    service = "webapp"
+    entryPoints = ["webapp"]
+    middlewares = ["redirect-to-webapp"]
+
+[http.middlewares]
+  # Middleware pour rediriger vers /webapp si la requête est à la racine
+  [http.middlewares.redirect-to-webapp.redirectRegex]
+    regex = "^/$"
+    replacement = "/webapp"
+    permanent = false
+
+  # Middleware pour enlever le préfixe /webapp
+  [http.middlewares.strip-webapp.stripPrefix]
+    prefixes = ["/webapp"]
+
+[http.services]
+  [http.services.webapp.loadBalancer]
+    [[http.services.webapp.loadBalancer.servers]]
+      url = "http://webapp:8181"
+
+
+
+
