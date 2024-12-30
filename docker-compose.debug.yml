@@ -52,7 +52,7 @@ services:
       # - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
       test: curl http://webapi:8000/healthcheck || exit 1
-      interval: 30s
+      interval: 60s
       timeout: 5s
       retries: 5
       start_period: 60s
@@ -190,6 +190,7 @@ services:
       - CONTAINER_NAME=traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/logs:/var/log/traefik
       - ./traefik/traefik.toml:/etc/traefik/traefik.toml
     networks:
       - custom_network
