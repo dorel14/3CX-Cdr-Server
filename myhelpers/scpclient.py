@@ -55,7 +55,7 @@ class scpclient():
                                        
                     scp.get(remote_path=scpfilename,
                             local_path=os.path.join(localfolder, f))
-                    logger.info("file downloaded:" + scpfilename)
+                    logger.info("File downloaded successfully.")
                     if os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'ARCHIVE':
                         #ssh.exec_command(f"sudo mv {scpfilename} .old")
                         sftp.rename(scpfilename,f"{scpfilename}.old")
