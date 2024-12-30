@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   db:
     build:
@@ -54,7 +52,7 @@ services:
       # - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
       test: curl http://webapi:8000/healthcheck || exit 1
-      interval: 30s
+      interval: 60s
       timeout: 5s
       retries: 5
       start_period: 60s
@@ -97,15 +95,6 @@ services:
       - "traefik.http.services.webapp.loadbalancer.server.port=8181"
       - "traefik.http.middlewares.webapp-strip.stripprefix.prefixes=/webapp"
       - "traefik.http.routers.webapp.middlewares=webapp-strip@docker"
-      - "traefik.http.routers.webapp-domain.rule=Host(`${WEB_SERVER_NAME:-localhost}`) && PathPrefix(`/webapp`)"
-      - "traefik.http.routers.webapp-port.rule=Host(`localhost:8181`) && (Path(`/`) || PathPrefix(`/webapp`))"
-      - "traefik.http.routers.webapp-port-root.rule=Host(`localhost:8181`) && Path(`/`)"
-      - "traefik.http.routers.webapp-ip.rule=HostRegexp(`{ip:[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+}:8181`) && (Path(`/`) || PathPrefix(`/webapp`))"
-      - "traefik.http.routers.webapp-ip-root.rule=HostRegexp(`{ip:[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+}:8181`) && Path(`/`)"
-      - "traefik.http.middlewares.strip-webapp.stripPrefix.prefixes=/webapp"
-      - "traefik.http.middlewares.redirect-to-webapp.redirectRegex.regex=^/$"
-      - "traefik.http.middlewares.redirect-to-webapp.redirectRegex.replacement=/webapp"
-      - "traefik.http.middlewares.redirect-to-webapp.redirectRegex.permanent=false"
 
   3cxcdrserver:
     build:
@@ -188,29 +177,23 @@ services:
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   traefik:
-    image: traefik:v2.5
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.webapp.address=:8181"
-      - "--entrypoints.websecure.address=:443"
-    ports:
-      - "80:80"
-      - "8181:8181"
-      - "443:443"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./traefik/traefik.toml:/etc/traefik/traefik.toml"
-    networks:
-      - custom_network
+    image: traefik:v2.10
     env_file:
       - .env
+    ports:
+      - 80:80
+      - 8080:8080
     depends_on:
       webapp:
         condition: service_started
     environment:
       - CONTAINER_NAME=traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/logs:/var/log/traefik
+      - ./traefik/traefik.toml:/etc/traefik/traefik.toml
+    networks:
+      - custom_network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-api.rule=Host(`${WEB_SERVER_NAME:-localhost}`)"
