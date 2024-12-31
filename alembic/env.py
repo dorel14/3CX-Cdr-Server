@@ -7,14 +7,7 @@ from alembic import context
 import os
 
 from backendapi.helpers.base import Base
-from backendapi.models import (
-    queues,
-    extensions,
-    extra_events,
-    tab3cxcdr,
-    extensions_events,
-    extensionsandqueues
-)
+from backendapi.models import *
 
 dbUser = os.environ.get('POSTGRES_USER')
 dbPassword = os.environ.get('POSTGRES_PASSWORD')

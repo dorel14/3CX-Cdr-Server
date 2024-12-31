@@ -40,10 +40,24 @@ datetimeformat = "%Y/%m/%d %H:%M"
 date_format = "DD/MM/YYYY"
 time_format = '%H:%M'
 
+def get_extensions():
+    url = f'{api_base_url}/v1/extensions'
+    response = requests.get(url)
+    if response.status_code == 200:
+        return {ext['extension']: ext['name'] for ext in response.json()}
+    return {}
+
+def get_queues():
+    url = f'{api_base_url}/v1/queues'
+    response = requests.get(url)
+    if response.status_code == 200:
+        return {queue['queue']: queue['name'] for queue in response.json()}
+    return {}
+
 
 
 class Event_Dialog(ui.dialog):
-    def __init__(self, id:str ,title:str, start:datetime, end:datetime, all_day:bool, impact:str, description:str, *args, **kwargs):
+    def __init__(self, id:str ,title:str, start:datetime, end:datetime, all_day:bool, impact:str, description:str, extensions:list=None, queues:list=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title = 'Event'
         self.auto_close = False
@@ -59,6 +73,8 @@ class Event_Dialog(ui.dialog):
                     'event_end_time':datetime_to_time_str(end),
                     'event_impact':impact if impact else '0',
                     'event_description':description if description else '',
+                    'extensionslist': extensions if extensions else [],
+                    'queueslist': queues if queues else []
                     }
             ui.label('Add Event')
             ui.input(label='id', value=data['id']).props('readonly')
@@ -107,6 +123,13 @@ class Event_Dialog(ui.dialog):
             ui.label('Impact of event')
             ui.select(options=impact_levels, value=data['event_impact']).on_value_change(lambda e: data.update({'event_impact': e.value})).classes('w-full')
             ui.textarea('Event Description', placeholder='Event description', value=data['event_description']).on_value_change(lambda e: data.update({'event_description': e.value})).classes('w-full')
+            ui.label('Extensions')
+            extensions_options = get_extensions()
+            ui.select(options=extensions_options, value=data['extensionslist']).on_value_change(lambda e: data.update({'extensionslist': e.value})).classes('w-full')
+            ui.label('Queues')
+            queues_options = get_queues()
+            ui.select(options=queues_options, value=data['queueslist']).on_value_change(lambda e: data.update({'queueslist': e.value})).classes('w-full')
+            
             with ui.row():
                 ui.button('Save Event', on_click=lambda: self.submit(data), icon='save').classes('text-xs')
                 ui.button('Delete Event', on_click=lambda: delete_event(data['id']),icon='delete').classes('text-xs')
@@ -133,7 +156,10 @@ async def handle_click(event: events.GenericEventArguments):
                             end=parse_iso_datetime(event_info['end']) if 'end' in event_info else '',                            
                             impact= next(key for key, value in impact_levels.items() if value == event_info['extendedProps']['impact']),
                             description=event_info['extendedProps']['description'] ,
-                            all_day=event_info['allDay'])
+                            all_day=event_info['allDay'],
+                            extensions=event_info['extendedProps'].get('extensionslist', []),
+                            queues=event_info['extendedProps'].get('queueslist', []) 
+                            )
             if result:
                 #print(result)
                 if result['event_allday'] :
@@ -205,8 +231,9 @@ def get_events():
                     'impact':impact_levels[event['event_impact']],
                     'color': impact_colors[event['event_impact']],
                     'allDay': event['all_day'],
-            }
-            )
+                    'extensionslist': event['extensionslist'],
+                    'queueslist': event['queueslist']
+            })
         return events
     else:
         return []

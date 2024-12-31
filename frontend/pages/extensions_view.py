@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 from nicegui import ui, APIRouter, events, run
+from nicegui_tabulator import tabulator
 
 from .generals import theme
 import requests
@@ -16,47 +17,46 @@ api_base_url = os.environ.get('API_URL')
 data_folder = "/data/files"
 data_files = os.path.join(data_folder, "extensions.csv")
 
+# Add error handling for the API call
+def get_extensions():
+    try:
+        response = requests.get(f"{api_base_url}/v1/extensions")
+        response.raise_for_status()  # Raise an exception for bad status codes
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        ui.notify(f"Error fetching extensions: {str(e)}", type='negative')
+        return []
 
 @ui.refreshable
 def refresh_extensions():
-    extensions = requests.get(f"{api_base_url}/v1/extensions").json()
+    extensions = get_extensions()
     df = pd.DataFrame(extensions)
-    column_defs = []
+    columns = []
     for column in df.columns:
-        col_def = {'headerName': column.capitalize(), 'field': column}
-        col_def['sortable'] = 'true'
-        col_def['filter'] = 'true'
-        col_def['floatingFilter'] = 'False'
+        col_defs= {'title':column.capitalize(), 
+                    'field': column, 
+                    'sorter':True,
+                    'headerFilter': True
+                    }
         if df[column].dtype in ['int64', 'float64']:
-            col_def['type'] = 'numericColumn',
-            col_def['filter'] = 'agNumberColumnFilter'
-        else :
-            col_def['type'] = 'textColumn'
-            col_def['filter'] = 'agTextColumnFilter'
-        if df[column].dtype == 'datetime64[ns]':
-            col_def['type'] = 'datetimeColumn'
-            col_def['filter'] = 'agDateColumnFilter'
-        if df[column].dtype == 'bool':
-            col_def['filter'] = 'agBooleanColumnFilter'
+            col_defs['sorter'] = 'number'
+        
         if column == 'id':
-            col_def['pinned'] = 'left'
-            col_def['width']= 50
-        if column in ['name', 'mail', 'out']:
-            col_def['editable']= True
-        column_defs.append(col_def)
-    grid_options = {
-        'columnDefs': column_defs,
-        'defaultColDef': {
-            'flex': 1,
-            'minWidth': 30,
-            'resizable': True,
-            'cellStyle': {'fontSize': '14px'},
-            },
-            'horizontalScroll': True,
-            'rowSelection': 'single',
-            "stopEditingWhenCellsLoseFocus": True,
-            }  
-    ui.aggrid.from_pandas(df, options=grid_options).classes('grid-flow-col').on("cellValueChanged", update_data_from_table_change)
+            col_defs['visible'] = False
+            col_defs['frozen'] = True
+            col_defs['width'] = 50
+        
+        if column in ['extension', 'name', 'mail']:
+            col_defs['editor'] = True
+        columns.append(col_defs)
+
+    table = tabulator(df,
+                    columns=columns,
+                    layout = 'fitColumns',
+                    height = '400px',
+                    movableColumns = True,
+                    selectable =1,
+                    ).on('cellEdited', update_data_from_table_change)
 
 async def click_import():
     response = await run.io_bound(post_extensions, data_files)
@@ -76,31 +76,39 @@ def read_uploaded_file(e: events.UploadEventArguments):
             fcsv.write(b)
     df = pd.read_csv(data_files, delimiter=",")
     ui.button('Import',icon='upload',on_click=click_import).classes('text-xs')
-    ui.aggrid.from_pandas(df).classes('grid-flow-col')
+    tabulator(df, layout='fitColumns', height='400px')
     ui.tab('Extensions_Import').update()
 
 async def update_data_from_table_change(e):
-    # ui.notify(f"Update with {e.args['data'] }")
-    data = e.args["data"]
-    btn = ui.button('Update',icon='save').classes('text-xs')
+    data = e.args
+    btn = ui.button('Update', icon='save').classes('text-xs')
     await btn.clicked()
+    
     headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
     webapi_url_extensions = api_base_url + '/v1/extensions'
-    j = {}
-    j['id'] = data['id']
-    j['extension'] = data['extension']
-    j['name'] = data['name']
-    j['mail'] = data['mail']
-    j['out'] = data['out']
-    js = json.dumps(j)
+    
+    j = {
+        'id': data['id'],
+        'extension': data['extension'],
+        'name': data['name'],
+        'mail': data['mail'],
+        'out': data['out']
+    }
+    
     extensionid = data['id']
-    response = requests.patch(f"{webapi_url_extensions}/{extensionid}", headers=headers, data=js)
+    response = requests.patch(
+        f"{webapi_url_extensions}/{extensionid}", 
+        headers=headers, 
+        data=json.dumps(j)
+    )
+    
     if response.status_code == 200:
-        ui.notify(f'Extensions updated successfully')  # noqa: F541
+        ui.notify('Extensions updated successfully')
         btn.delete()
         ui.tab('Extensions_list').update()
     else:
-        ui.notify(f'Update failed')  # noqa: F541
+        ui.notify('Update failed')
+
 
 async def add_extension(data,dialog):
     #data = e.args["data"]
@@ -138,7 +146,7 @@ def extension_page():
     with ui.tab_panels(tabs, value=Extensions_list).classes('w-full'):
 
         with ui.tab_panel(Extensions_list):
-            extensions = requests.get(f"{api_base_url}/v1/extensions").json()
+            extensions = get_extensions()
             if not extensions:
                 headers = ["extension", "name", "mail"]
                 emptydf = pd.DataFrame(columns=headers)

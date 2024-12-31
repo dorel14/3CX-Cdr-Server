@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 from nicegui import ui, APIRouter, events, run
+from nicegui_tabulator import tabulator
 from .generals import message  # noqa: F401
 from .generals import theme
 import requests
@@ -16,47 +17,48 @@ api_base_url = os.environ.get('API_URL')
 data_folder = "/data/files"
 data_files = os.path.join(data_folder, "queues.csv")
 
+def get_queues():
+    url = f'{api_base_url}/v1/queues'
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    return []
 
 @ui.refreshable
 def refresh_queues():
-    queues = requests.get(f"{api_base_url}/v1/queues").json()
+    queues = get_queues()
     df = pd.DataFrame(queues)
-    column_defs = []
+
+    columns = []
+
     for column in df.columns:
-        col_def = {'headerName': column.capitalize(), 'field': column}
-        col_def['sortable'] = 'true'
-        col_def['filter'] = 'true'
-        col_def['floatingFilter'] = 'False'
+        col_def = {
+            'title': column.capitalize(),
+            'field': column,
+            'sorter': True,
+            'headerFilter': True
+        }
+        
         if df[column].dtype in ['int64', 'float64']:
-            col_def['type'] = 'numericColumn',
-            col_def['filter'] = 'agNumberColumnFilter'
-        else :
-            col_def['type'] = 'textColumn'
-            col_def['filter'] = 'agTextColumnFilter'
-        if df[column].dtype == 'datetime64[ns]':
-            col_def['type'] = 'datetimeColumn'
-            col_def['filter'] = 'agDateColumnFilter'
-        if df[column].dtype == 'bool':
-            col_def['filter'] = 'agBooleanColumnFilter'
+            col_def['sorter'] = 'number'
+            
         if column == 'id':
-            col_def['pinned'] = 'left'
-            col_def['width']= 50
+            col_def['frozen'] = True
+            col_def['width'] = 50
+            
         if column in ['queuename', 'queue']:
-            col_def['editable']= True
-        column_defs.append(col_def)
-    grid_options = {
-        'columnDefs': column_defs,
-        'defaultColDef': {
-            'flex': 1,
-            'minWidth': 30,
-            'resizable': True,
-            'cellStyle': {'fontSize': '14px'},
-            },
-            'horizontalScroll': True,
-            'rowSelection': 'single',
-            "stopEditingWhenCellsLoseFocus": True,
-            }  
-    ui.aggrid.from_pandas(df, options=grid_options).classes('grid-flow-col').on("cellValueChanged", update_data_from_table_change)
+            col_def['editor'] = True
+            
+        columns.append(col_def)
+
+    table = tabulator(
+        df,
+        columns=columns,
+        layout='fitColumns',
+        height='400px',
+        movableColumns=True,
+        selectable=1
+    ).on('cellEdited', update_data_from_table_change)
 
 async def click_import():
     response = await run.io_bound(post_queues, data_files)
@@ -66,40 +68,46 @@ async def click_import():
 def read_uploaded_file(e: events.UploadEventArguments):
     ui.notify('File uploaded successfully!')
     if not os.path.exists(data_folder):
-                os.makedirs(data_folder, exist_ok=True)
+        os.makedirs(data_folder, exist_ok=True)
     b = e.content.read()
-        # Read the uploaded file
-    print(b)
+    
     if os.path.exists(data_files):
         os.remove(data_files)
     with open(data_files, "wb") as fcsv:
-            fcsv.write(b)
+        fcsv.write(b)
     df = pd.read_csv(data_files, delimiter=",")
-    ui.button('Import',icon='upload',on_click=click_import).classes('text-xs')
-    ui.aggrid.from_pandas(df).classes('grid-flow-col')
+    ui.button('Import', icon='upload', on_click=click_import).classes('text-xs')
+    tabulator(df, layout='fitColumns', height='400px')
     ui.tab('queues_Import').update()
 
 async def update_data_from_table_change(e):
-    # ui.notify(f"Update with {e.args['data'] }")
-    data = e.args["data"]
-    btn = ui.button('Update',icon='save').classes('text-xs')
+    data = e.args
+    btn = ui.button('Update', icon='save').classes('text-xs')
     await btn.clicked()
+    
     headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
     webapi_url_queues = api_base_url + '/v1/queues'
-    j = {}
-    j['id'] = data['id']
-    j['queue'] = data['queue']
-    j['queuename'] = data['queuename']
-
-    js = json.dumps(j)
+    
+    j = {
+        'id': data['id'],
+        'queue': data['queue'],
+        'queuename': data['queuename']
+    }
+    
     queueid = data['id']
-    response = requests.patch(f"{webapi_url_queues}/{queueid}", headers=headers, data=js)
+    response = requests.patch(
+        f"{webapi_url_queues}/{queueid}", 
+        headers=headers, 
+        data=json.dumps(j)
+    )
+    
     if response.status_code == 200:
-        ui.notify(f'queues updated successfully')  # noqa: F541
+        ui.notify('Queues updated successfully')
         btn.delete()
         ui.tab('queues_list').update()
     else:
-        ui.notify(f'Update failed')  # noqa: F541
+        ui.notify('Update failed')
+
 
 async def add_queue(data,dialog):
     #data = e.args["data"]
@@ -135,7 +143,7 @@ def queue_page():
     with ui.tab_panels(tabs, value=queues_list).classes('w-full'):
 
         with ui.tab_panel(queues_list):
-            queues = requests.get(f"{api_base_url}/v1/queues").json()
+            queues = get_queues()
             if not queues:
                 headers = ["queue", "queuename"]
                 emptydf = pd.DataFrame(columns=headers)
@@ -143,7 +151,7 @@ def queue_page():
                 ui.button('Download template CSV',
                             icon='download',
                             on_click=lambda: ui.download(src='queues.csv',filename='queues.csv',media_type='csv')).classes('ml-auto text-xs')
-                ui.aggrid.from_pandas(emptydf).classes('grid-flow-col')
+                tabulator(emptydf, layout='fitColumns', height='400px')
             else:
                 refresh_queues()
                 with ui.dialog() as dialog, ui.card():
