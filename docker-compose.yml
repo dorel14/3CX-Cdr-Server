@@ -169,8 +169,8 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/custom.ini:/etc/grafana/custom.ini
-      - ./grafana_init/provisioning/:/etc/grafana/provisioning/
-      - ./grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
+      - ./grafana/grafana_init/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`${WEB_SERVER_NAME:-localhost}`) && PathPrefix(`/grafana`)"
@@ -185,7 +185,7 @@ services:
       - 8080:8080
     depends_on:
       webapp:
-        condition: service_started
+        condition: service_healthy
     environment:
       - CONTAINER_NAME=traefik
     volumes:
