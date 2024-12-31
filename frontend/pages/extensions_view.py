@@ -49,14 +49,33 @@ def refresh_extensions():
         if column in ['extension', 'name', 'mail']:
             col_defs['editor'] = True
         columns.append(col_defs)
-
-    table = tabulator(df,
-                    columns=columns,
-                    layout = 'fitColumns',
-                    height = '400px',
-                    movableColumns = True,
-                    selectable =1,
-                    ).on('cellEdited', update_data_from_table_change)
+    table_config= {
+            "data":extensions,
+            "locale":"fr-FR",
+            "langs":{
+                'fr-FR': {
+                    'pagination': {
+                        'first': 'Premier',
+                        'first_title': 'Première Page',
+                        'last': 'Dernier',
+                        'last_title': 'Dernière Page',
+                        'prev': 'Précédent',
+                        'prev_title': 'Page Précédente',
+                        'next': 'Suivant',
+                        'next_title': 'Page Suivante',
+                        'all': 'Tout'
+                        },  
+                    }
+                },
+            "autoColumns":False,
+            "layout": "fitDataTable",
+            "responsiveLayout":True,
+            "resizableRows":True,
+            "resizableRowGuide": True,
+            "pagination":"local",
+            "paginationSize":10            
+    }
+    table = tabulator(table_config).on('cellEdited', update_data_from_table_change)
 
 async def click_import():
     response = await run.io_bound(post_extensions, data_files)
@@ -76,7 +95,7 @@ def read_uploaded_file(e: events.UploadEventArguments):
             fcsv.write(b)
     df = pd.read_csv(data_files, delimiter=",")
     ui.button('Import',icon='upload',on_click=click_import).classes('text-xs')
-    tabulator(df, layout='fitColumns', height='400px')
+    #tabulator(df, layout='fitColumns', height='400px')
     ui.tab('Extensions_Import').update()
 
 async def update_data_from_table_change(e):

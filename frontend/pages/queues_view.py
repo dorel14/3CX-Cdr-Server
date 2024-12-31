@@ -50,14 +50,34 @@ def refresh_queues():
             col_def['editor'] = True
             
         columns.append(col_def)
-
+    table_config= {
+            "data":queues,
+            "locale":os.getenv('LOCALE_LANGUAGE', 'fr-FR'),
+            "langs":{
+                'fr-FR': {
+                    'pagination': {
+                        'first': 'Premier',
+                        'first_title': 'Première Page',
+                        'last': 'Dernier',
+                        'last_title': 'Dernière Page',
+                        'prev': 'Précédent',
+                        'prev_title': 'Page Précédente',
+                        'next': 'Suivant',
+                        'next_title': 'Page Suivante',
+                        'all': 'Tout'
+                        },  
+                    }
+                },
+            "autoColumns":False,
+            "layout": "fitDataTable",
+            "responsiveLayout":True,
+            "resizableRows":True,
+            "resizableRowGuide": True,
+            "pagination":"local",
+            "paginationSize":10            
+    }
     table = tabulator(
-        df,
-        columns=columns,
-        layout='fitColumns',
-        height='400px',
-        movableColumns=True,
-        selectable=1
+        table_config
     ).on('cellEdited', update_data_from_table_change)
 
 async def click_import():
@@ -77,7 +97,7 @@ def read_uploaded_file(e: events.UploadEventArguments):
         fcsv.write(b)
     df = pd.read_csv(data_files, delimiter=",")
     ui.button('Import', icon='upload', on_click=click_import).classes('text-xs')
-    tabulator(df, layout='fitColumns', height='400px')
+    #tabulator(df, layout='fitColumns', height='400px')
     ui.tab('queues_Import').update()
 
 async def update_data_from_table_change(e):

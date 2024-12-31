@@ -1,34 +1,19 @@
 import subprocess
-from sqlalchemy import inspect
-from sqlalchemy import create_engine
 import os
 import sys
-from backendapi.helpers.base import Base
 
-def check_database_exists():
-    dbUser = os.environ.get('POSTGRES_USER')
-    dbPassword = os.environ.get('POSTGRES_PASSWORD')
-    dbServer = os.environ.get('POSTGRES_SERVER')
-    dbPort = os.environ.get('POSTGRES_PORT')
-    dbName = os.environ.get('POSTGRES_DB')
-    dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
-    
-    engine = create_engine(dburl)
-    inspector = inspect(engine)
-    
-    # Récupération automatique des tables depuis les modèles
-    required_tables = [table.name for table in Base.metadata.tables.values()]
-    existing_tables = inspector.get_table_names()
-    
-    return all(table in existing_tables for table in required_tables)
 
 def run_alembic_command(command):
     try:
+        # Use python -m alembic instead of direct alembic command
+        python_executable = sys.executable
+        modified_command = [python_executable, "-m", "alembic"] + command[1:]
+        
         result = subprocess.run(
-            command,
+            modified_command,
             capture_output=True,
             text=True,
-            check=True  # Lève une exception si la commande échoue
+            check=True
         )
         print(result.stdout)
         if result.stderr:
@@ -41,7 +26,6 @@ def run_alembic_command(command):
 
 def init_database():
     print("Initialisation de la base de données...")
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
     # Applique directement la migration existante
     run_alembic_command(["alembic", "upgrade", "head"])
-if __name__ == "__main__":
-    init_database()

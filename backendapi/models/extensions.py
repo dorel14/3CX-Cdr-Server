@@ -6,6 +6,7 @@ from sqlalchemy.sql import func
 
 from ..helpers.base import Base
 
+
 class Extensions(Base):
     __tablename__ = "extensions"
 
@@ -18,5 +19,7 @@ class Extensions(Base):
     out = Column(Integer, default=False)
     date_modified = Column(DateTime, default=func.now())
     #eventslist = relationship("ExtraEvents", secondary='ExtensionsEvents',back_populates="extensionslist")
-    queueslist = relationship("Queues", secondary='Extensiontoqueuelink',back_populates="extensionslist")
+    queueslist = relationship("Queues", 
+                            secondary="extensiontoqueuelink",
+                            back_populates="extensionslist")
     
