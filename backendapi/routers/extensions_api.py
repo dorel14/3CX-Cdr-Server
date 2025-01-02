@@ -8,6 +8,8 @@ from datetime import datetime
 from ..helpers.base import get_session
 from ..helpers.logging import logger
 from ..models.extensions import Extensions
+from ..models.queues import Queues
+from ..models.extensionsandqueues import Extensiontoqueuelink
 from ..schemas.extensions_schemas import ExtensionCreate, ExtensionUpdate, ExtensionBase
 
 
@@ -56,7 +58,7 @@ async def read_extension_by_ext(
     extension: str,
     session: AsyncSession = Depends(get_session)
     ):
-    result =   await session.exec(select(Extensions).where(Extensions.extension==extension))
+    result =   await session.execute(select(Extensions).where(Extensions.extension==extension))
     db_extensionbyextension = result.scalar_one_or_none()
     logger.info(db_extensionbyextension)
     if not db_extensionbyextension:
@@ -99,4 +101,5 @@ async def delete_extension(
         raise HTTPException(status_code=404, detail="Extension non trouvée")
     await session.delete(db_extension)
     await session.commit()
+
     return {"ok": True}

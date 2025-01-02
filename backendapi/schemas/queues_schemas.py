@@ -1,6 +1,8 @@
+from __future__ import annotations
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
+
 
 class QueueBase(BaseModel):
     queue: str
@@ -13,6 +15,7 @@ class QueueCreate(QueueBase):
 
 class Queue(QueueBase):
     id: int
+    extensionslist: Optional[List["Extension"]] = []
 
     class Config:
         from_attributes = True
@@ -21,3 +24,6 @@ class QueueUpdate(BaseModel):
     queue: Optional[str] = None
     queuename: Optional[str] = None
     date_modified: Optional[datetime] = datetime.now()
+
+from .extensions_schemas import Extension  # noqa: E402
+Queue.update_forward_refs()

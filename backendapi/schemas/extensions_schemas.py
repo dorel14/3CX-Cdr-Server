@@ -1,7 +1,9 @@
 # -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 from pydantic import BaseModel
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, List
 
 class ExtensionBase(BaseModel):
     extension: str
@@ -17,6 +19,7 @@ class ExtensionCreate(ExtensionBase):
 
 class Extension(ExtensionBase):
     id: int
+    queueslist: Optional[List['Queue']] = []
 
     class Config:
         from_attributes = True
@@ -29,3 +32,6 @@ class ExtensionUpdate(BaseModel):
     date_out: Optional[date] = None
     out: Optional[bool] = False
     date_modified: Optional[datetime] = datetime.now()
+
+from .queues_schemas import Queue  # noqa: E402
+Extension.update_forward_refs()

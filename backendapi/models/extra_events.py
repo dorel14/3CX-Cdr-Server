@@ -19,5 +19,9 @@ class ExtraEvents(Base):
     date_added = Column(DateTime, default=datetime.now())
     date_modified = Column(DateTime, default=datetime.now())
     all_day = Column(Boolean, default=False)
-    extensionslist = relationship("Extensions", secondary='ExtensionsEvents',back_populates="extraevent")
-    queueslist = relationship("Queues", secondary='QueuesEvents',back_populates="extraevent")
+    extensionslist = relationship("Extensions",
+                                secondary="extensions_events",
+                                back_populates="eventslist")
+    queueslist = relationship("Queues",
+                            secondary="queues_events",
+                            back_populates="eventslist")

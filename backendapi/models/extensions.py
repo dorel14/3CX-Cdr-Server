@@ -18,8 +18,11 @@ class Extensions(Base):
     date_out = Column(DateTime, default=None, nullable=True)
     out = Column(Integer, default=False)
     date_modified = Column(DateTime, default=func.now())
-    #eventslist = relationship("ExtraEvents", secondary='ExtensionsEvents',back_populates="extensionslist")
+    eventslist = relationship("ExtraEvents",
+                            secondary="extensions_events",
+                            back_populates="extensionslist")
     queueslist = relationship("Queues", 
                             secondary="extensiontoqueuelink",
-                            back_populates="extensionslist")
+                            back_populates="extensionslist"
+                        )
     

@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 from nicegui import ui, APIRouter, events, run
-from nicegui_tabulator import tabulator
+from nicegui_tabulator import tabulator, CellSlotProps
 
 from .generals import theme
 import requests
@@ -10,7 +10,7 @@ import json
 
 import os
 
-from ..helpers.extensions_import import post_extensions
+from helpers.extensions_import import post_extensions
 
 router = APIRouter(prefix='/extensions')
 api_base_url = os.environ.get('API_URL')
@@ -30,27 +30,8 @@ def get_extensions():
 @ui.refreshable
 def refresh_extensions():
     extensions = get_extensions()
-    df = pd.DataFrame(extensions)
-    columns = []
-    for column in df.columns:
-        col_defs= {'title':column.capitalize(), 
-                    'field': column, 
-                    'sorter':True,
-                    'headerFilter': True
-                    }
-        if df[column].dtype in ['int64', 'float64']:
-            col_defs['sorter'] = 'number'
-        
-        if column == 'id':
-            col_defs['visible'] = False
-            col_defs['frozen'] = True
-            col_defs['width'] = 50
-        
-        if column in ['extension', 'name', 'mail']:
-            col_defs['editor'] = True
-        columns.append(col_defs)
     table_config= {
-            "data":extensions,
+            "data":extensions,            
             "locale":"fr-FR",
             "langs":{
                 'fr-FR': {
@@ -67,20 +48,49 @@ def refresh_extensions():
                         },  
                     }
                 },
-            "autoColumns":False,
-            "layout": "fitDataTable",
+            "columns": [
+                {"title": "Extension", "field": "extension", "sorter": "string"},
+                {"title": "Name", "field": "name", "sorter": "string"},
+                {"title": "Mail", "field": "mail", "sorter": "string"},
+                {"title": "Out", "field": "out", "sorter": "string", "formatter":"tickCross","formatterParams":{
+                "allowEmpty":"true",
+                "allowTruthy":"true",
+                "tickElement":"<i class='fa fa-check'></i>",
+                "crossElement":"<i class='fa fa-times'></i>",
+                }},
+                {"title": "Out date", "field": "date_out", "sorter": "date", "formatter": "datetime", "formatterParams": {
+                    "inputFormat":"iso",
+                    "outputFormat":"dd/MM/yy",
+                    "invalidPlaceholder":"(invalid date)",
+                    "timezone":os.getenv('TZ'),
+                }},
+                {"title": "Creation date", "field": "date_added", "sorter": "date", "formatter": "datetime", "formatterParams": {
+                    "inputFormat":"iso",
+                    "outputFormat":"dd/MM/yy",
+                    "invalidPlaceholder":"(invalid date)",
+                    "timezone":os.getenv('TZ'),
+                }},
+                {"title": "Modify date", "field": "date_modified", "sorter": "date", "formatter": "datetime", "formatterParams": {
+                    "inputFormat":"iso",
+                    "outputFormat":"dd/MM/yy",
+                    "invalidPlaceholder":"(invalid date)",
+                    "timezone":os.getenv('TZ'),
+                }},
+                ],
+            "layout": "fitColumns",
             "responsiveLayout":True,
             "resizableRows":True,
             "resizableRowGuide": True,
             "pagination":"local",
             "paginationSize":10            
     }
-    table = tabulator(table_config).on('cellEdited', update_data_from_table_change)
+    table = tabulator(table_config).on('cellEdited', update_data_from_table_change).classes('w-full compact').props('id=extensions_table').on_event("rowClick", lambda e: ui.notify(e))
 
 async def click_import():
     response = await run.io_bound(post_extensions, data_files)
     ui.notify(f'Extensions {response}')
     ui.tab('Extensions_list').update()
+
 
 def read_uploaded_file(e: events.UploadEventArguments):
     ui.notify('File uploaded successfully!')
@@ -88,15 +98,29 @@ def read_uploaded_file(e: events.UploadEventArguments):
                 os.makedirs(data_folder, exist_ok=True)
     b = e.content.read()
         # Read the uploaded file
-    print(b)
     if os.path.exists(data_files):
         os.remove(data_files)
     with open(data_files, "wb") as fcsv:
             fcsv.write(b)
     df = pd.read_csv(data_files, delimiter=",")
-    ui.button('Import',icon='upload',on_click=click_import).classes('text-xs')
-    #tabulator(df, layout='fitColumns', height='400px')
-    ui.tab('Extensions_Import').update()
+    print(df)
+    csv_table_config = {
+        "data":df.to_dict('records'),
+        "columns": [{"field": col, "title": col} for col in df.columns],
+        "layout": "fitColumns",
+        "responsiveLayout":True,
+        "resizableRows":True,
+        "resizableRowGuide": True,
+        "pagination":"local",
+        "paginationSize":10
+    }
+    with ui.column().classes('w-full'):
+        csv_table = tabulator(csv_table_config).classes('w-full compact').props('id=csv_extensions_table')
+        ui.button('Import',icon='upload',on_click=click_import).classes('text-xs')
+        ui.button('Cancel',icon='cancel',on_click=lambda: ui.navigate.reload('/extensions'))
+        ui.tab('Extensions_Import').update()
+
+
 
 async def update_data_from_table_change(e):
     data = e.args
@@ -163,17 +187,27 @@ def extension_page():
         Extensions_Import = ui.tab('Extensions Import')
     ui.label('Extensions informations are editable in the table below.')  
     with ui.tab_panels(tabs, value=Extensions_list).classes('w-full'):
-
         with ui.tab_panel(Extensions_list):
             extensions = get_extensions()
             if not extensions:
                 headers = ["extension", "name", "mail"]
                 emptydf = pd.DataFrame(columns=headers)
                 emptydf.to_csv(path_or_buf='extensions.csv', index=False)
+                emptycsv_table_config = {
+                    "data":emptydf.to_dict('records'),
+                    "columns": [{"field": col, "title": col} for col in emptydf.columns],
+                    "layout": "fitColumns",
+                    "responsiveLayout":True,
+                    "resizableRows":True,
+                    "resizableRowGuide": True,
+                    "pagination":"local",
+                    "paginationSize":10
+                }
+                emptycsv_table = tabulator(emptycsv_table_config).props('id=empty_extensions_table').classes('w-full compact')
                 ui.button('Download template CSV',
                             icon='download',
                             on_click=lambda: ui.download(src='extensions.csv',filename='extensions.csv',media_type='csv')).classes('ml-auto text-xs')
-                ui.aggrid.from_pandas(emptydf).classes('grid-flow-col')
+
             else:
                 refresh_extensions()
                 with ui.dialog() as dialog, ui.card():
@@ -198,5 +232,3 @@ def extension_page():
                         auto_upload=True,
                         on_upload=read_uploaded_file,
                         on_rejected=lambda: ui.notify('Rejected!'),).props('accept=.csv').classes('max-w-full')
-            
-            

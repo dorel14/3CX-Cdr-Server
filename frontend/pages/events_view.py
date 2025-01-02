@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-from ..fullcalendar.FullCalendar import FullCalendar as fullcalendar
+from fullcalendar.FullCalendar import FullCalendar as fullcalendar
 from nicegui import ui, APIRouter, events
 from .generals import theme
 import requests
@@ -9,7 +9,7 @@ import json
 import os
 from datetime import datetime, time
 
-from ..helpers.date_helpers import str_to_datetime,\
+from helpers.date_helpers import str_to_datetime,\
     datetime_to_str,\
     parse_iso_datetime, \
     datetime_to_date_to_str,\

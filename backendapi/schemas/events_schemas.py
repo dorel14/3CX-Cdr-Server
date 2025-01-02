@@ -17,11 +17,14 @@ class ExtraEventBase(BaseModel):
     queueslist : List[str] = []
 
 class ExtraEventCreate(ExtraEventBase):
+    queues_ids: Optional[List[int]] = None
+    extensions_ids: Optional[List[int]] = None
     pass
 
 class ExtraEvent(ExtraEventBase):
     id: int
-
+    queues_ids: Optional[List[int]]
+    extensions_ids: Optional[List[int]]
     class Config:
         from_attributes = True
 

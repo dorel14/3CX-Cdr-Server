@@ -75,13 +75,13 @@ services:
       - 8181:8181
     volumes:
       - webapp-dir:/webapp
+    #command: bash -c "python -m frontend.main.py"
     env_file:
       - .env
-    command: bash -c "python -m frontend.main.py"
     healthcheck:
-      test: curl http://webapp:8181/healthcheck || exit 1
-      interval: 1m30s
-      timeout: 30s
+      test: ["CMD-SHELL", "curl -f http://webapp:8181/healthcheck || exit 1"]
+      interval: 30s
+      timeout: 10s
       retries: 5
       start_period: 30s
     environment:
@@ -96,6 +96,11 @@ services:
       - "traefik.http.services.webapp.loadbalancer.server.port=8181"
       - "traefik.http.middlewares.webapp-strip.stripprefix.prefixes=/webapp"
       - "traefik.http.routers.webapp.middlewares=webapp-strip@docker"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   3cxcdrserver:
     build:

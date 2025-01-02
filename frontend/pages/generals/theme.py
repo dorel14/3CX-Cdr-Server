@@ -5,7 +5,7 @@ from .menu import menu
 from nicegui import ui
 from nicegui_tabulator import use_theme
 
-from ...modules.version import __version__
+from modules.version import __version__
 
 
 
@@ -17,7 +17,8 @@ def frame(navigation_title: str):
     ui.add_head_html('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">')
     ui.add_head_html('<link href="https://unpkg.com/eva-icons@1.1.3/style/eva-icons.css" rel="stylesheet" />')
     ui.add_head_html('<link href="https://cdn.jsdelivr.net/themify-icons/0.1.2/css/themify-icons.css" rel="stylesheet" />')
-    use_theme('semanticui') #tabulator theme for all tables
+    ui.add_head_html("""<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>""")
+    #use_theme('bootstrap4') #tabulator theme for all tables
     with ui.dialog() as about, ui.card().classes('items-center'):
         ui.label('Informations').classes('text-lg')
         ui.label(f'Version {__version__}')

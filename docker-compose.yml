@@ -66,7 +66,7 @@ services:
   webapp:
     build:
       context: .
-      dockerfile: ./ui_new/Dockerfile
+      dockerfile: ./frontend/Dockerfile
     container_name: webapp
     restart: unless-stopped
     networks:
@@ -78,9 +78,9 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: curl http://webapp:8181/healthcheck || exit 1
-      interval: 1m30s
-      timeout: 30s
+      test: ["CMD-SHELL", "curl -f http://localhost:8181/healthcheck || exit 1"]
+      interval: 30s
+      timeout: 10s
       retries: 5
       start_period: 30s
     environment:

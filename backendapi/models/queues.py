@@ -17,4 +17,9 @@ class Queues(Base):
     date_modified = Column(DateTime, default=datetime.now())
     extensionslist = relationship("Extensions",
                                 secondary="extensiontoqueuelink",
-                                back_populates="queueslist")
+                                back_populates="queueslist"
+                        )
+    eventslist = relationship("ExtraEvents",
+                                secondary="queues_events",
+                                back_populates="queueslist"
+                        )

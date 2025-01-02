@@ -2,15 +2,14 @@
 
 from nicegui import ui, APIRouter, events, run
 from nicegui_tabulator import tabulator
-from .generals import message  # noqa: F401
 from .generals import theme
 import requests
 import pandas as pd
 import json
 import sys
 import os
-sys.path.append(os.path.abspath("."))
-from ..helpers.queues_import import post_queues
+#sys.path.append(os.path.abspath("."))
+from helpers.queues_import import post_queues
 
 router = APIRouter(prefix='/queues')
 api_base_url = os.environ.get('API_URL')
@@ -28,9 +27,7 @@ def get_queues():
 def refresh_queues():
     queues = get_queues()
     df = pd.DataFrame(queues)
-
     columns = []
-
     for column in df.columns:
         col_def = {
             'title': column.capitalize(),
@@ -97,7 +94,16 @@ def read_uploaded_file(e: events.UploadEventArguments):
         fcsv.write(b)
     df = pd.read_csv(data_files, delimiter=",")
     ui.button('Import', icon='upload', on_click=click_import).classes('text-xs')
-    #tabulator(df, layout='fitColumns', height='400px')
+    csv_table_config = {
+        "data":df.to_dict('records'),
+        "layout": "fitColumns",
+        "responsiveLayout":True,
+        "resizableRows":True,
+        "resizableRowGuide": True,
+        "pagination":"local",
+        "paginationSize":10
+    }
+    tabulator(csv_table_config)
     ui.tab('queues_Import').update()
 
 async def update_data_from_table_change(e):
@@ -171,7 +177,16 @@ def queue_page():
                 ui.button('Download template CSV',
                             icon='download',
                             on_click=lambda: ui.download(src='queues.csv',filename='queues.csv',media_type='csv')).classes('ml-auto text-xs')
-                tabulator(emptydf, layout='fitColumns', height='400px')
+                emptycsv_table_config = {
+                    "data":emptydf.to_dict('records'),
+                    "layout": "fitColumns",
+                    "responsiveLayout":True,
+                    "resizableRows":True,
+                    "resizableRowGuide": True,
+                    "pagination":"local",
+                    "paginationSize":10
+                }
+                emptycsv_table = tabulator(emptycsv_table_config)
             else:
                 refresh_queues()
                 with ui.dialog() as dialog, ui.card():

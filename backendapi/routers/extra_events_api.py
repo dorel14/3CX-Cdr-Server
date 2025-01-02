@@ -20,43 +20,37 @@ from ..schemas.events_schemas import ExtraEventBase, ExtraEventCreate, ExtraEven
 
 router = APIRouter(prefix="/v1", tags=["extra_events"])
 
-@router.post("/extra_events", response_model=ExtraEventBase, tags=["extra_events"])
-async def create_extra_events(
-    extra_event: ExtraEventCreate,
-    session: AsyncSession = Depends(get_session)):
-    
-    event_data = extra_event.dict(exclude={'extensionslist', 'queueslist'})
-    db_extra_events = ExtraEvents(**event_data)
-    session.add(db_extra_events)
-    await session.flush()  # Get the ID of the new event
-    
-    # Create extension relationships
-    if extra_event.extensionslist:
-        extensions = await session.execute(
-            select(Extensions).where(Extensions.extension.in_(extra_event.extensionslist))
-        )
-        for ext in extensions.scalars().all():
-            ext_event = ExtensionsEvents(
-                extension_id=ext.id,
-                event_id=db_extra_events.id
-            )
-            session.add(ext_event)
-    
-    # Create queue relationships
-    if extra_event.queueslist:
-        queues = await session.execute(
-            select(Queues).where(Queues.queue.in_(extra_event.queueslist))
-        )
-        for queue in queues.scalars().all():
+@router.post("/extra_events/", response_model=ExtraEventBase, tags=["extra_events"])
+async def create_event(
+    event: ExtraEventCreate,
+    session: AsyncSession = Depends(get_session)
+):
+    # Création de l'événement
+    db_event = ExtraEvents(**event.dict(exclude={'queues', 'extensions'}))
+    session.add(db_event)
+    await session.flush()  # Pour obtenir l'ID de l'événement
+
+    # Création des liaisons avec les queues
+    if event.queues:
+        for queue_id in event.queues:
             queue_event = QueuesEvents(
-                queue_id=queue.id,
-                event_id=db_extra_events.id
+                queue_id=queue_id,
+                event_id=db_event.id
             )
             session.add(queue_event)
-    
+
+    # Création des liaisons avec les extensions
+    if event.extensions:
+        for extension_id in event.extensions:
+            extension_event = ExtensionsEvents(
+                extension_id=extension_id,
+                event_id=db_event.id
+            )
+            session.add(extension_event)
+
     await session.commit()
-    await session.refresh(db_extra_events)
-    return db_extra_events
+    await session.refresh(db_event)
+    return db_event
 
 @router.get(
     "/extra_events", response_model=List[ExtraEventBase], tags=["extra_events"]
