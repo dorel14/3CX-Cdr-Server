@@ -19,11 +19,12 @@ class ExtensionCreate(ExtensionBase):
 
 class Extension(ExtensionBase):
     id: int
-    queueslist: Optional[List['Queue']] = []
+    queueslist: Optional[List['QueueBase']] = []
 
     class Config:
         from_attributes = True
-
+class QueueId(BaseModel):
+    id: int
 class ExtensionUpdate(BaseModel):
     extension: Optional[str] = None
     name: Optional[str] = None
@@ -32,6 +33,8 @@ class ExtensionUpdate(BaseModel):
     date_out: Optional[date] = None
     out: Optional[bool] = False
     date_modified: Optional[datetime] = datetime.now()
+    queues: Optional[List[QueueId]] = []
 
 from .queues_schemas import Queue  # noqa: E402
+from .queues_schemas import QueueBase  # noqa: E402
 Extension.update_forward_refs()

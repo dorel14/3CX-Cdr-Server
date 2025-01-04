@@ -87,9 +87,7 @@ async def read_extra_event(
         raise HTTPException(status_code=404, detail="extra_events not found")
     return db_extra_events
 
-@router.patch(
-    "/extra_events/{extra_events_id}", response_model=ExtraEventBase, tags=["extra_events"]
-)
+
 @router.patch("/extra_events/{extra_events_id}", response_model=ExtraEventBase, tags=["extra_events"])
 async def update_extra_events(
     extra_events_id: int, 

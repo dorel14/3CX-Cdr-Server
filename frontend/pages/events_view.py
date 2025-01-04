@@ -54,6 +54,29 @@ def get_queues():
         return {queue['queue']: queue['name'] for queue in response.json()}
     return {}
 
+def get_events():
+    url = f'{api_base_url}/v1/extra_events'
+    response = requests.get(url)
+    print(response.json())
+    if response.status_code == 200:
+        data = response.json()
+        events = []
+        for event in data:
+                events.append({
+                    'id': event['id'],
+                    'title': event['event_title'],
+                    'start': event['event_start'],
+                    'end': event['event_end'],
+                    'description':event['event_description'],
+                    'impact':impact_levels[event['event_impact']],
+                    'color': impact_colors[event['event_impact']],
+                    'allDay': event['all_day'],
+                    'extensionslist': event['extensionslist'],
+                    'queueslist': event['queueslist']
+            })
+        return events
+    else:
+        return []
 
 
 class Event_Dialog(ui.dialog):
@@ -214,29 +237,7 @@ async def delete_event(event_id):
     else:
         ui.notify('Failed to delete event')
 
-def get_events():
-    url = f'{api_base_url}/v1/extra_events'
-    response = requests.get(url)
-    print(response.json())
-    if response.status_code == 200:
-        data = response.json()
-        events = []
-        for event in data:
-                events.append({
-                    'id': event['id'],
-                    'title': event['event_title'],
-                    'start': event['event_start'],
-                    'end': event['event_end'],
-                    'description':event['event_description'],
-                    'impact':impact_levels[event['event_impact']],
-                    'color': impact_colors[event['event_impact']],
-                    'allDay': event['all_day'],
-                    'extensionslist': event['extensionslist'],
-                    'queueslist': event['queueslist']
-            })
-        return events
-    else:
-        return []
+
 
 def add_event_to_db(data):
     url = f'{api_base_url}/v1/extra_events'

@@ -15,9 +15,12 @@ def frame(navigation_title: str):
     """Custom page frame to share the same styling and behavior across all pages"""
     ui.colors(primary='#06358a', secondary='#057341', accent='#111B1E', positive='#53B689')
     ui.add_head_html('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">')
+    #ui.add_head_html('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">')
+    ui.add_head_html('<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.css">')
     ui.add_head_html('<link href="https://unpkg.com/eva-icons@1.1.3/style/eva-icons.css" rel="stylesheet" />')
     ui.add_head_html('<link href="https://cdn.jsdelivr.net/themify-icons/0.1.2/css/themify-icons.css" rel="stylesheet" />')
     ui.add_head_html("""<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>""")
+    #ui.add_head_html("""<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>""")
     #use_theme('bootstrap4') #tabulator theme for all tables
     with ui.dialog() as about, ui.card().classes('items-center'):
         ui.label('Informations').classes('text-lg')

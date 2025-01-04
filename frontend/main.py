@@ -1,17 +1,13 @@
 # -*- coding: UTF-8 -*-
+
+from pages.generals import theme
+from pages import homepage 
+from pages import extensions_view
+from pages import events_view
+from pages import queues_view
 from fastapi import status
 from nicegui import app, ui
 import os
-
-from pages.generals import theme
-
-from pages import (
-    homepage, \
-    extensions_view, \
-    queues_view,\
-    events_view                 
-)
-
 
 
 # Example 1: use a custom page decorator directly and putting the content creation into a separate function

@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List
 from datetime import datetime
 
@@ -10,11 +11,11 @@ from ..helpers.base import get_session
 from ..helpers.logging import logger
 from ..models.queues import Queues
 
-from ..schemas.queues_schemas import QueueBase, QueueCreate, QueueUpdate
+from ..schemas.queues_schemas import Queue, QueueCreate, QueueUpdate
 
 router = APIRouter(prefix="/v1", tags=["queues"])
 
-@router.post("/queues", response_model=QueueBase, tags=["queues"])
+@router.post("/queues", response_model=Queue, tags=["queues"])
 async def create_queues(
     queue: QueueCreate,
     session: AsyncSession = Depends(get_session)    
@@ -26,16 +27,19 @@ async def create_queues(
     await session.refresh(db_queues)
     return db_queues
 
-@router.get("/queues", response_model=List[QueueBase], tags=["queues"])
+@router.get("/queues", response_model=List[Queue], tags=["queues"])
 async def read_queues(
     session: AsyncSession = Depends(get_session),
     offset: int = 0,
     limit: int = Query(default=100, lte=100),
 ):
-    db_queues = await session.execute(select(Queues).offset(offset).limit(limit))
+    db_queues = await session.execute(select(Queues)
+                                    .options(selectinload(Queues.extensionslist))
+                                    .offset(offset)
+                                    .limit(limit))
     return db_queues.scalars().all()
 
-@router.get("/queues/{queue_id}", response_model=QueueBase, tags=["queues"])
+@router.get("/queues/{queue_id}", response_model=Queue, tags=["queues"])
 async def read_queue(
     queue_id: int,
     session: AsyncSession = Depends(get_session)
@@ -46,7 +50,7 @@ async def read_queue(
         raise HTTPException(status_code=404, detail="Queue not found")
     return db_queue
 
-@router.get("/queues/byname/{queue}", response_model=QueueBase, tags=["queues"])
+@router.get("/queues/byname/{queue}", response_model=Queue, tags=["queues"])
 async def read_queue_by_name(
     queue: str,
     session: AsyncSession = Depends(get_session)
@@ -57,7 +61,7 @@ async def read_queue_by_name(
         raise HTTPException(status_code=404, detail="Queue not found")
     return db_queue
 
-@router.get("/queues/bynumber/{queue}", response_model=QueueBase, tags=["queues"])
+@router.get("/queues/bynumber/{queue}", response_model=Queue, tags=["queues"])
 async def read_queue_by_number(
     queue: str,
     session: AsyncSession = Depends(get_session), ):
@@ -69,7 +73,7 @@ async def read_queue_by_number(
     return db_queue
 
 
-router.delete("/queues/{queue_id}", response_model=QueueBase, tags=["queues"])
+router.delete("/queues/{queue_id}", response_model=Queue, tags=["queues"])
 async def delete_queue(*, session: AsyncSession = Depends(get_session), queue_id: int):
     resultqueue = await session.execute(select(Queues).filter(Queues.id == queue_id))
     db_queue = resultqueue.scalar_one_or_none()
@@ -79,7 +83,7 @@ async def delete_queue(*, session: AsyncSession = Depends(get_session), queue_id
     await session.commit()
     return db_queue
 
-@router.patch("/queues/{queue_id}", response_model=QueueBase, tags=["queues"])
+@router.patch("/queues/{queue_id}", response_model=Queue, tags=["queues"])
 async def update_queue(
     queue_id: int,
     queue: QueueUpdate,

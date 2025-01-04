@@ -5,6 +5,7 @@ from typing import Optional, List
 
 
 class QueueBase(BaseModel):
+    id: int
     queue: str
     queuename: str
     date_added: Optional[datetime] = datetime.now()
@@ -15,7 +16,7 @@ class QueueCreate(QueueBase):
 
 class Queue(QueueBase):
     id: int
-    extensionslist: Optional[List["Extension"]] = []
+    extensionslist: Optional[List["ExtensionBase"]] = []
 
     class Config:
         from_attributes = True
@@ -25,5 +26,5 @@ class QueueUpdate(BaseModel):
     queuename: Optional[str] = None
     date_modified: Optional[datetime] = datetime.now()
 
-from .extensions_schemas import Extension  # noqa: E402
+from .extensions_schemas import ExtensionBase  # noqa: E402
 Queue.update_forward_refs()

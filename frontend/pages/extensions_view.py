@@ -1,8 +1,9 @@
 # -*- coding: UTF-8 -*-
 
 from nicegui import ui, APIRouter, events, run
-from nicegui_tabulator import tabulator, CellSlotProps
-
+from nicegui_tabulator import tabulator
+from datetime import datetime
+import pytz
 from .generals import theme
 import requests
 import pandas as pd
@@ -11,7 +12,8 @@ import json
 import os
 
 from helpers.extensions_import import post_extensions
-
+# Set timezone according to environment variable
+timezone = pytz.timezone(os.getenv('TZ', 'Europe/Paris'))
 router = APIRouter(prefix='/extensions')
 api_base_url = os.environ.get('API_URL')
 data_folder = "/data/files"
@@ -27,64 +29,63 @@ def get_extensions():
         ui.notify(f"Error fetching extensions: {str(e)}", type='negative')
         return []
 
+def get_queues():
+    try:
+        response = requests.get(f"{api_base_url}/v1/queues")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        ui.notify(f"Error fetching queues: {str(e)}", type='negative')
+        return []
+
 @ui.refreshable
 def refresh_extensions():
     extensions = get_extensions()
-    table_config= {
-            "data":extensions,            
-            "locale":"fr-FR",
-            "langs":{
-                'fr-FR': {
-                    'pagination': {
-                        'first': 'Premier',
-                        'first_title': 'Première Page',
-                        'last': 'Dernier',
-                        'last_title': 'Dernière Page',
-                        'prev': 'Précédent',
-                        'prev_title': 'Page Précédente',
-                        'next': 'Suivant',
-                        'next_title': 'Page Suivante',
-                        'all': 'Tout'
-                        },  
-                    }
-                },
-            "columns": [
-                {"title": "Extension", "field": "extension", "sorter": "string"},
-                {"title": "Name", "field": "name", "sorter": "string"},
-                {"title": "Mail", "field": "mail", "sorter": "string"},
-                {"title": "Out", "field": "out", "sorter": "string", "formatter":"tickCross","formatterParams":{
-                "allowEmpty":"true",
-                "allowTruthy":"true",
-                "tickElement":"<i class='fa fa-check'></i>",
-                "crossElement":"<i class='fa fa-times'></i>",
-                }},
-                {"title": "Out date", "field": "date_out", "sorter": "date", "formatter": "datetime", "formatterParams": {
-                    "inputFormat":"iso",
-                    "outputFormat":"dd/MM/yy",
-                    "invalidPlaceholder":"(invalid date)",
-                    "timezone":os.getenv('TZ'),
-                }},
-                {"title": "Creation date", "field": "date_added", "sorter": "date", "formatter": "datetime", "formatterParams": {
-                    "inputFormat":"iso",
-                    "outputFormat":"dd/MM/yy",
-                    "invalidPlaceholder":"(invalid date)",
-                    "timezone":os.getenv('TZ'),
-                }},
-                {"title": "Modify date", "field": "date_modified", "sorter": "date", "formatter": "datetime", "formatterParams": {
-                    "inputFormat":"iso",
-                    "outputFormat":"dd/MM/yy",
-                    "invalidPlaceholder":"(invalid date)",
-                    "timezone":os.getenv('TZ'),
-                }},
-                ],
-            "layout": "fitColumns",
-            "responsiveLayout":True,
-            "resizableRows":True,
-            "resizableRowGuide": True,
-            "pagination":"local",
-            "paginationSize":10            
-    }
-    table = tabulator(table_config).on('cellEdited', update_data_from_table_change).classes('w-full compact').props('id=extensions_table').on_event("rowClick", lambda e: ui.notify(e))
+
+    def format_date(date_str):
+        if date_str:
+            date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            local_date = date_obj.astimezone(timezone)
+            return local_date.strftime('%d/%m/%Y')
+        return ''
+    
+    with ui.grid(columns=6).classes('w-full'):
+        # Headers
+        ui.label('').classes('font-bold')
+        ui.label('Name').classes('font-bold')
+        ui.label('Extension').classes('font-bold')
+        ui.label('Mail').classes('font-bold')
+        ui.label('Out').classes('font-bold')
+        ui.label('Created').classes('font-bold')
+        ui.label('Modified').classes('font-bold')
+
+        for ext in extensions:
+            with ui.expansion(group='group').classes('w-full col-span-6 flex-wrap') as expansion:
+                with expansion.add_slot('header'):                    
+                    with ui.grid(columns=7).classes('w-full'):
+                        ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})).classes('text-xs text-center size-10')            # Extension row
+                        ui.label(ext['name'])
+                        ui.label(ext['extension'])
+                        ui.label(ext['mail'])
+                        ui.label( '✗' if ext['out'] else '✓').classes('text-red-500 text-center' if ext['out'] else 'text-green-500 text-center')
+                        ui.label(format_date(ext['date_added']))
+                        ui.label(format_date(ext['date_modified']))
+
+                    # Queues subgrid
+                if ext['queueslist']:
+                    with ui.grid(columns=3).classes('w-full mt-2 ml-4'):
+                        # Queue headers
+                        ui.label('Queue').classes('font-bold')
+                        ui.label('Queue name').classes('font-bold')
+                        ui.label('Added date').classes('font-bold')
+
+                        for queue in ext['queueslist']:
+                            with ui.grid(columns=3).classes('w-full mt-2 ml-4'):
+                                ui.label(queue['queue'])
+                                ui.label(queue['queuename'])
+                                ui.label(format_date(queue['date_added']))
+
+
 
 async def click_import():
     response = await run.io_bound(post_extensions, data_files)
@@ -121,60 +122,110 @@ def read_uploaded_file(e: events.UploadEventArguments):
         ui.tab('Extensions_Import').update()
 
 
-
-async def update_data_from_table_change(e):
-    data = e.args
-    btn = ui.button('Update', icon='save').classes('text-xs')
-    await btn.clicked()
+async def extension_dialog(row_data=None):
+    dialog = ui.dialog()
+    data = {}
     
-    headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
-    webapi_url_extensions = api_base_url + '/v1/extensions'
-    
-    j = {
-        'id': data['id'],
-        'extension': data['extension'],
-        'name': data['name'],
-        'mail': data['mail'],
-        'out': data['out']
-    }
-    
-    extensionid = data['id']
-    response = requests.patch(
-        f"{webapi_url_extensions}/{extensionid}", 
-        headers=headers, 
-        data=json.dumps(j)
-    )
-    
-    if response.status_code == 200:
-        ui.notify('Extensions updated successfully')
-        btn.delete()
-        ui.tab('Extensions_list').update()
+    if row_data:
+        data = row_data.get('row', {})
+        # Initialize queues list with current assignments at dialog creation
+        data['queues'] = [q['id'] for q in data.get('queueslist', [])]
+        assigned_queues = data['queues']
     else:
-        ui.notify('Update failed')
+        data['queues'] = []
+        assigned_queues = []
+
+    with dialog, ui.card().classes('w-1/3'):
+        ui.label('Extension details')
+        with ui.row().classes('flex-wrap'):
+            extension_input = ui.input(
+                label='Extension', 
+                value=data.get('extension', ''),
+                on_change=lambda e: data.update({'extension': e.value})
+            )
+            name_input = ui.input(
+                label='Name', 
+                value=data.get('name', ''),
+                on_change=lambda e: data.update({'name': e.value})
+            )
+        with ui.row().classes('flex-wrap'):
+            mail_input = ui.input(
+                label='Mail', 
+                value=data.get('mail', ''),
+                on_change=lambda e: data.update({'mail': e.value})
+            )
+            out_select = ui.checkbox(
+                'Out',
+                value=data.get('out', False),
+                on_change=lambda e: data.update({'out': e.value})
+            )
+        
+        # Display all queues with checkboxes
+        ui.label('Queues:').classes('mt-4 font-bold')
+        queues = get_queues()
+        
+        with ui.column().classes('w-full'):
+            current_row = None
+            for i, queue in enumerate(queues):
+                if i % 3 == 0:
+                    current_row = ui.row().classes('w-full justify-start')
+                with current_row:
+                    is_assigned = queue['id'] in assigned_queues
+                    ui.checkbox(
+                        f"{queue['queue']} - {queue['queuename']}", 
+                        value=is_assigned,
+                        on_change=lambda e, q_id=queue['id']: handle_queue_selection(e, q_id, data)
+                    ).classes('mr-4')
+
+        def handle_queue_selection(e, queue_id, data):
+            if e.value and queue_id not in data['queues']:
+                data['queues'].append(queue_id)
+            elif not e.value and queue_id in data['queues']:
+                data['queues'].remove(queue_id)
+            print(f"Current queues: {data['queues']}")  # Debug print
+        
+        async def handle_save():
+            save_data = {
+                'extension': data.get('extension'),
+                'name': data.get('name'),
+                'mail': data.get('mail'),
+                'out': data.get('out'),
+                'queues': [{'id': q_id} for q_id in data['queues']]
+            }
+            
+            if data.get('id'):
+                headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
+                response = requests.patch(
+                    f"{api_base_url}/v1/extensions/{data['id']}", 
+                    headers=headers,
+                    data=json.dumps(save_data)
+                )
+            else:
+                headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
+                response = requests.post(
+                    f"{api_base_url}/v1/extensions",
+                    headers=headers,
+                    data=json.dumps(save_data)
+                )
+                
+            if response.status_code == 200:
+                ui.notify('Extension saved successfully')
+                dialog.close()
+                refresh_extensions.refresh()
+            else:
+                ui.notify(f'Operation failed: {response.status_code} {response.content}')
+                
+        ui.button('Save', on_click=handle_save).classes('text-xs')
+        ui.button('Cancel', on_click=dialog.close).classes('text-xs')
+    
+    dialog.open()
 
 
-async def add_extension(data,dialog):
-    #data = e.args["data"]
-    ui.notify(f"Add extension {data['extension']} ?")
-    print(data)
-    btn = ui.button('Validate',icon='save').classes('text-xs')
-    await btn.clicked()
-    headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
-    webapi_url_extensions = api_base_url + '/v1/extensions'
-    j = {}
-    j['extension'] = data['extension']
-    j['name'] = data['name']
-    j['mail'] = data['mail']
-    j['out'] = data['out']
-    js = json.dumps(j)
-    response = requests.post(f"{webapi_url_extensions}", headers=headers, data=js)
-    if response.status_code == 200:
-        ui.notify(f'Extensions added successfully')  # noqa: F541
-        dialog.close()
-        refresh_extensions.refresh()
-        ui.tab('Extensions_list').update()  
-    else:
-        ui.notify(f'Add failed {response.status_code} {response.content}')  # noqa: F541)
+# Update the table row click handler
+async def handle_row_click(e):
+    print("Row clicked:", e['row'])  # Debug
+    row_data = e['row']
+    await extension_dialog(row_data)
     
 @router.page('/')
 def extension_page():
@@ -209,20 +260,8 @@ def extension_page():
                             on_click=lambda: ui.download(src='extensions.csv',filename='extensions.csv',media_type='csv')).classes('ml-auto text-xs')
 
             else:
-                refresh_extensions()
-                with ui.dialog() as dialog, ui.card():
-                    data={}
-                    ui.label('Extension details')
-                    ui.label('Extension')
-                    ui.input(label='Extension', on_change=lambda e: data.update({'extension': e.value}))
-                    ui.label('Name')
-                    ui.input(label='Name', on_change=lambda e: data.update({'name': e.value}))
-                    ui.label('Mail')
-                    ui.input(label='Mail', on_change=lambda e: data.update({'mail': e.value}))
-                    ui.label('Out')
-                    ui.select({'False':False,'True':True}, on_change=lambda e: data.update({'out': e.value}))
-                    ui.button('Save', on_click=lambda: add_extension(data, dialog)).classes('text-xs')
-                ui.button('Add extension', icon='add', on_click=dialog.open).classes('text-xs')
+                refresh_extensions()                
+                ui.button('Add extension', icon='add', on_click=lambda: extension_dialog()).classes('text-xs')
                 ui.button('Download CSV',
                             icon='download',
                             on_click=lambda: ui.download(src='extension.csv', filename='extensions.csv',media_type='csv')).classes('text-xs')     

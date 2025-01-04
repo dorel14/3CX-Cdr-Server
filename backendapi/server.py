@@ -48,6 +48,7 @@ def perform_healthcheck():
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html(req: Request):
     root_path = req.scope.get("root_path", "").rstrip("/")
+    print(f"root_path : {root_path}")
     openapi_url = root_path + app.openapi_url
     return get_swagger_ui_html(
         openapi_url=openapi_url,

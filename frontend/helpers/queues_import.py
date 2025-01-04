@@ -11,10 +11,11 @@ from .logging import logger
 
 api_base_url = os.environ.get('API_URL')
 
-def post_queues(queues:str | pd.DataFrame):
+def post_queues(queues_file):
     """Fonction permettant de poster les queues au serveur
     Cette fonction teste si l'enregistrement existe avant de le poster
     """
+    queues = pd.read_csv(queues_file, delimiter=",")
     if len(queues) > 0:
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
 
