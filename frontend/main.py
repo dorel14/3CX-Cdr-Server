@@ -18,6 +18,7 @@ def index_page() -> None:
         ui.page_title("3CX CDR Server app")
 
 
+
 # Example 2: use a function to move the whole page creation into a separate file
 #function_example.create()
 

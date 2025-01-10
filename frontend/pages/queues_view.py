@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 
+from pathlib import Path
 from nicegui import ui, APIRouter, events, run
 from nicegui_tabulator import tabulator
 
@@ -16,6 +17,8 @@ api_base_url = os.environ.get('API_URL')
 data_folder = "/data/files"
 data_files = os.path.join(data_folder, "queues.csv")
 
+
+
 def get_queues():
     try:
         response = requests.get(f"{api_base_url}/v1/queues")
@@ -28,6 +31,7 @@ def get_queues():
 @ui.refreshable
 def refresh_queues():
     queues = get_queues()
+    ui.add_head_html(f'''<script>{(Path(__file__).parent / 'javascript' / 'togglerow.js').read_text()}</script>''')     
     table_config = {
         "data": queues,
         "locale": "fr-FR",
@@ -47,6 +51,11 @@ def refresh_queues():
             }
         },
         "columns": [
+            {
+                "formatter":"""hideIcon, align:"center", title:"Hide Sub", headerSort:false, cellClick:function(e, row, formatterParams){
+                                const id = row.getData().id;
+                                $(".subTable" + id + "").toggle();"""
+            },
             {"title": "Number", "field": "queue", "sorter": "string"},
             {"title": "Name", "field": "queuename", "sorter": "string"},
             {"title": "Creation date", "field": "date_added", "sorter": "date", "formatter": "datetime", 
@@ -64,6 +73,47 @@ def refresh_queues():
                 "timezone": os.getenv('TZ'),
             }},
         ],
+        ":rowFormatter": r"""
+            function(row) {
+                if(row.getData().extensionslist && row.getData().extensionslist.length > 0) {
+                    var holderEl = document.createElement("div");
+                    var tableEl = document.createElement("div");
+                    
+                    holderEl.style.padding = "10px";
+                    holderEl.style.backgroundColor = "#f5f5f5";
+                    holderEl.style.marginTop = "5px";
+                    holderEl.style.width = "100%";
+                    
+                    holderEl.appendChild(tableEl);
+                    
+
+                    tableEl.style.border = "1px solid #333";
+
+                    var element = row.getElement();
+                    var detailsEl = document.createElement("div");
+                    detailsEl.style.boxSizing = "border-box";
+                    detailsEl.style.padding = "10px";
+                    detailsEl.appendChild(holderEl);
+                    
+                    element.after(detailsEl);
+                    
+                    var subTable = new Tabulator(tableEl, {
+                        layout: "fitColumns",
+                        data: row.getData().extensionslist,
+                        columns: [
+                            {title: "Extension", field: "extension", width: 150},
+                            {title: "Name", field: "name", width: 200},
+                            {title: "Added", field: "date_added", formatter: "datetime", 
+                            formatterParams: {
+                                outputFormat: "dd/MM/yy"
+                            },
+                            width: 150
+                            }
+                        ]
+                    });
+                }
+            }
+        """,
         "layout": "fitColumns",
         "responsiveLayout": True,
         "resizableRows": True,

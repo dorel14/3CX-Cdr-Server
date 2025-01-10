@@ -49,7 +49,7 @@ def refresh_extensions():
             return local_date.strftime('%d/%m/%Y')
         return ''
     
-    with ui.grid(columns=6).classes('w-full'):
+    with ui.grid(columns=7).classes('w-full col-span-7 flex-wrap'):
         # Headers
         ui.label('').classes('font-bold')
         ui.label('Name').classes('font-bold')
@@ -58,32 +58,41 @@ def refresh_extensions():
         ui.label('Out').classes('font-bold')
         ui.label('Created').classes('font-bold')
         ui.label('Modified').classes('font-bold')
-
+    with ui.scroll_area().classes('w-full h-dvh'):
         for ext in extensions:
-            with ui.expansion(group='group').classes('w-full col-span-6 flex-wrap') as expansion:
-                with expansion.add_slot('header'):                    
-                    with ui.grid(columns=7).classes('w-full'):
-                        ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})).classes('text-xs text-center size-10')            # Extension row
-                        ui.label(ext['name'])
-                        ui.label(ext['extension'])
-                        ui.label(ext['mail'])
-                        ui.label( '✗' if ext['out'] else '✓').classes('text-red-500 text-center' if ext['out'] else 'text-green-500 text-center')
-                        ui.label(format_date(ext['date_added']))
-                        ui.label(format_date(ext['date_modified']))
-
+            if ext['queueslist']:
+                with ui.expansion(group='group').classes('w-full ') as expansion:
+                    with expansion.add_slot('header'):                    
+                        with ui.grid(columns=7).classes('w-full col-span-7 flex-wrap'):
+                            ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})).classes('text-xs text-center size-10')            # Extension row
+                            ui.label(ext['name'])
+                            ui.label(ext['extension'])
+                            ui.label(ext['mail'])
+                            ui.label( '✗' if ext['out'] else '✓').classes('text-red-500 text-center' if ext['out'] else 'text-green-500 text-center')
+                            ui.label(format_date(ext['date_added']))
+                            ui.label(format_date(ext['date_modified']))
                     # Queues subgrid
-                if ext['queueslist']:
-                    with ui.grid(columns=3).classes('w-full mt-2 ml-4'):
-                        # Queue headers
-                        ui.label('Queue').classes('font-bold')
-                        ui.label('Queue name').classes('font-bold')
-                        ui.label('Added date').classes('font-bold')
-
-                        for queue in ext['queueslist']:
-                            with ui.grid(columns=3).classes('w-full mt-2 ml-4'):
-                                ui.label(queue['queue'])
-                                ui.label(queue['queuename'])
-                                ui.label(format_date(queue['date_added']))
+                    table_config = {
+                        "data": ext['queueslist'],
+                            "layout": "fitColumns",
+                            "columns": [
+                                {"title": "Queue", "field": "queue"},
+                                {"title": "Name", "field": "queuename"},
+                            ],
+                            "pagination": "local",
+                            "paginationSize": 10,
+                            "paginationSizeSelector": [10, 20, 50, 100],
+                        }
+                    table = tabulator(table_config).classes('w-full compact')
+            else:
+                with ui.grid(columns=7).classes('w-full col-span-7 flex-wrap'):
+                    ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})).classes('text-xs text-center size-10')
+                    ui.label(ext['name'])
+                    ui.label(ext['extension'])
+                    ui.label(ext['mail'])
+                    ui.label( '✗' if ext['out'] else '✓').classes('text-red-500 text-center' if ext['out'] else 'text-green-500 text-center')
+                    ui.label(format_date(ext['date_added']))
+                    ui.label(format_date(ext['date_modified']))
 
 
 
@@ -127,9 +136,11 @@ async def extension_dialog(row_data=None):
     data = {}
     
     if row_data:
-        data = row_data.get('row', {})
+        data = row_data#.get('row', {})
         # Initialize queues list with current assignments at dialog creation
+        print(f"Current data: {data}")  # Debug print
         data['queues'] = [q['id'] for q in data.get('queueslist', [])]
+        print(f"Current queues: {data['queues']}")  # Debug print
         assigned_queues = data['queues']
     else:
         data['queues'] = []
@@ -209,7 +220,7 @@ async def extension_dialog(row_data=None):
                 )
                 
             if response.status_code == 200:
-                ui.notify('Extension saved successfully')
+                ui.notify('Extension saved successfully', type='positive')
                 dialog.close()
                 refresh_extensions.refresh()
             else:
@@ -236,7 +247,7 @@ def extension_page():
     with ui.tabs().classes('w-full') as tabs:
         Extensions_list = ui.tab('Extensions List')
         Extensions_Import = ui.tab('Extensions Import')
-    ui.label('Extensions informations are editable in the table below.')  
+    ui.label('Extensions informations are editable on pencil button.')  
     with ui.tab_panels(tabs, value=Extensions_list).classes('w-full'):
         with ui.tab_panel(Extensions_list):
             extensions = get_extensions()
@@ -260,11 +271,12 @@ def extension_page():
                             on_click=lambda: ui.download(src='extensions.csv',filename='extensions.csv',media_type='csv')).classes('ml-auto text-xs')
 
             else:
-                refresh_extensions()                
-                ui.button('Add extension', icon='add', on_click=lambda: extension_dialog()).classes('text-xs')
-                ui.button('Download CSV',
+                with ui.row().classes('w-full border-b pb-2'):            
+                    ui.button('Add extension', icon='add', on_click=lambda: extension_dialog()).classes('text-xs')
+                    ui.button('Download CSV',
                             icon='download',
-                            on_click=lambda: ui.download(src='extension.csv', filename='extensions.csv',media_type='csv')).classes('text-xs')     
+                            on_click=lambda: ui.download(src='extension.csv', filename='extensions.csv',media_type='csv')).classes('text-xs')
+                refresh_extensions()    
         with ui.tab_panel(Extensions_Import):
             ui.label("Uploader extension list in csv file")            
             ui.upload(label='Upload csv file' ,
