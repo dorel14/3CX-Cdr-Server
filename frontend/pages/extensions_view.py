@@ -179,14 +179,14 @@ async def extension_dialog(row_data=None):
             current_row = None
             for i, queue in enumerate(queues):
                 if i % 3 == 0:
-                    current_row = ui.row().classes('w-full justify-start')
+                    current_row = ui.row().classes('w-full flex-nowrap place-content-stretch')
                 with current_row:
                     is_assigned = queue['id'] in assigned_queues
                     ui.checkbox(
                         f"{queue['queue']} - {queue['queuename']}", 
                         value=is_assigned,
                         on_change=lambda e, q_id=queue['id']: handle_queue_selection(e, q_id, data)
-                    ).classes('mr-4')
+                    ).classes('mr-4 w-1/3')
 
         def handle_queue_selection(e, queue_id, data):
             if e.value and queue_id not in data['queues']:
@@ -226,8 +226,9 @@ async def extension_dialog(row_data=None):
             else:
                 ui.notify(f'Operation failed: {response.status_code} {response.content}')
                 
-        ui.button('Save', on_click=handle_save).classes('text-xs')
-        ui.button('Cancel', on_click=dialog.close).classes('text-xs')
+        with ui.row().classes('w-full justify-end'):
+            ui.button('Save', on_click=handle_save).classes('text-xs')
+            ui.button('Cancel', on_click=dialog.close).classes('text-xs')
     
     dialog.open()
 

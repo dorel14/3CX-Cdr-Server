@@ -6,6 +6,7 @@ from datetime import datetime, date
 from typing import Optional, List
 
 class ExtensionBase(BaseModel):
+    id: int
     extension: str
     name: str
     mail: str
