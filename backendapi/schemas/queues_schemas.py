@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 
+from backendapi.models import extensions
+
 
 class QueueBase(BaseModel):
     id: int
@@ -21,9 +23,13 @@ class Queue(QueueBase):
     class Config:
         from_attributes = True
 
+class ExtensionsId(BaseModel):
+    id: int
+
 class QueueUpdate(BaseModel):
     queue: Optional[str] = None
     queuename: Optional[str] = None
+    extensionslist: Optional[List[ExtensionsId]] = []
     date_modified: Optional[datetime] = datetime.now()
 
 from .extensions_schemas import ExtensionBase  # noqa: E402

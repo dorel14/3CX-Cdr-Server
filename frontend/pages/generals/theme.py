@@ -36,7 +36,9 @@ def frame(navigation_title: str):
         ui.button(on_click=about.open, icon='info').props('flat color=white')
     
     with ui.footer() as footer:
-        ui.label('Footer')
+        with ui.row().classes('w-full items-center flex-wrap'):
+            ui.icon('copyright')
+            ui.label('Tout droits réservés').classes('text-xs')
 
     with ui.left_drawer().classes('bg-blue-50') as left_drawer:        
         with ui.column():

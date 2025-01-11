@@ -4,7 +4,14 @@ from typing import Optional, List
 
 
 
+class QueueId(BaseModel):
+    id: int
+
+class ExtensionId(BaseModel):
+    id:int
+
 class ExtraEventBase(BaseModel):
+    id: int
     event_title: str
     event_start: datetime = datetime.now()
     event_end: Optional[datetime] = None
@@ -13,20 +20,31 @@ class ExtraEventBase(BaseModel):
     date_added: datetime = datetime.now()
     date_modified: datetime = datetime.now()
     all_day: bool = False
-    extensionslist : List[str] = []
-    queueslist : List[str] = []
 
-class ExtraEventCreate(ExtraEventBase):
-    queues_ids: Optional[List[int]] = None
-    extensions_ids: Optional[List[int]] = None
+
+class ExtraEventCreate(BaseModel):
+    event_title: str
+    event_start: datetime = datetime.now()
+    event_end: Optional[datetime] = None
+    event_description: Optional[str] = None
+    event_impact: Optional[str] = None
+    date_added: datetime = datetime.now()
+    date_modified: datetime = datetime.now()
+    all_day: bool = False
+    queueslist: Optional[List[QueueId]] = []
+    extensionslist: Optional[List[ExtensionId]] = []
     pass
 
 class ExtraEvent(ExtraEventBase):
     id: int
-    queues_ids: Optional[List[int]]
-    extensions_ids: Optional[List[int]]
+    queueslist: Optional[List['QueueBase']] = []
+    extensionslist: Optional[List["ExtensionBase"]] = []
     class Config:
         from_attributes = True
+
+
+
+
 
 class ExtraEventUpdate(BaseModel):
     event_title: str
@@ -35,5 +53,10 @@ class ExtraEventUpdate(BaseModel):
     event_description: Optional[str] = None
     event_impact: Optional[str] = None
     date_modified: datetime = datetime.now()
-    extensionslist : Optional[List[str]] = None
-    queueslist : Optional[List[str]] = None
+    all_day: bool = False
+    queueslist: Optional[List[QueueId]] = []
+    extensionslist: Optional[List[ExtensionId]] = []
+
+from .queues_schemas import QueueBase  # noqa: E402
+from .extensions_schemas import ExtensionBase  # noqa: E402
+ExtraEvent.update_forward_refs()
