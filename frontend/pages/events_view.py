@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 
+import re
 from fullcalendar.FullCalendar import FullCalendar as fullcalendar
 from nicegui import ui, APIRouter, events
 from .generals import theme
@@ -78,40 +79,40 @@ def get_events():
     else:
         return []
 
-# async def remove_queue_from_event(event_id: str, queue_id: int, dialog_instance):
-#     print(f'remove_queue_from_event: {event_id}, {queue_id}')
-#     url = f'{api_base_url}/v1/extra_events/{event_id}/queue/{queue_id}'
-#     response = requests.delete(url)
-#     if response.status_code == 200:
-#         ui.notify('Queue removed from event', type='positive')
-#         dialog_instance.close()
-#         event_response = requests.get(f'{api_base_url}/v1/extra_events/{event_id}')
-#         if event_response.status_code == 200:
-#             event_data = event_response.json()
-#             dialog_instance.queues = event_data['queueslist']
-#             dialog_instance.extensions = event_data['extensionslist']
-#             dialog_instance.update()     
-#         create_calendar.refresh()
-#     else:
-#         ui.notify('Failed to remove queue', type='negative')
+async def remove_queue_from_event(event_id: str, queue_id: int, dialog_instance):
+    #print(f'remove_queue_from_event: {event_id}, {queue_id}')
+    url = f'{api_base_url}/v1/extra_events/{event_id}/queue/{queue_id}'
+    response = requests.delete(url)
+    if response.status_code == 200:
+        ui.notify('Queue removed from event', type='positive')
+        #dialog_instance.close()
+        event_response = requests.get(f'{api_base_url}/v1/extra_events/{event_id}')
+        if event_response.status_code == 200:
+            event_data = event_response.json()
+            dialog_instance.queues = event_data['queueslist']
+            dialog_instance.extensions = event_data['extensionslist']
+            dialog_instance.update()     
+        #create_calendar.refresh()
+    else:
+        ui.notify('Failed to remove queue', type='negative')
 
-# async def remove_extension_from_event(event_id: str, extension_id: int, dialog_instance):
-#     print('remove extension from event')
-#     url = f'{api_base_url}/v1/extra_events/{event_id}/extension/{extension_id}'
-#     response = requests.delete(url)
-#     if response.status_code == 200:
-#         ui.notify('Extension removed from event', type='positive')
-#         #dialog_instance.close()
-#         event_response = requests.get(f'{api_base_url}/v1/extra_events/{event_id}')
-#         if event_response.status_code == 200:
-#             event_data = event_response.json()            
-#             dialog_instance.queues = event_data['queueslist']
-#             dialog_instance.extensions = event_data['extensionslist']
-#             dialog_instance.update()
+async def remove_extension_from_event(event_id: str, extension_id: int, dialog_instance):
+    #print('remove extension from event')
+    url = f'{api_base_url}/v1/extra_events/{event_id}/extension/{extension_id}'
+    response = requests.delete(url)
+    if response.status_code == 200:
+        ui.notify('Extension removed from event', type='positive')
+        #dialog_instance.close()
+        event_response = requests.get(f'{api_base_url}/v1/extra_events/{event_id}')
+        if event_response.status_code == 200:
+            event_data = event_response.json()            
+            dialog_instance.queues = event_data['queueslist']
+            dialog_instance.extensions = event_data['extensionslist']
+            dialog_instance.update()
             
-#         create_calendar.refresh()
-#     else:
-#         ui.notify('Failed to remove extension', type='negative')
+        #create_calendar.refresh()
+    else:
+        ui.notify('Failed to remove extension', type='negative')
 
 class Event_Dialog(ui.dialog):
     def __init__(self, id:str ,title:str, start:datetime, end:datetime, all_day:bool, impact:str, description:str, extensions:list=None, queues:list=None, *args, **kwargs):
@@ -181,32 +182,41 @@ class Event_Dialog(ui.dialog):
             ui.select(options=impact_levels, value=data['event_impact']).on_value_change(lambda e: data.update({'event_impact': e.value})).classes('w-full')
             ui.textarea('Event Description', placeholder='Event description', value=data['event_description']).on_value_change(lambda e: data.update({'event_description': e.value})).classes('w-full')
             ui.label('Extensions')
-            extensions_options = get_extensions()    
-            ui.select(options=extensions_options, multiple=True).on_value_change(lambda e: data.update({'extensionslist': e.value})).classes('w-full')
-            print(f'data_extensions : {data['extensionslist']}')
-            print(f'extensions: {extensions}')
+            extensions_options = get_extensions()
+            available_extensions = {k:v for k,v in get_extensions().items() if not any(q['id'] == k for q in data['extensionslist'])}
+            ui.select(options=available_extensions, multiple=True
+                    ).on_value_change(lambda e: data.update({'extensionslist': [{'id': ext_id} for ext_id in e.value]})
+                    ).classes('w-full')
+            #print(f'data_extensions : {data['extensionslist']}')
+            #print(f'extensions: {extensions}')
             with ui.row():
                 for ext in data['extensionslist']:
-                        print(ext)
-                    #with ui.grid(columns=2).classes('q-pa-sm'):
-                        #ui.label(f"{extensions_options.get(ext['id'], '')}")
-                        ui.button(text=f"{extensions_options.get(ext['id'], '')}",
-                                icon='close',
+                        ui.chip(text=f"{extensions_options.get(ext['id'], '')}",
+                                removable=True,
+                                color='white',
                                 #on_click=lambda e, ext_id=ext['id']: remove_extension_from_event(data['id'], ext_id, self)
-                                ).classes('text-xs').props('flat rounded')
+                                ).on(
+                                    'remove',
+                                    lambda e, ext_id=ext['id']: remove_extension_from_event(data['id'], ext_id, self)
+                                ).classes('text-xs')
             ui.label('Queues')
             queues_options = get_queues()
-            ui.select(options=queues_options,  multiple=True).on_value_change(lambda e: data.update({'queueslist': e.value})).classes('w-full')
+            # Filter out already selected queues from options
+            available_queues = {k:v for k,v in get_queues().items() if not any(q['id'] == k for q in data['queueslist'])}
+            ui.select(options=available_queues,  multiple=True
+                    ).on_value_change(lambda e: data.update({'queueslist': [{'id': queue_id} for queue_id in e.value]})
+                    ).classes('w-full')
             # After the existing Queues select            
             with ui.row():
                 for queue in data['queueslist']:
-                        print(queue)
-                    #with ui.card().classes('q-pa-sm'):
-                        #ui.label(f"{queues_options.get(queue['id'], '')}")
-                        ui.button(text=f"{queues_options.get(queue['id'], '')}",
-                                icon='close',
-                                #on_click=lambda e, queue_id=queue['id']: remove_queue_from_event(data['id'], queue_id, self)
-                                ).classes('text-xs').props('flat rounded')
+                        ui.chip(text=f"{queues_options.get(queue['id'], '')}",
+                        removable=True,
+                        color='white',
+                        #on_click=lambda e, queue_id=queue['id']: remove_queue_from_event(data['id'], queue_id, self)
+                        ).on(
+                            'remove',
+                            lambda e, queue_id=queue['id']: remove_queue_from_event(data['id'], queue_id, self)
+                        ).classes('text-xs')
 
 
             with ui.row():
@@ -248,6 +258,16 @@ async def handle_click(event: events.GenericEventArguments):
                 else:
                     event_start = datetime_to_str(str_to_datetime(result['event_start_date'], result['event_start_time']))
                     event_end = datetime_to_str(str_to_datetime(result['event_end_date'], result['event_end_time']))
+                # Handle extensionslist format based on update type
+                extensionslist = ([{'id': ext_id} for ext_id in result['extensionslist']] 
+                    if not isinstance(result['extensionslist'][0], dict) 
+                    else result['extensionslist'])
+    
+                # Handle queueslist format based on update type
+                queueslist = ([{'id': queue_id} for queue_id in result['queueslist']] 
+                    if not isinstance(result['queueslist'][0], dict) 
+                    else [{'id': queue['id']} for queue in result['queueslist']])
+                
                 e={
                     #'event_id': result['id'],
                     'event_title': result['event_title'],
@@ -256,8 +276,8 @@ async def handle_click(event: events.GenericEventArguments):
                     'event_description': result['event_description'],
                     'event_impact': result['event_impact'],
                     'all_day': result['event_allday'],
-                    'extensionslist': [{'id': ext_id} for ext_id in result['extensionslist']],
-                    'queueslist': [{'id': queue_id} for queue_id in result['queueslist']]
+                    'extensionslist': extensionslist,
+                    'queueslist': queueslist
                     }                
                 j=json.dumps(e, default=str)
                 print(f'jsonupdate {j}')
@@ -316,8 +336,8 @@ def add_event_to_db(data):
         'event_description': data['event_description'],
         'event_impact': data['event_impact'],
         'all_day': data['event_allday'],
-        'extensionslist': [{'id': ext_id} for ext_id in data['extensionslist']],
-        'queueslist': [{'id': queue_id} for queue_id in data['queueslist']]
+        'extensionslist': [{'id': int(ext['id'])} for ext in data['extensionslist'] if isinstance(ext, dict)] if isinstance(data['extensionslist'][0], dict) else [{'id': int(ext_id)} for ext_id in data['extensionslist']],
+        'queueslist': [{'id': int(queue['id'])} for queue in data['queueslist'] if isinstance(queue, dict)] if isinstance(data['queueslist'][0], dict) else [{'id': int(queue_id)} for queue_id in data['queueslist']]
 }
     j=json.dumps(e, default=str)
     print(f'json: {j}')
