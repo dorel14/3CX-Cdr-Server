@@ -1,6 +1,5 @@
 # -*- coding: UTF-8 -*-
 
-import re
 from fullcalendar.FullCalendar import FullCalendar as fullcalendar
 from nicegui import ui, APIRouter, events
 from .generals import theme

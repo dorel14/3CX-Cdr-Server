@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 
+from gc import enable
 from nicegui import ui, APIRouter, events, run
 from nicegui_tabulator import tabulator
 from datetime import datetime
@@ -22,16 +23,15 @@ data_files = os.path.join(data_folder, "queues.csv")
 # Add error handling for the API call
 def get_queues():
     try:
-        response = requests.get(f"{api_base_url}/v1/queues")
+        response =  requests.get(f"{api_base_url}/v1/queues")
         response.raise_for_status()  # Raise an exception for bad status codes
         return response.json()
     except requests.exceptions.RequestException as e:
         ui.notify(f"Error fetching queues: {str(e)}", type='negative')
         return []
-
 def get_extensions():
     try:
-        response = requests.get(f"{api_base_url}/v1/extensions")
+        response =  requests.get(f"{api_base_url}/v1/extensions")
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -51,22 +51,25 @@ def refresh_queues():
     
     with ui.grid(columns=5).classes('w-full col-span-5 flex-nowrap'):
         # Headers
-        ui.label('').classes('font-bold w-1/5')
-        ui.label('Number').classes('font-bold w-1/5')
-        ui.label('Name').classes('font-bold w-1/5')
-        ui.label('Created').classes('font-bold w-1/5')
-        ui.label('Modified').classes('font-bold w-1/5')
+        ui.label('').classes('font-bold')
+        ui.label('Number').classes('font-bold')
+        ui.label('Name').classes('font-bold')
+        ui.label('Created').classes('font-bold')
+        ui.label('Modified').classes('font-bold')
     with ui.scroll_area().classes('w-full h-dvh'):
         for queue in queues:
             if queue['extensionslist']:
                 with ui.expansion(group='group').classes('w-full ') as expansion:
                     with expansion.add_slot('header'):                    
                         with ui.grid(columns=5).classes('w-full col-span-5 flex-nowrap'):
-                            ui.button(icon='mode_edit', on_click=lambda queue=queue: handle_row_click({'row': queue})).classes('text-xs text-center size-10 w-1/5')            # Queue row
-                            ui.label(queue['queue']).classes('w-1/5')
-                            ui.label(queue['queuename']).classes('w-1/5')
-                            ui.label(format_date(queue['date_added'])).classes('w-1/5')
-                            ui.label(format_date(queue['date_modified'])).classes('w-1/5')
+                            with ui.button_group().props('outline'):
+                                ui.button(icon='mode_edit', on_click=lambda queue=queue: handle_row_click({'row': queue})
+                                        ).classes('text-xs text-center size-10')
+                                ui.button(icon='delete').classes('text-xs text-center size-10')           # Queue row
+                            ui.label(queue['queue'])
+                            ui.label(queue['queuename'])
+                            ui.label(format_date(queue['date_added']))
+                            ui.label(format_date(queue['date_modified']))
                     # Extensions subgrid
                     table_config = {
                         "data": queue['extensionslist'],
@@ -82,11 +85,14 @@ def refresh_queues():
                     table = tabulator(table_config).classes('w-full compact')
             else:
                 with ui.grid(columns=5).classes('w-full col-span-5 flex-nowrap'):
-                    ui.button(icon='mode_edit', on_click=lambda queue=queue: handle_row_click({'row': queue})).classes('text-xs text-center size-10 w-1/5')            # Queue row
-                    ui.label(queue['queue']).classes('w-1/5')
-                    ui.label(queue['queuename']).classes('w-1/5')
-                    ui.label(format_date(queue['date_added'])).classes('w-1/5')
-                    ui.label(format_date(queue['date_modified'])).classes('w-1/5')
+                    with ui.button_group().props('outline'):
+                        ui.button(icon='mode_edit', on_click=lambda queue=queue: handle_row_click({'row': queue})
+                                ).classes('text-xs text-center size-10')
+                        ui.button(icon='delete').classes('text-xs text-center size-10')         # Queue row
+                    ui.label(queue['queue'])
+                    ui.label(queue['queuename'])
+                    ui.label(format_date(queue['date_added']))
+                    ui.label(format_date(queue['date_modified']))
 
 async def click_import():
     response = await run.io_bound(post_queues, data_files)
@@ -126,12 +132,9 @@ async def queue_dialog(row_data=None):
     data = {}
     
     if row_data:
-        data = row_data#.get('row', {})
-        # Initialize extensions list with current assignments at dialog creation
-        print(f"Current data: {data}")  # Debug print
-        data['extensions'] = [e['id'] for e in data.get('extensionslist', [])]
-        print(f"Current extensions: {data['extensions']}")  # Debug print
-        assigned_extensions = data['extensions']
+        data = row_data
+        data['extensions'] = [{'id': e['id']} for e in data.get('extensionslist', [])]
+        assigned_extensions = [e['id'] for e in data['extensions']]
     else:
         data['extensions'] = []
         assigned_extensions = []
@@ -150,35 +153,37 @@ async def queue_dialog(row_data=None):
                 on_change=lambda e: data.update({'queuename': e.value})
             )
         
-        # Display all extensions with checkboxes
         ui.label('Extensions:').classes('mt-4 font-bold')
         extensions = get_extensions()
-        
-        with ui.column().classes('w-full'):
-            current_row = None
-            for i, extension in enumerate(extensions):
-                if i % 2 == 0:
-                    current_row = ui.row().classes('w-full  flex-nowrap place-content-stretch')
-                with current_row:
-                    is_assigned = extension['id'] in assigned_extensions
-                    ui.checkbox(
-                        f"{extension['extension']} - {extension['name']}", 
-                        value=is_assigned,
-                        on_change=lambda e, ext_id=extension['id']: handle_extension_selection(e, ext_id, data)
-                    ).classes('mr-4 w-1/2')
+        if isinstance(extensions, list):
+            extensions = {e['id']: e['name'] for e in extensions}
+        available_extensions = {k: v for k, v in extensions.items() if k not in assigned_extensions}
 
-        def handle_extension_selection(e, extension_id, data):
-            if e.value and extension_id not in data['extensions']:
-                data['extensions'].append(extension_id)
-            elif not e.value and extension_id in data['extensions']:
-                data['extensions'].remove(extension_id)
-            print(f"Current extensions: {data['extensions']}")  # Debug print
+        ui.select(options=available_extensions, multiple=True).on_value_change(
+            lambda e: data.update({'extensions': [{'id': ext_id} for ext_id in e.value]})
+        ).classes('w-full')
         
-        async def handle_save():
+        with ui.row():
+            for ext_id in assigned_extensions:
+                ui.chip(
+                    text=f"{extensions.get(ext_id, '')}",
+                    removable=True,
+                    color='white'
+                ).on(
+                    'remove',
+                    lambda e, ext_id=ext_id: handle_extension_removal(ext_id, data)
+                ).classes('text-xs')
+
+        async def handle_extension_removal(extension_id, data):
+            data['extensions'] = [ext for ext in data['extensions'] if ext['id'] != extension_id]
+            await requests.delete(f"{api_base_url}/v1/queues/{data['id']}/extension/{extension_id}")
+            print(f"Current extensions: {data['extensions']}")
+
+        def handle_save():
             save_data = {
                 'queue': data.get('queue'),
                 'queuename': data.get('queuename'),
-                'extensions': [{'id': ext_id} for ext_id in data['extensions']]
+                'extensionslist': data.get('extensions')
             }
             
             if data.get('id'):
@@ -188,6 +193,7 @@ async def queue_dialog(row_data=None):
                     headers=headers,
                     data=json.dumps(save_data)
                 )
+                print(response)
             else:
                 headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
                 response = requests.post(
@@ -195,7 +201,7 @@ async def queue_dialog(row_data=None):
                     headers=headers,
                     data=json.dumps(save_data)
                 )
-                
+                print(response)
             if response.status_code == 200:
                 ui.notify('Queue saved successfully', type='positive')
                 dialog.close()
@@ -206,7 +212,6 @@ async def queue_dialog(row_data=None):
         with ui.row().classes('w-full justify-end'):
             ui.button('Save', on_click=handle_save).classes('text-xs')
             ui.button('Cancel', on_click=dialog.close).classes('text-xs')
-
     
     dialog.open()
 
@@ -245,7 +250,8 @@ def queue_page():
                 emptycsv_table = tabulator(emptycsv_table_config).props('id=empty_queues_table').classes('w-full compact')
                 ui.button('Download template CSV',
                             icon='download',
-                            on_click=lambda: ui.download(src='queues.csv',filename='queues.csv',media_type='csv')).classes('ml-auto text-xs')
+                            on_click=lambda: ui.download(src='queues.csv',filename='queues.csv',media_type='csv')
+                            ).classes('ml-auto text-xs')
 
             else:
                 with ui.row().classes('w-full border-b pb-2'):            

@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
@@ -19,15 +18,24 @@ router = APIRouter(prefix="/v1", tags=["extensions"])
 @router.post("/extensions", response_model=Extension, tags=["extensions"])
 async def create_extensions(
     extension: ExtensionCreate,
-    session: AsyncSession = Depends(get_session), 
+    session: AsyncSession = Depends(get_session)    
 ):
-    logger.info(extension)
-    db_extensions = Extensions(**extension.dict())
-    session.add(db_extensions)
+    extension_data = extension.dict(exclude={"queues"})
+    db_extension = Extensions(**extension_data)
+    session.add(db_extension)
+    await session.flush()
+    
+    created_id = db_extension.id
+    
+    if extension.queues:
+        for queue in extension.queues:
+            link = Extensiontoqueuelink(extension_id=created_id, queue_id=queue.id)
+            session.add(link)
     await session.commit()
-    await session.refresh(db_extensions)
-    return db_extensions
-
+    
+    stmt = select(Extensions).options(selectinload(Extensions.queueslist)).filter(Extensions.id == created_id)
+    result = await session.execute(stmt)
+    return result.unique().scalar_one()
 
 @router.get("/extensions", response_model=List[Extension], tags=["extensions"])
 async def read_extensions(
@@ -77,12 +85,10 @@ async def read_extension_by_ext(
     return db_extensionbyextension
 
 
-@router.patch(
-    "/extensions/{extension_id}", response_model=Extension, tags=["extensions"]
-)
+@router.patch("/extensions/{extension_id}", response_model=Extension, tags=["extensions"])
 async def update_extension(
     extension_id: int, 
-    extension:ExtensionUpdate,
+    extension: ExtensionUpdate,
     session: AsyncSession = Depends(get_session), 
 ):
     result = await session.execute(select(Extensions)
@@ -95,40 +101,73 @@ async def update_extension(
         raise HTTPException(status_code=404, detail="Extension non trouvée")
 
     extension_data = extension.dict(exclude_unset=True)
-    print(f'extensiondata: {extension_data}')    
     extension_data["date_modified"] = datetime.now()
-    # Handle queue links
-    if 'queues' in extension_data:
-        # Get existing queue IDs for this extension
-        existing_queues = await session.execute(
-        select(Extensiontoqueuelink.queue_id)
-        .where(Extensiontoqueuelink.extension_id == extension_id)
-        )
-        existing_queue_ids = {q[0] for q in existing_queues}
-        # Get new queue IDs from request
-        new_queue_ids = {q['id'] for q in extension_data.pop('queues')}
-
-        # Add only new links
-        for queue_id in new_queue_ids - existing_queue_ids:
-            new_link = Extensiontoqueuelink(
-                extension_id=extension_id,
-                queue_id=queue_id
-            )
-            session.add(new_link)
-        # Remove unchecked links
-        for queue_id in existing_queue_ids - new_queue_ids:
-            await session.execute(
-                delete(Extensiontoqueuelink)
-                .where(Extensiontoqueuelink.extension_id == extension_id)
-                .where(Extensiontoqueuelink.queue_id == queue_id)
-            )
-
+    
     for key, value in extension_data.items():
-        setattr(db_extension, key, value)
+        if key != 'queues':
+            setattr(db_extension, key, value)
 
     session.add(db_extension)
     await session.commit()
     await session.refresh(db_extension)
+    
+    # Update queueslist
+    if 'queues' in extension_data:
+        existing_links = {link.id for link in db_extension.queueslist}
+        new_links = {queue['id'] if isinstance(queue, dict) else queue for queue in extension_data['queues']}
+        
+        # Add new links
+        for queue_id in new_links - existing_links:
+            link = Extensiontoqueuelink(extension_id=extension_id, queue_id=queue_id)
+            session.add(link)
+        
+        await session.commit()
+        await session.refresh(db_extension)
+    
+    return db_extension
+
+@router.post("/extensions/{extension_id}/queue/{queue_id}", response_model=Extension, tags=["extensions"])
+async def add_queue_to_extension(
+    extension_id: int,
+    queue_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    extension_result = await session.execute(select(Extensions).filter(Extensions.id == extension_id))
+    db_extension = extension_result.scalar_one_or_none()
+    if db_extension is None:
+        raise HTTPException(status_code=404, detail="Extension not found")
+
+    queue_result = await session.execute(select(Queues).filter(Queues.id == queue_id))
+    db_queue = queue_result.scalar_one_or_none()
+    if db_queue is None:
+        raise HTTPException(status_code=404, detail="Queue not found")
+
+    link = Extensiontoqueuelink(extension_id=extension_id, queue_id=queue_id)
+    session.add(link)
+    await session.commit()
+    await session.refresh(db_extension)
+    return db_extension
+
+@router.delete("/extensions/{extension_id}/queue/{queue_id}", response_model=Extension, tags=["extensions"])
+async def remove_queue_from_extension(
+    extension_id: int,
+    queue_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    link_result = await session.execute(
+        select(Extensiontoqueuelink)
+        .filter(Extensiontoqueuelink.extension_id == extension_id)
+        .filter(Extensiontoqueuelink.queue_id == queue_id)
+    )
+    link = link_result.scalar_one_or_none()
+    if link is None:
+        raise HTTPException(status_code=404, detail="Link not found")
+
+    await session.delete(link)
+    await session.commit()
+
+    extension_result = await session.execute(select(Extensions).filter(Extensions.id == extension_id))
+    db_extension = extension_result.scalar_one_or_none()
     return db_extension
 
 

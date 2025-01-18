@@ -8,11 +8,8 @@ from datetime import datetime
 
 
 from ..helpers.base import get_session
-from ..helpers.logging import logger
 
 from ..models.extra_events import ExtraEvents
-from ..models.extensions import Extensions
-from ..models.queues import Queues
 from ..models.extensions_events import ExtensionsEvents
 from ..models.queues_events import QueuesEvents
 

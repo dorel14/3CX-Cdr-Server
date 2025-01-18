@@ -13,8 +13,12 @@ class QueueBase(BaseModel):
     date_added: Optional[datetime] = datetime.now()
     date_modified: Optional[datetime] = datetime.now()
 
-class QueueCreate(QueueBase):
-    pass
+class QueueCreate(BaseModel):
+    queue: str
+    queuename: str
+    date_added: Optional[datetime] = datetime.now()
+    date_modified: Optional[datetime] = datetime.now()
+    extensionslist: Optional[List["ExtensionsId"]] = []
 
 class Queue(QueueBase):
     id: int

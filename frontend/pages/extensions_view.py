@@ -64,7 +64,9 @@ def refresh_extensions():
                 with ui.expansion(group='group').classes('w-full ') as expansion:
                     with expansion.add_slot('header'):                    
                         with ui.grid(columns=7).classes('w-full col-span-7 flex-wrap'):
-                            ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})).classes('text-xs text-center size-10')            # Extension row
+                            with ui.button_group().props('outline'):
+                                ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})).classes('text-xs text-center size-10')
+                                ui.button(icon='delete').classes('text-xs text-center size-10')        # Extension row
                             ui.label(ext['name'])
                             ui.label(ext['extension'])
                             ui.label(ext['mail'])
@@ -86,7 +88,10 @@ def refresh_extensions():
                     table = tabulator(table_config).classes('w-full compact')
             else:
                 with ui.grid(columns=7).classes('w-full col-span-7 flex-wrap'):
-                    ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})).classes('text-xs text-center size-10')
+                    with ui.button_group().props('outline'):
+                        ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})
+                                ).classes('text-xs text-center size-10')
+                        ui.button(icon='delete').classes('text-xs text-center size-10')
                     ui.label(ext['name'])
                     ui.label(ext['extension'])
                     ui.label(ext['mail'])
@@ -136,12 +141,9 @@ async def extension_dialog(row_data=None):
     data = {}
     
     if row_data:
-        data = row_data#.get('row', {})
-        # Initialize queues list with current assignments at dialog creation
-        print(f"Current data: {data}")  # Debug print
-        data['queues'] = [q['id'] for q in data.get('queueslist', [])]
-        print(f"Current queues: {data['queues']}")  # Debug print
-        assigned_queues = data['queues']
+        data = row_data
+        data['queues'] = [{'id': q['id']} for q in data.get('queueslist', [])]
+        assigned_queues = [q['id'] for q in data['queues']]
     else:
         data['queues'] = []
         assigned_queues = []
@@ -171,37 +173,39 @@ async def extension_dialog(row_data=None):
                 on_change=lambda e: data.update({'out': e.value})
             )
         
-        # Display all queues with checkboxes
         ui.label('Queues:').classes('mt-4 font-bold')
         queues = get_queues()
-        
-        with ui.column().classes('w-full'):
-            current_row = None
-            for i, queue in enumerate(queues):
-                if i % 3 == 0:
-                    current_row = ui.row().classes('w-full flex-nowrap place-content-stretch')
-                with current_row:
-                    is_assigned = queue['id'] in assigned_queues
-                    ui.checkbox(
-                        f"{queue['queue']} - {queue['queuename']}", 
-                        value=is_assigned,
-                        on_change=lambda e, q_id=queue['id']: handle_queue_selection(e, q_id, data)
-                    ).classes('mr-4 w-1/3')
+        if isinstance(queues, list):
+            queues = {q['id']: f"{q['queue']} - {q['queuename']}" for q in queues}
+        available_queues = {k: v for k, v in queues.items() if k not in assigned_queues}
 
-        def handle_queue_selection(e, queue_id, data):
-            if e.value and queue_id not in data['queues']:
-                data['queues'].append(queue_id)
-            elif not e.value and queue_id in data['queues']:
-                data['queues'].remove(queue_id)
-            print(f"Current queues: {data['queues']}")  # Debug print
+        ui.select(options=available_queues, multiple=True).on_value_change(
+            lambda e: data.update({'queues': [{'id': queue_id} for queue_id in e.value]})
+        ).classes('w-full')
         
+        with ui.row():
+            for queue_id in assigned_queues:
+                ui.chip(
+                    text=f"{queues.get(queue_id, '')}",
+                    removable=True,
+                    color='white'
+                ).on(
+                    'remove',
+                    lambda e, queue_id=queue_id: handle_queue_removal(queue_id, data)
+                ).classes('text-xs')
+
+        async def handle_queue_removal(queue_id, data):
+            data['queues'] = [q for q in data['queues'] if q['id'] != queue_id]
+            await requests.delete(f"{api_base_url}/v1/extensions/{data['id']}/queue/{queue_id}")
+            print(f"Current queues: {data['queues']}")
+
         async def handle_save():
             save_data = {
                 'extension': data.get('extension'),
                 'name': data.get('name'),
                 'mail': data.get('mail'),
                 'out': data.get('out'),
-                'queues': [{'id': q_id} for q_id in data['queues']]
+                'queues': data.get('queues')
             }
             
             if data.get('id'):

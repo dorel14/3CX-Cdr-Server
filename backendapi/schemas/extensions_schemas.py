@@ -15,7 +15,12 @@ class ExtensionBase(BaseModel):
     out: Optional[bool] = False
     date_modified: Optional[datetime] = datetime.now()
 
-class ExtensionCreate(ExtensionBase):
+class ExtensionCreate(BaseModel):
+    extension: str
+    name: str
+    mail: str
+    out: Optional[bool] = False
+    queues: Optional[List[QueueId]] = []
     pass
 
 class Extension(ExtensionBase):
