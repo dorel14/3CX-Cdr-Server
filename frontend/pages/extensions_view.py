@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 
+from math import e
 from nicegui import ui, APIRouter, events, run
 from nicegui_tabulator import tabulator
 from datetime import datetime
@@ -38,6 +39,22 @@ def get_queues():
         ui.notify(f"Error fetching queues: {str(e)}", type='negative')
         return []
 
+async def delete_extension(extension_id):
+    try:
+        # First delete all queue associations
+        response_queues = requests.delete(f"{api_base_url}/v1/extensions/{extension_id}/queues")
+        
+        # Then delete the extension
+        response = requests.delete(f"{api_base_url}/v1/extensions/{extension_id}")
+        
+        if response.status_code == 200:
+            ui.notify('Extension and its queue associations deleted successfully', type='positive')
+            refresh_extensions.refresh()
+        else:
+            ui.notify(f'Failed to delete extension: {response.status_code}', type='negative')
+    except requests.exceptions.RequestException as e:
+        ui.notify(f'Error deleting extension: {str(e)}', type='negative')
+
 @ui.refreshable
 def refresh_extensions():
     extensions = get_extensions()
@@ -59,45 +76,45 @@ def refresh_extensions():
         ui.label('Created').classes('font-bold')
         ui.label('Modified').classes('font-bold')
     with ui.scroll_area().classes('w-full h-dvh'):
-        for ext in extensions:
-            if ext['queueslist']:
-                with ui.expansion(group='group').classes('w-full ') as expansion:
-                    with expansion.add_slot('header'):                    
-                        with ui.grid(columns=7).classes('w-full col-span-7 flex-wrap'):
-                            with ui.button_group().props('outline'):
-                                ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})).classes('text-xs text-center size-10')
-                                ui.button(icon='delete').classes('text-xs text-center size-10')        # Extension row
-                            ui.label(ext['name'])
-                            ui.label(ext['extension'])
-                            ui.label(ext['mail'])
-                            ui.label( '✗' if ext['out'] else '✓').classes('text-red-500 text-center' if ext['out'] else 'text-green-500 text-center')
-                            ui.label(format_date(ext['date_added']))
-                            ui.label(format_date(ext['date_modified']))
-                    # Queues subgrid
-                    table_config = {
-                        "data": ext['queueslist'],
-                            "layout": "fitColumns",
-                            "columns": [
-                                {"title": "Queue", "field": "queue"},
-                                {"title": "Name", "field": "queuename"},
-                            ],
-                            "pagination": "local",
-                            "paginationSize": 10,
-                            "paginationSizeSelector": [10, 20, 50, 100],
-                        }
-                    table = tabulator(table_config).classes('w-full compact')
-            else:
-                with ui.grid(columns=7).classes('w-full col-span-7 flex-wrap'):
-                    with ui.button_group().props('outline'):
-                        ui.button(icon='mode_edit', on_click=lambda ext=ext: handle_row_click({'row': ext})
-                                ).classes('text-xs text-center size-10')
-                        ui.button(icon='delete').classes('text-xs text-center size-10')
-                    ui.label(ext['name'])
-                    ui.label(ext['extension'])
-                    ui.label(ext['mail'])
-                    ui.label( '✗' if ext['out'] else '✓').classes('text-red-500 text-center' if ext['out'] else 'text-green-500 text-center')
-                    ui.label(format_date(ext['date_added']))
-                    ui.label(format_date(ext['date_modified']))
+        for ext in extensions:            
+            with ui.expansion(group='group').classes('w-full ').props('dense expand-separator duration:10') as expansion:
+                with expansion.add_slot('header'):                    
+                    with ui.grid(columns=7).classes('w-full flex-nowrap align-middle'):
+                        with ui.button_group().props('outline').classes('h-8 w-16'):
+                            ui.button(icon='mode_edit',
+                                    on_click=lambda ext=ext: handle_row_click({'row': ext})
+                                    ).classes('text-sm text-center h-8')
+                            ui.button(icon='delete',
+                                    on_click=lambda ext=ext: delete_extension(ext['id'])
+                                    ).classes('text-sm text-center h-8')        # Extension row
+                        ui.label(ext['name']).classes('align-middle')
+                        ui.label(ext['extension']).classes('align-middle')
+                        ui.label(ext['mail']).classes('align-middle text-nowrap')
+                        ui.label( '✗' if ext['out'] else '✓').classes('text-red-500 text-center align-middle' if ext['out'] else 'text-green-500 text-center align-middle')
+                        ui.label(format_date(ext['date_added'])).classes('align-middle')
+                        ui.label(format_date(ext['date_modified'])).classes('align-middle')
+                if ext['queueslist']:
+                    grid_options = {
+                        'rowData': ext['queueslist'],
+                        'columnDefs': [
+                                    {"headerName": "Queue", "field": "queue"},
+                                    {"headerName": "Name", "field": "queuename"},
+                                ],
+                        'defaultColDef': {
+                        'flex': 1,
+                        'minWidth': 30,
+                        'resizable': True,
+                        'cellStyle': {'fontSize': '14px'},
+                        },
+                        'horizontalScroll': True,
+                        'rowSelection': 'single',
+                        "stopEditingWhenCellsLoseFocus": True,
+                        }               # Queues subgrid
+
+                    ui.aggrid(grid_options).classes('w-full')
+                else:
+                    expansion.props('expand-icon=none')
+
 
 
 

@@ -189,3 +189,14 @@ async def remove_extension_from_queue(
     db_queue = queue_result.scalar_one_or_none()
     return db_queue
 
+@router.delete("/queues/{queue_id}/extensions", tags=["queues"])
+async def delete_queue_extension_links(
+    queue_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    # Delete all extension links for this queue
+    await session.execute(
+        delete(Extensiontoqueuelink).where(Extensiontoqueuelink.queue_id == queue_id)
+    )
+    await session.commit()
+    return {"message": "All extension links deleted successfully"}

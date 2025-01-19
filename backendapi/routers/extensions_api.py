@@ -184,3 +184,16 @@ async def delete_extension(
     await session.commit()
 
     return {"ok": True}
+
+@router.delete("/extensions/{extension_id}/queues", tags=["extensions"])
+async def delete_extension_queue_links(
+    extension_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    # Delete all queue links for this extension
+    await session.execute(
+        delete(Extensiontoqueuelink).where(Extensiontoqueuelink.extension_id == extension_id)
+    )
+    await session.commit()
+    return {"message": "All queue links deleted successfully"}
+
