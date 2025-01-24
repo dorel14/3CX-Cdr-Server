@@ -14,7 +14,7 @@ def menu() -> None:
                     ui.icon('ti-calendar')
             with ui.item_section():
                     ui.label('Events')
-        with ui.expansion(text='3cx parameters'):
+        with ui.expansion(text='3cx parameters', group='Menu'):
             with ui.item(on_click=lambda: ui.navigate.to('/extensions')):
                 with ui.item_section().props('avatar'):
                     ui.icon('ti-headphone-alt')
@@ -25,7 +25,24 @@ def menu() -> None:
                     ui.icon('ti-more')
                 with ui.item_section():
                     ui.label('Queues')
-            
+        with ui.expansion(text='System parameters', group='Menu'):
+            with ui.item(on_click=lambda: ui.navigate.to('/users')):
+                with ui.item_section().props('avatar'):
+                    ui.icon('ti-user')
+                with ui.item_section():
+                    ui.label('Users')
+            with ui.item(on_click=lambda: ui.navigate.to('/event_types')):
+                with ui.item_section().props('avatar'):
+                    ui.icon('ti-calendar')
+                with ui.item_section():
+                    ui.label('Event Types')
+            with ui.item(on_click=lambda: ui.navigate.to('/parameters')):
+                with ui.item_section().props('avatar'):
+                    ui.icon('ti-settings')
+                with ui.item_section():
+                    ui.label('Parameters')
+
+
 
 
 

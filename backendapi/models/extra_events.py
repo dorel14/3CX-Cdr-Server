@@ -25,3 +25,7 @@ class ExtraEvents(Base):
     queueslist = relationship("Queues",
                             secondary="queues_events",
                             back_populates="eventslist")
+    eventtypeslist = relationship("EventsTypes",
+                            secondary="events_types_events",
+                            back_populates="eventslist")
+

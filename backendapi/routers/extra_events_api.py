@@ -12,6 +12,7 @@ from ..helpers.base import get_session
 from ..models.extra_events import ExtraEvents
 from ..models.extensions_events import ExtensionsEvents
 from ..models.queues_events import QueuesEvents
+from ..models.events_types_events import EventsTypesEvents
 
 from ..schemas.events_schemas import ExtraEventBase, ExtraEventCreate, ExtraEventUpdate, ExtraEvent
 
@@ -52,6 +53,15 @@ async def create_event(
             )
             session.add(extension_event)
 
+    # Création des liaisons avec les event types
+    if event.eventtypeslist:
+        for event_type in event.eventtypeslist:
+            event_type_event = EventsTypesEvents(
+                event_type_id=event_type.id,
+                event_id=db_event.id
+            )
+            session.add(event_type_event)
+
     await session.commit()
     await session.refresh(db_event)
     return db_event
@@ -68,6 +78,7 @@ async def read_extra_events(
         select(ExtraEvents)
         .options(selectinload(ExtraEvents.extensionslist))
         .options(selectinload(ExtraEvents.queueslist))
+        .options(selectinload(ExtraEvents.eventtypeslist))
         .offset(offset)
         .limit(limit)
     )
@@ -84,6 +95,7 @@ async def read_extra_event(
         select(ExtraEvents)
         .options(selectinload(ExtraEvents.extensionslist))
         .options(selectinload(ExtraEvents.queueslist))
+        .options(selectinload(ExtraEvents.eventtypeslist))
         .where(ExtraEvents.id == extra_events_id)
     )
     db_extra_events = result.scalar_one_or_none()
@@ -102,13 +114,14 @@ async def update_extra_events(
         select(ExtraEvents)
         .options(selectinload(ExtraEvents.extensionslist))
         .options(selectinload(ExtraEvents.queueslist))
+        .options(selectinload(ExtraEvents.eventtypeslist))
         .where(ExtraEvents.id == extra_events_id)
         )
     db_events = result.scalar_one_or_none()
     if not db_events:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    events_data = ex_events.dict(exclude_unset=True, exclude={'extensionslist', 'queueslist'})
+    events_data = ex_events.dict(exclude_unset=True, exclude={'extensionslist', 'queueslist', 'eventtypeslist'})
     events_data["date_modified"] = datetime.now()
     
     # Update basic fields
@@ -141,6 +154,19 @@ async def update_extra_events(
                 )
                 session.add(queue_event)
     
+    # Update event types relationships
+    if ex_events.eventtypeslist is not None:
+        # Get existing event type IDs
+        existing_event_type_ids = {event_type.id for event_type in db_events.eventtypeslist}
+        # Add new event types while keeping existing ones
+        for event_type in ex_events.eventtypeslist:
+            if event_type.id not in existing_event_type_ids:
+                event_type_event = EventsTypesEvents(
+                    event_type_id=event_type.id,
+                    event_id=extra_events_id
+                )
+                session.add(event_type_event)
+    
     await session.commit()
     await session.refresh(db_events)
     return db_events
@@ -158,6 +184,9 @@ async def delete_extra_events(
     )
     await session.execute(
         delete(QueuesEvents).where(QueuesEvents.event_id == extra_events_id)
+    )
+    await session.execute(
+        delete(EventsTypesEvents).where(EventsTypesEvents.event_id == extra_events_id)
     )
     
     # Then delete the event itself
@@ -200,3 +229,22 @@ async def delete_extension_from_event(
     )
     await session.commit()
     return {"status": "success"}
+
+@router.get("/extra_events/by_type/{event_type_id}", response_model=List[ExtraEvent], tags=["extra_events"])
+async def read_events_by_type(
+    event_type_id: int,
+    session: AsyncSession = Depends(get_session),
+    offset: int = 0,
+    limit: int = Query(default=100, lte=100),
+):
+    result = await session.execute(
+        select(ExtraEvents)
+        .join(EventsTypesEvents, ExtraEvents.id == EventsTypesEvents.event_id)
+        .filter(EventsTypesEvents.event_type_id == event_type_id)
+        .options(selectinload(ExtraEvents.extensionslist))
+        .options(selectinload(ExtraEvents.queueslist))
+        .options(selectinload(ExtraEvents.eventtypeslist))
+        .offset(offset)
+        .limit(limit)
+    )
+    return result.scalars().all()

@@ -5,6 +5,8 @@ from pages import homepage
 from pages import extensions_view
 from pages import events_view
 from pages import queues_view
+from pages import event_types_view
+from pages import parameters_view
 from fastapi import status
 from nicegui import app, ui
 import os
@@ -29,6 +31,8 @@ def index_page() -> None:
 app.include_router(extensions_view.router)
 app.include_router(queues_view.router)
 app.include_router(events_view.router)
+app.include_router(parameters_view.router)
+app.include_router(event_types_view.router)
 
 @app.get('/healthcheck', status_code=status.HTTP_200_OK, tags=["health"])
 def perform_healthcheck():

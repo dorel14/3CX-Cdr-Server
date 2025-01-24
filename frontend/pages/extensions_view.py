@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-from math import e
+
 from nicegui import ui, APIRouter, events, run
 from nicegui_tabulator import tabulator
 from datetime import datetime

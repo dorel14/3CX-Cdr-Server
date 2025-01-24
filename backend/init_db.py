@@ -29,3 +29,6 @@ def init_database():
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
     # Applique directement la migration existante
     run_alembic_command(["alembic", "upgrade", "head"])
+
+if __name__ == "__main__":
+    init_database()

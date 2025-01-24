@@ -54,6 +54,13 @@ def get_queues():
         return {queue['id']: queue['queuename'] for queue in response.json()}
     return {}
 
+def get_event_types():
+    url = f'{api_base_url}/v1/event_types'
+    response = requests.get(url)
+    if response.status_code == 200:
+        return {event_type['id']: event_type['name'] for event_type in response.json()}
+    return {}
+
 def get_events():
     url = f'{api_base_url}/v1/extra_events'
     response = requests.get(url)
@@ -72,7 +79,8 @@ def get_events():
                     'color': impact_colors[event['event_impact']],
                     'allDay': event['all_day'],
                     'extensionslist': event['extensionslist'],
-                    'queueslist': event['queueslist']
+                    'queueslist': event['queueslist'],
+                    'eventtypeslist': event['eventtypeslist']
             })
         return events
     else:
@@ -114,7 +122,7 @@ async def remove_extension_from_event(event_id: str, extension_id: int, dialog_i
         ui.notify('Failed to remove extension', type='negative')
 
 class Event_Dialog(ui.dialog):
-    def __init__(self, id:str ,title:str, start:datetime, end:datetime, all_day:bool, impact:str, description:str, extensions:list=None, queues:list=None, *args, **kwargs):
+    def __init__(self, id:str ,title:str, start:datetime, end:datetime, all_day:bool, impact:str, description:str, extensions:list=None, queues:list=None, eventtypes:list=None,*args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title = 'Event'
         self.auto_close = False
@@ -129,6 +137,7 @@ class Event_Dialog(ui.dialog):
                     'event_end_date':datetime_to_date_to_str(end), #if all_day and datetime_to_date_to_str(end) == datetime_to_date_to_str(start) else  datetime_to_date_to_str(end),
                     'event_end_time':datetime_to_time_str(end),
                     'event_impact':impact if impact else '0',
+                    'event_typeslist': eventtypes if eventtypes else [],
                     'event_description':description if description else '',
                     'extensionslist': extensions if extensions else [],
                     'queueslist': queues if queues else []
@@ -180,14 +189,25 @@ class Event_Dialog(ui.dialog):
             ui.label('Impact of event')
             ui.select(options=impact_levels, value=data['event_impact']).on_value_change(lambda e: data.update({'event_impact': e.value})).classes('w-full')
             ui.textarea('Event Description', placeholder='Event description', value=data['event_description']).on_value_change(lambda e: data.update({'event_description': e.value})).classes('w-full')
+            ui.label('Event Types')
+            event_types_options = get_event_types()
+            available_event_types = {k:v for k,v in get_event_types().items() if not any(q['id'] == k for q in data['event_typeslist'])}
+            ui.select(options=available_event_types, multiple=True
+                    ).on_value_change(lambda e: data.update({'event_typeslist': [{'id': event_type_id} for event_type_id in e.value]})
+                    ).classes('w-full')
+            with ui.row():
+                for event_type in data['event_typeslist']:
+                        ui.chip(text=f"{event_types_options.get(event_type['id'], '')}",
+                                removable=True,
+                                color='grey',
+                                on_remove=lambda e, event_type=event_type: data.update({'event_typeslist': [q for q in data['event_typeslist'] if q != event_type]}))
             ui.label('Extensions')
             extensions_options = get_extensions()
             available_extensions = {k:v for k,v in get_extensions().items() if not any(q['id'] == k for q in data['extensionslist'])}
             ui.select(options=available_extensions, multiple=True
                     ).on_value_change(lambda e: data.update({'extensionslist': [{'id': ext_id} for ext_id in e.value]})
                     ).classes('w-full')
-            #print(f'data_extensions : {data['extensionslist']}')
-            #print(f'extensions: {extensions}')
+
             with ui.row():
                 for ext in data['extensionslist']:
                         ui.chip(text=f"{extensions_options.get(ext['id'], '')}",
@@ -226,7 +246,7 @@ class Event_Dialog(ui.dialog):
 
 async def Event_Dialog_open():
     print('Event_Dialog_open')
-    result = await Event_Dialog(id='', title='', start=today, end=today, impact='0', description='', all_day=False, extensions=[], queues=[])
+    result = await Event_Dialog(id='', title='', start=today, end=today, impact='0', description='', all_day=False, extensions=[], queues=[], event_types=[])
     if result:
         #print(result)
         add_event_to_db(result)
@@ -246,8 +266,9 @@ async def handle_click(event: events.GenericEventArguments):
                             impact= next(key for key, value in impact_levels.items() if value == event_info['extendedProps']['impact']),
                             description=event_info['extendedProps']['description'] ,
                             all_day=event_info['allDay'],
+                            event_types=event_info['extendedProps'].get('event_typeslist', []),
                             extensions=event_info['extendedProps'].get('extensionslist', []),
-                            queues=event_info['extendedProps'].get('queueslist', []) 
+                            queues=event_info['extendedProps'].get('queueslist', [])
                             )
             if result:
                 print(f"result: {result}")
@@ -267,6 +288,11 @@ async def handle_click(event: events.GenericEventArguments):
                     if not isinstance(result['queueslist'][0], dict) 
                     else [{'id': queue['id']} for queue in result['queueslist']])
                 
+                # Handle event_typeslist format based on update type
+                event_typeslist = ([{'id': event_type_id} for event_type_id in result['event_typeslist']]
+                    if not isinstance(result['event_typeslist'][0], dict)
+                    else result['event_typeslist'])
+                
                 e={
                     #'event_id': result['id'],
                     'event_title': result['event_title'],
@@ -275,6 +301,7 @@ async def handle_click(event: events.GenericEventArguments):
                     'event_description': result['event_description'],
                     'event_impact': result['event_impact'],
                     'all_day': result['event_allday'],
+                    'event_typeslist': event_typeslist,
                     'extensionslist': extensionslist,
                     'queueslist': queueslist
                     }                
@@ -335,6 +362,7 @@ def add_event_to_db(data):
         'event_description': data['event_description'],
         'event_impact': data['event_impact'],
         'all_day': data['event_allday'],
+        'event_typeslist': [{'id': int(event_type['id'])} for event_type in data['event_typeslist'] if isinstance(event_type, dict)] if isinstance(data['event_typeslist'][0], dict) else [{'id': int(event_type_id)} for event_type_id in data['event_typeslist']],
         'extensionslist': [{'id': int(ext['id'])} for ext in data['extensionslist'] if isinstance(ext, dict)] if isinstance(data['extensionslist'][0], dict) else [{'id': int(ext_id)} for ext_id in data['extensionslist']],
         'queueslist': [{'id': int(queue['id'])} for queue in data['queueslist'] if isinstance(queue, dict)] if isinstance(data['queueslist'][0], dict) else [{'id': int(queue_id)} for queue_id in data['queueslist']]
 }
