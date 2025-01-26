@@ -1,8 +1,9 @@
 services:
   db:
-    build:
-      context: .
-      dockerfile: ./db_folder/Dockerfile
+    image: "pgautoupgrade/pgautoupgrade:16-alpine"
+    #build:
+      #context: .
+      #dockerfile: ./db_folder/Dockerfile
     restart: unless-stopped
     networks:
       - custom_network
@@ -40,7 +41,7 @@ services:
       - custom_network
     ports:
       - 8004:8000
-    command: bash -c  "/wait && uvicorn backendapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /webapi"
+    command: bash -c  "/wait && python -m backendapi.helpers.init_db && uvicorn backendapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --root-path /webapi"
     #"while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head && uvicorn webapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     environment:
       - CONTAINER_NAME=api
@@ -117,7 +118,7 @@ services:
       webapi:
         condition: service_healthy
     restart: unless-stopped
-    command: bash -c "/wait && python -m backend.init_db && python -m backend.runserver"
+    command: bash -c "/wait && python -m backend.runserver"
     environment:
       - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
