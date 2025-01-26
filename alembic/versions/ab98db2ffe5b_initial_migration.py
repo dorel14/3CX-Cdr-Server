@@ -7,7 +7,7 @@ Create Date: 2024-11-30 16:37:05.965844
 """
 from alembic import op
 import sqlalchemy as sa
-
+import os
 
 # revision identifiers, used by Alembic.
 revision = 'ab98db2ffe5b'
@@ -125,7 +125,7 @@ def upgrade() -> None:
     sa.Column('date_modified', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['extension_id'], ['extensions.id'], name=op.f('fk_extensiontoqueuelink_extension_id_extensions')),
     sa.ForeignKeyConstraint(['queue_id'], ['queues.id'], name=op.f('fk_extensiontoqueuelink_queue_id_queues')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_extensiontoqueuelink'))
+    sa.PrimaryKeyConstraint('id', name=op.f(os.getenv('PK_EXTENSION_QUEUE_NAME')))
     )
     # ### end Alembic commands ###
 

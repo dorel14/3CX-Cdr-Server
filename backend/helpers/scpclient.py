@@ -21,22 +21,24 @@ class scpclient():
         self.port=port
     
     def monitor(self, ftpfolder='', localfolder='',archivefolder='', interval=50):
-        """
-        Monitors an SCP folder, downloads any new files matching a specified file extension, and optionally archives or deletes the downloaded files on the FTP server.
-        
-        Args:
-            ftpfolder (str): The path to the FTP folder to monitor.
-            localfolder (str): The local folder to download files to.
-            archivefolder (str): The local folder to archive downloaded files to.
-            interval (int): The number of seconds to wait between checks for new files.
-        
-        Returns:
-            None
-        """
-                
         ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(hostname=self.host, port=self.port, username= self.user, password= self.password, banner_timeout=200)
+    
+        # Use system host keys
+        ssh.load_system_host_keys()
+        # Or load from known_hosts file
+        ssh.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
+    
+        # Reject unknown hosts by using the default policy
+        ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+    
+        # Connect with strict host key checking
+        ssh.connect(
+            hostname=self.host, 
+            port=self.port, 
+            username=self.user, 
+            password=self.password, 
+            banner_timeout=200
+        )
         #logger.info(ftpfolder)
         sftp = ssh.open_sftp()
         sftp.chdir(ftpfolder)
@@ -52,7 +54,7 @@ class scpclient():
                     except IOError as e:
                         logger.warning(f"Impossible de téléchareger {scpfilename} : {e}")
                         continue
-                                       
+
                     scp.get(remote_path=scpfilename,
                             local_path=os.path.join(localfolder, f))
                     logger.info("file downloaded:" + scpfilename)

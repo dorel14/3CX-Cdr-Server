@@ -146,7 +146,10 @@ def generate_random_call_data(date, num_records, start_id):
 
         # In generate_random_call_data function:
         if any(x.startswith("Ext.61") for x in path_elements):
-            queue_ext = next(x for x in path_elements if x.startswith("Ext.61"))
+            try:
+                queue_ext = next(x for x in path_elements if x.startswith("Ext.61"))
+            except StopIteration:
+                queue_ext = None
             hour_result, minutes_result = get_valid_hour(date, queue_ext)
             if hour_result is not None:
                 hour = hour_result

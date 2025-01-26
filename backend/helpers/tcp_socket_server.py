@@ -36,7 +36,9 @@ class traitementDonnées(socketserver.BaseRequestHandler):
 
         if cdr == 'shutdown':
             self.request.close()
-            threading.Thread(target=self.server.shutdown).start()
+            shutdown_thread = threading.Thread(target=self.server.shutdown)
+            shutdown_thread.start()
+            shutdown_thread.join()
         self.request.close()
         return
 

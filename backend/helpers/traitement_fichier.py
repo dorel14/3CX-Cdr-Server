@@ -29,83 +29,69 @@ def check_directory_permissions(directory_path):
     logger.error(f"Group : {os.stat(directory_path).st_gid}")
 
 def files_move(file, savefolder):
-    """
-    Moves a file to an archive folder, creating the necessary directory structure based on the current date.
-    
-    Args:
-        file (str): The path to the file to be moved.
-        savefolder (str): The path to the archive folder where the file will be moved.
-    
-    Raises:
-        ValueError: If the final path for the file is not within the specified archive folder.
-    
-    Returns:
-        None
-    """
-        # Nettoyer le nom du fichier
+    # Sanitize input paths
     filename = sanitize_filepath(file)
-    # Nettoyer le chemin du dossier de sauvegarde
-    savefolder = os.path.abspath(savefolder)
+    savefolder = os.path.realpath(os.path.normpath(savefolder))
     
     year = datetime.now().strftime("%Y")
     month = datetime.now().strftime("%m")
     date = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
     
-    # Vérifier que le chemin final reste dans le dossier prévu
-    final_path = os.path.join(savefolder, year, month)
-    if not os.path.commonprefix([os.path.abspath(final_path), savefolder]) == savefolder:
-        raise ValueError("Chemin de destination invalide")
-        
-    # Création des dossiers avec vérification
-    for folder in [savefolder, os.path.join(savefolder, year), final_path]:
-        if not os.path.exists(folder):
-            os.makedirs(folder, mode=0o777)
-        check_directory_permissions(folder)
+    # Construct and validate paths
+    final_path = os.path.realpath(os.path.normpath(os.path.join(savefolder, year, month)))
+    if not final_path.startswith(savefolder):
+        raise ValueError("Destination path outside allowed directory")
     
-    # Déplacement sécurisé du fichier
-    source = os.path.abspath(file)
+    source = os.path.realpath(os.path.normpath(file))
+    if not os.path.exists(source):
+        raise FileNotFoundError(f"Source file {source} does not exist")
+        
     destination = os.path.join(final_path, date + '_' + filename)
+    
+    # Create directories with restricted permissions
+    os.makedirs(final_path, mode=0o755, exist_ok=True)
+    
+    # Perform move operation with validated paths
     shutil.move(source, destination)
-    logger.info(f'{source} déplacé vers {destination}')
+    logger.info(f'File moved: {source} -> {destination}')
+
 
 def csv_files_read(filefolder, archivefolder):
-    """
-    Reads and processes CSV files from a specified folder, parsing the CDR (Call Detail Record) data and pushing it to an API. The processed files are then moved to an archive folder.
-    
-    Args:
-        filefolder (str): The path to the folder containing the CSV files to be processed.
-        archivefolder (str): The path to the folder where the processed files will be moved.
-    
-    Returns:
-        None
-    """
     logger.info(filefolder)
+    
+    # Sanitize and validate input folder path
+    filefolder = os.path.realpath(os.path.normpath(filefolder))
+    if not os.path.exists(filefolder):
+        raise ValueError("Invalid source directory")
+        
     os.chdir(filefolder)
-    for f in list(glob.glob(os.environ.get('3CX_FILEEXT'),
-                    recursive=False)):
-        logger.info(f)
-        csv = open(f, 'r')
-        count = 1
-        while True:            
-            # Get next line from file
-            line = csv.readline()
-            # if line is empty
-            # end of file is reached
-            if not line:
-                break
-            testline = line.split(',')
-            if testline[0].startswith('Call'):
-                cdrs, cdrdetails = parse_cdr(line, f)
-                if validate_cdr(cdrs, cdrdetails):
-                    rcdr, rcdrdetails = push_cdr_api(cdrs, cdrdetails)
-                    logger.info(rcdr)
-                    logger.info(rcdrdetails)
-                    logger.info("Line{}: {}".format(count, line.strip()))
-                    count += 1
-                    pass
-                else:
-                    logger.error(f"Erreur de validation ligne: {count} \n {line.strip()}")
-        csv.close()
-        files_move(f, archivefolder)
+    file_pattern = os.environ.get('3CX_FILEEXT')
+    
+    for f in list(glob.glob(file_pattern, recursive=False)):
+        # Validate each file path
+        full_path = os.path.realpath(os.path.normpath(os.path.join(filefolder, f)))
+        if not full_path.startswith(filefolder):
+            logger.error(f"Invalid file path: {f}")
+            continue
+            
+        with open(full_path, 'r', encoding='utf-8') as csv:
+            count = 1
+            while True:            
+                line = csv.readline()
+                if not line:
+                    break
+                testline = line.split(',')
+                if testline[0].startswith('Call'):
+                    cdrs, cdrdetails = parse_cdr(line, f)
+                    if validate_cdr(cdrs, cdrdetails):
+                        rcdr, rcdrdetails = push_cdr_api(cdrs, cdrdetails)
+                        logger.info(rcdr)
+                        logger.info(rcdrdetails)
+                        logger.info(f"Line{count}: {line.strip()}")
+                        count += 1
+                    else:
+                        logger.error(f"Validation error line: {count} \n {line.strip()}")
+                        
+        files_move(full_path, archivefolder)
 
 
