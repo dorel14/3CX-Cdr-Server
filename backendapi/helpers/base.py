@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import os
+from typing import AsyncGenerator
+from contextlib import asynccontextmanager
 
 load_dotenv()
 dbUser = os.environ.get('POSTGRES_USER')
@@ -33,9 +35,7 @@ AsyncSessionLocal  = sessionmaker(engine, class_=AsyncSession, expire_on_commit=
 Base = declarative_base()
 Base.metadata.naming_convention = NAMING_CONVENTION
 
-async def get_session():
-    async with AsyncSession(engine) as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+@asynccontextmanager
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        yield session

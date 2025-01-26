@@ -37,14 +37,14 @@ class ExtraEventCreate(BaseModel):
     all_day: bool = False
     queueslist: Optional[List[QueueId]] = []
     extensionslist: Optional[List[ExtensionId]] = []
-    event_typeslist: Optional[List[EventTypesId]] = []
+    eventtypeslist: Optional[List[EventTypesId]] = []
     pass
 
 class ExtraEvent(ExtraEventBase):
     id: int
     queueslist: Optional[List['QueueBase']] = []
     extensionslist: Optional[List["ExtensionBase"]] = []
-    eventtypeslist: Optional[List["EventTypeBase"]] = []
+    eventtypeslist: Optional[List["EventType"]] = []
     class Config:
         from_attributes = True
 class ExtraEventUpdate(BaseModel):
@@ -57,9 +57,9 @@ class ExtraEventUpdate(BaseModel):
     all_day: bool = False
     queueslist: Optional[List[QueueId]] = []
     extensionslist: Optional[List[ExtensionId]] = []
-    event_typeslist: Optional[List[EventTypesId]] = []
+    eventtypeslist: Optional[List[EventTypesId]] = []
 
 from .queues_schemas import QueueBase  # noqa: E402
 from .extensions_schemas import ExtensionBase  # noqa: E402
-from .event_types_schemas import EventTypeBase  # noqa: E402
+from .event_types_schemas import EventType  # noqa: E402
 ExtraEvent.update_forward_refs()

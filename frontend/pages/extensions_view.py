@@ -79,7 +79,7 @@ def refresh_extensions():
         for ext in extensions:            
             with ui.expansion(group='group').classes('w-full ').props('dense expand-separator duration:10') as expansion:
                 with expansion.add_slot('header'):                    
-                    with ui.grid(columns=7).classes('w-full flex-nowrap align-middle'):
+                    with ui.grid(columns=8).classes('w-full flex-wrap align-middle gap-2'):
                         with ui.button_group().props('outline').classes('h-8 w-16'):
                             ui.button(icon='mode_edit',
                                     on_click=lambda ext=ext: handle_row_click({'row': ext})
@@ -87,9 +87,9 @@ def refresh_extensions():
                             ui.button(icon='delete',
                                     on_click=lambda ext=ext: delete_extension(ext['id'])
                                     ).classes('text-sm text-center h-8')        # Extension row
-                        ui.label(ext['name']).classes('align-middle')
+                        ui.label(ext['name']).classes('align-middle overflow-visible')
                         ui.label(ext['extension']).classes('align-middle')
-                        ui.label(ext['mail']).classes('align-middle text-nowrap')
+                        ui.label(ext['mail']).classes('align-middle text-nowrap overflow-visible')
                         ui.label( '✗' if ext['out'] else '✓').classes('text-red-500 text-center align-middle' if ext['out'] else 'text-green-500 text-center align-middle')
                         ui.label(format_date(ext['date_added'])).classes('align-middle')
                         ui.label(format_date(ext['date_modified'])).classes('align-middle')
@@ -105,13 +105,12 @@ def refresh_extensions():
                         'minWidth': 30,
                         'resizable': True,
                         'cellStyle': {'fontSize': '14px'},
-                        },
-                        'horizontalScroll': True,
+                        },                        
                         'rowSelection': 'single',
                         "stopEditingWhenCellsLoseFocus": True,
                         }               # Queues subgrid
 
-                    ui.aggrid(grid_options).classes('w-full')
+                    ui.aggrid(grid_options).classes('w-full overflow-x-auto')
                 else:
                     expansion.props('expand-icon=none')
 

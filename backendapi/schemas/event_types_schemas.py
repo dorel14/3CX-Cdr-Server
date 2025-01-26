@@ -4,11 +4,15 @@ from typing import Optional, List
 
 class EventTypeBase(BaseModel):
     name: str
+    description: Optional[str] = None
+    color: Optional[str] = None
 
 class EventTypeCreate(EventTypeBase):
     pass
 
 class EventTypeUpdate(EventTypeBase):
+    description: Optional[str] = None
+    color: Optional[str] = None
     date_modified: Optional[datetime] = None
 
 class EventType(EventTypeBase):
@@ -25,6 +29,8 @@ class EventTypeWithEvents(EventType):
 class ExtraEvent(BaseModel):
     id: int
     name: str
+    description: Optional[str] = None
+    color: Optional[str] = None
 
     class Config:
         orm_mode: True

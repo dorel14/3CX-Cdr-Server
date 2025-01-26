@@ -23,48 +23,49 @@ async def create_event(
     event: ExtraEventCreate,
     session: AsyncSession = Depends(get_session)
 ):
-    # Création de l'événement
-    db_event = ExtraEvents(
-        event_title=event.event_title,
-        event_start=event.event_start,
-        event_end=event.event_end,
-        event_description=event.event_description,
-        event_impact=event.event_impact,
-        all_day=event.all_day        
-    )
-    session.add(db_event)
-    await session.flush()  # Pour obtenir l'ID de l'événement
+    async with session as s:
+        # Création de l'événement
+        db_event = ExtraEvents(
+            event_title=event.event_title,
+            event_start=event.event_start,
+            event_end=event.event_end,
+            event_description=event.event_description,
+            event_impact=event.event_impact,
+            all_day=event.all_day        
+        )
+        s.add(db_event)
+        await s.flush()  # Pour obtenir l'ID de l'événement
 
-    # Création des liaisons avec les queues
-    if event.queueslist:
-        for queue in event.queueslist:
-            queue_event = QueuesEvents(
-                queue_id=queue.id,
-                event_id=db_event.id
-            )
-            session.add(queue_event)
+        # Création des liaisons avec les queues
+        if event.queueslist:
+            for queue in event.queueslist:
+                queue_event = QueuesEvents(
+                    queue_id=queue.id,
+                    event_id=db_event.id
+                )
+                s.add(queue_event)
 
-    # Création des liaisons avec les extensions
-    if event.extensionslist:
-        for extension in event.extensionslist:
-            extension_event = ExtensionsEvents(
-                extension_id=extension.id,
-                event_id=db_event.id
-            )
-            session.add(extension_event)
+        # Création des liaisons avec les extensions
+        if event.extensionslist:
+            for extension in event.extensionslist:
+                extension_event = ExtensionsEvents(
+                    extension_id=extension.id,
+                    event_id=db_event.id
+                )
+                s.add(extension_event)
 
-    # Création des liaisons avec les event types
-    if event.eventtypeslist:
-        for event_type in event.eventtypeslist:
-            event_type_event = EventsTypesEvents(
-                event_type_id=event_type.id,
-                event_id=db_event.id
-            )
-            session.add(event_type_event)
+        # Création des liaisons avec les event types
+        if event.eventtypeslist:
+            for event_type in event.eventtypeslist:
+                event_type_event = EventsTypesEvents(
+                    event_type_id=event_type.id,
+                    event_id=db_event.id
+                )
+                s.add(event_type_event)
 
-    await session.commit()
-    await session.refresh(db_event)
-    return db_event
+        await s.commit()
+        await s.refresh(db_event)
+        return db_event
 
 @router.get(
     "/extra_events", response_model=List[ExtraEvent], tags=["extra_events"]
@@ -74,15 +75,16 @@ async def read_extra_events(
     offset: int = 0,
     limit: int = Query(default=100, lte=100),
 ):
-    result = await session.execute(
-        select(ExtraEvents)
-        .options(selectinload(ExtraEvents.extensionslist))
-        .options(selectinload(ExtraEvents.queueslist))
-        .options(selectinload(ExtraEvents.eventtypeslist))
-        .offset(offset)
-        .limit(limit)
-    )
-    return result.scalars().all()
+    async with session as s:
+        result = await s.execute(
+            select(ExtraEvents)
+            .options(selectinload(ExtraEvents.extensionslist))
+            .options(selectinload(ExtraEvents.queueslist))
+            .options(selectinload(ExtraEvents.eventtypeslist))
+            .offset(offset)
+            .limit(limit)
+        )
+        return result.scalars().all()
 
 @router.get(
     "/extra_events/{extra_events_id}", response_model=ExtraEvent, tags=["extra_events"]
@@ -91,18 +93,18 @@ async def read_extra_event(
     extra_events_id: int,
     session: AsyncSession = Depends(get_session),
 ):
-    result = await session.execute(
-        select(ExtraEvents)
-        .options(selectinload(ExtraEvents.extensionslist))
-        .options(selectinload(ExtraEvents.queueslist))
-        .options(selectinload(ExtraEvents.eventtypeslist))
-        .where(ExtraEvents.id == extra_events_id)
-    )
-    db_extra_events = result.scalar_one_or_none()
-    if not db_extra_events:
-        raise HTTPException(status_code=404, detail="extra_events not found")
-    return db_extra_events
-
+    async with session as s:
+        result = await s.execute(
+            select(ExtraEvents)
+            .options(selectinload(ExtraEvents.extensionslist))
+            .options(selectinload(ExtraEvents.queueslist))
+            .options(selectinload(ExtraEvents.eventtypeslist))
+            .where(ExtraEvents.id == extra_events_id)
+        )
+        db_extra_events = result.scalar_one_or_none()
+        if not db_extra_events:
+            raise HTTPException(status_code=404, detail="extra_events not found")
+        return db_extra_events
 
 @router.patch("/extra_events/{extra_events_id}", response_model=ExtraEvent, tags=["extra_events"])
 async def update_extra_events(
@@ -110,66 +112,67 @@ async def update_extra_events(
     ex_events: ExtraEventUpdate,
     session: AsyncSession = Depends(get_session),
 ):
-    result = await session.execute(
-        select(ExtraEvents)
-        .options(selectinload(ExtraEvents.extensionslist))
-        .options(selectinload(ExtraEvents.queueslist))
-        .options(selectinload(ExtraEvents.eventtypeslist))
-        .where(ExtraEvents.id == extra_events_id)
+    async with session as s:
+        result = await s.execute(
+            select(ExtraEvents)
+            .options(selectinload(ExtraEvents.extensionslist))
+            .options(selectinload(ExtraEvents.queueslist))
+            .options(selectinload(ExtraEvents.eventtypeslist))
+            .where(ExtraEvents.id == extra_events_id)
         )
-    db_events = result.scalar_one_or_none()
-    if not db_events:
-        raise HTTPException(status_code=404, detail="Event not found")
+        db_events = result.scalar_one_or_none()
+        if not db_events:
+            raise HTTPException(status_code=404, detail="Event not found")
 
-    events_data = ex_events.dict(exclude_unset=True, exclude={'extensionslist', 'queueslist', 'eventtypeslist'})
-    events_data["date_modified"] = datetime.now()
-    
-    # Update basic fields
-    for key, value in events_data.items():
-        setattr(db_events, key, value)
-    
-    # Update extensions relationships
-    if ex_events.extensionslist is not None:
-        # Get existing extension IDs
-        existing_ext_ids = {ext.id for ext in db_events.extensionslist}
-        # Add new extensions while keeping existing ones
-        for ext in ex_events.extensionslist:
-            if ext.id not in existing_ext_ids:
-                ext_event = ExtensionsEvents(
-                    extension_id=ext.id,
-                    event_id=extra_events_id
-                )
-                session.add(ext_event)
-    
-    # Update queues relationships
-    if ex_events.queueslist is not None:
-        # Get existing queue IDs
-        existing_queue_ids = {queue.id for queue in db_events.queueslist}
-        # Add new queues while keeping existing ones
-        for queue in ex_events.queueslist:
-            if queue.id not in existing_queue_ids:
-                queue_event = QueuesEvents(
-                    queue_id=queue.id,
-                    event_id=extra_events_id
-                )
-                session.add(queue_event)
-    
-    # Update event types relationships
-    if ex_events.eventtypeslist is not None:
-        # Get existing event type IDs
-        existing_event_type_ids = {event_type.id for event_type in db_events.eventtypeslist}
-        # Add new event types while keeping existing ones
-        for event_type in ex_events.eventtypeslist:
-            if event_type.id not in existing_event_type_ids:
-                event_type_event = EventsTypesEvents(
-                    event_type_id=event_type.id,
-                    event_id=extra_events_id
-                )
-                session.add(event_type_event)
-    
-    await session.commit()
-    await session.refresh(db_events)
-    return db_events
+        events_data = ex_events.dict(exclude_unset=True, exclude={'extensionslist', 'queueslist', 'eventtypeslist'})
+        events_data["date_modified"] = datetime.now()
+        
+        # Update basic fields
+        for key, value in events_data.items():
+            setattr(db_events, key, value)
+        
+        # Update extensions relationships
+        if ex_events.extensionslist is not None:
+            # Get existing extension IDs
+            existing_ext_ids = {ext.id for ext in db_events.extensionslist}
+            # Add new extensions while keeping existing ones
+            for ext in ex_events.extensionslist:
+                if ext.id not in existing_ext_ids:
+                    ext_event = ExtensionsEvents(
+                        extension_id=ext.id,
+                        event_id=extra_events_id
+                    )
+                    s.add(ext_event)
+        
+        # Update queues relationships
+        if ex_events.queueslist is not None:
+            # Get existing queue IDs
+            existing_queue_ids = {queue.id for queue in db_events.queueslist}
+            # Add new queues while keeping existing ones
+            for queue in ex_events.queueslist:
+                if queue.id not in existing_queue_ids:
+                    queue_event = QueuesEvents(
+                        queue_id=queue.id,
+                        event_id=extra_events_id
+                    )
+                    s.add(queue_event)
+        
+        # Update event types relationships
+        if ex_events.eventtypeslist is not None:            
+            # Get existing event type IDs
+            existing_event_type_ids = {event_type.id for event_type in db_events.eventtypeslist}
+            # Add new event types while keeping existing ones
+            for event_type in ex_events.eventtypeslist:
+                if event_type.id not in existing_event_type_ids:
+                    event_type_event = EventsTypesEvents(
+                        event_type_id=event_type.id,
+                        event_id=extra_events_id
+                    )
+                    s.add(event_type_event)
+        
+        await s.commit()
+        await s.refresh(db_events)
+        return db_events
 
 @router.delete(
     "/extra_events/{extra_events_id}", response_model=ExtraEvent, tags=["extra_events"]
@@ -178,27 +181,27 @@ async def delete_extra_events(
     extra_events_id: int,
     session: AsyncSession = Depends(get_session), 
 ):
-    # First delete all related records in junction tables
-    await session.execute(
-        delete(ExtensionsEvents).where(ExtensionsEvents.event_id == extra_events_id)
-    )
-    await session.execute(
-        delete(QueuesEvents).where(QueuesEvents.event_id == extra_events_id)
-    )
-    await session.execute(
-        delete(EventsTypesEvents).where(EventsTypesEvents.event_id == extra_events_id)
-    )
-    
-    # Then delete the event itself
-    result = await session.execute(select(ExtraEvents).where(ExtraEvents.id == extra_events_id))
-    db_extra_events = result.scalar_one_or_none()
-    if not db_extra_events:
-        raise HTTPException(status_code=404, detail="extra_events not found")
-    
-    await session.delete(db_extra_events)
-    await session.commit()
-    return db_extra_events
-
+    async with session as s:
+        # First delete all related records in junction tables
+        await s.execute(
+            delete(ExtensionsEvents).where(ExtensionsEvents.event_id == extra_events_id)
+        )
+        await s.execute(
+            delete(QueuesEvents).where(QueuesEvents.event_id == extra_events_id)
+        )
+        await s.execute(
+            delete(EventsTypesEvents).where(EventsTypesEvents.event_id == extra_events_id)
+        )
+        
+        # Then delete the event itself
+        result = await s.execute(select(ExtraEvents).where(ExtraEvents.id == extra_events_id))
+        db_extra_events = result.scalar_one_or_none()
+        if not db_extra_events:
+            raise HTTPException(status_code=404, detail="extra_events not found")
+        
+        await s.delete(db_extra_events)
+        await s.commit()
+        return db_extra_events
 
 @router.delete("/extra_events/{event_id}/queue/{queue_id}", tags=["extra_events"])
 async def delete_queue_from_event(
@@ -206,13 +209,14 @@ async def delete_queue_from_event(
     queue_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    await session.execute(
-        delete(QueuesEvents).where(
-            QueuesEvents.event_id == event_id,
-            QueuesEvents.queue_id == queue_id
+    async with session as s:
+        await s.execute(
+            delete(QueuesEvents).where(
+                QueuesEvents.event_id == event_id,
+                QueuesEvents.queue_id == queue_id
+            )
         )
-    )
-    await session.commit()
+        await s.commit()
     return {"status": "success"}
 
 @router.delete("/extra_events/{event_id}/extension/{extension_id}", tags=["extra_events"])
@@ -221,13 +225,14 @@ async def delete_extension_from_event(
     extension_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    await session.execute(
-        delete(ExtensionsEvents).where(
-            ExtensionsEvents.event_id == event_id,
-            ExtensionsEvents.extension_id == extension_id
+    async with session as s:
+        await s.execute(
+            delete(ExtensionsEvents).where(
+                ExtensionsEvents.event_id == event_id,
+                ExtensionsEvents.extension_id == extension_id
+            )
         )
-    )
-    await session.commit()
+        await s.commit()
     return {"status": "success"}
 
 @router.get("/extra_events/by_type/{event_type_id}", response_model=List[ExtraEvent], tags=["extra_events"])
@@ -237,14 +242,15 @@ async def read_events_by_type(
     offset: int = 0,
     limit: int = Query(default=100, lte=100),
 ):
-    result = await session.execute(
-        select(ExtraEvents)
-        .join(EventsTypesEvents, ExtraEvents.id == EventsTypesEvents.event_id)
-        .filter(EventsTypesEvents.event_type_id == event_type_id)
-        .options(selectinload(ExtraEvents.extensionslist))
-        .options(selectinload(ExtraEvents.queueslist))
-        .options(selectinload(ExtraEvents.eventtypeslist))
-        .offset(offset)
-        .limit(limit)
-    )
-    return result.scalars().all()
+    async with session as s:
+        result = await s.execute(
+            select(ExtraEvents)
+            .join(EventsTypesEvents, ExtraEvents.id == EventsTypesEvents.event_id)
+            .filter(EventsTypesEvents.event_type_id == event_type_id)
+            .options(selectinload(ExtraEvents.extensionslist))
+            .options(selectinload(ExtraEvents.queueslist))
+            .options(selectinload(ExtraEvents.eventtypeslist))
+            .offset(offset)
+            .limit(limit)
+        )
+        return result.scalars().all()

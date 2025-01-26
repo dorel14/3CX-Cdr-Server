@@ -7,13 +7,17 @@ from fastapi.responses import JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 
 
-from .routers import extensions_api, cdr_api,queues_api, extra_events_api
+from .helpers.base import get_session
+from .helpers.init_data import create_default_event_type
+
+from .routers import extensions_api, cdr_api,queues_api, extra_events_api, event_types_api
 
 app = FastAPI()
 app.include_router(extensions_api.router) #permet d'ajouter les routes d'un fichier externe
 app.include_router(cdr_api.router)
 app.include_router(queues_api.router)
 app.include_router(extra_events_api.router)
+app.include_router(event_types_api.router)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -22,6 +26,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
     )
 
+# @app.on_event("startup")
+# async def startup_event():
+#     async with get_session() as session:
+#         await create_default_event_type(session)
 
 @app.get('/')
 async def root():
