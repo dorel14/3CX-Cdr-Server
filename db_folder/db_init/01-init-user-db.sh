@@ -1,6 +1,23 @@
 #!/bin/bash
 
 set -e
+
+# Update and install necessary packages
+apk update && apk add --no-cache \
+    musl \
+    musl-utils \
+    musl-locales \
+    tzdata
+
+# Set environment variables for timezone and locale
+export TZ=${TZ}
+export LANG=${LOCALE_LANGUAGE}.UTF-8
+export LANGUAGE=${LOCALE_LANGUAGE}.UTF-8
+export LC_ALL=${LOCALE_LANGUAGE}.UTF-8
+
+# Set timezone
+ln -s /usr/share/zoneinfo/${TZ} /etc/localtime
+
 #createuser --superuser postgres
 #createuser --superuser ${POSTGRES_USER}
 

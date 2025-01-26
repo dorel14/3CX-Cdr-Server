@@ -3,7 +3,7 @@ FROM python:3.13-slim AS builder
 
 #Prepare apt files
 RUN apt update \
-     && apt-get install -y apt-transport-https \
+    && apt-get install -y apt-transport-https \
 &&  apt install -y libpq-dev \
     gcc \
     g++ \

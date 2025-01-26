@@ -1,6 +1,6 @@
 services:
   db:
-    image: "pgautoupgrade/pgautoupgrade:16-alpine"
+    image: "pgautoupgrade/pgautoupgrade:17-alpine"
     #build:
       #context: .
       #dockerfile: ./db_folder/Dockerfile
@@ -17,7 +17,7 @@ services:
       - .env
     user: root
     volumes:
-      - ./db_folder/pg_12:/var/lib/postgresql/data
+      - ./db_folder/pg_db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
       interval: 30s
