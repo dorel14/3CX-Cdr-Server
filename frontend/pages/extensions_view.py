@@ -9,7 +9,8 @@ from .generals import theme
 import requests
 import pandas as pd
 import json
-
+import websockets
+import asyncio
 import os
 
 from helpers.extensions_import import post_extensions
@@ -19,6 +20,35 @@ router = APIRouter(prefix='/extensions')
 api_base_url = os.environ.get('API_URL')
 data_folder = "/data/files"
 data_files = os.path.join(data_folder, "extensions.csv")
+
+# Add WebSocket event handler
+async def handle_queue_websocket():
+    uri = f"{api_base_url.replace('http', 'ws')}/ws"
+    print(f"Attempting WebSocket connection to: {uri}")
+    while True:
+        try:
+            async with websockets.connect(uri) as websocket:
+                print("WebSocket connection established")
+                while True:
+                    message = await websocket.recv()
+                    print(f"Received WebSocket message: {message}")
+                    data = json.loads(message)
+                    action = data.get('action')
+                    if action == 'create':
+                        print(f"Creating event with id: {data.get('event["id"]')}")
+                        refresh_extensions.refresh()
+                    elif action == 'update':
+                        print(f"Updating event with id: {data.get('event["id"]')}")
+                        refresh_extensions.refresh()
+                    elif action == 'delete':
+                        print(f"Deleting event with id: {data.get('event["id"]')}")
+                        refresh_extensions.refresh()
+        except websockets.ConnectionClosed:
+            print("WebSocket connection closed")
+        except Exception as e:
+            print(f"WebSocket error: {e}, attempting to reconnect in 5 seconds...")
+            await asyncio.sleep(5)
+
 
 # Add error handling for the API call
 def get_extensions():
@@ -261,6 +291,7 @@ async def handle_row_click(e):
     
 @router.page('/')
 def extension_page():
+    asyncio.create_task(handle_queue_websocket())
     ui.page_title("3CX CDR Server app - Extensions")    
     with theme.frame('- Extensions -'):
         ui.label('')

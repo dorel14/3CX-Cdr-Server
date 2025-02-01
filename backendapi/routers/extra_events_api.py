@@ -16,6 +16,8 @@ from ..models.events_types_events import EventsTypesEvents
 
 from ..schemas.events_schemas import ExtraEventBase, ExtraEventCreate, ExtraEventUpdate, ExtraEvent
 
+from ..socket_instance import broadcast_message
+
 router = APIRouter(prefix="/v1", tags=["extra_events"])
 
 @router.post("/extra_events", response_model=ExtraEventBase, tags=["extra_events"])
@@ -64,7 +66,18 @@ async def create_event(
                 s.add(event_type_event)
 
         await s.commit()
-        await s.refresh(db_event)
+        # Create broadcast message with serializable data
+        event_dict = {
+            'id': db_event.id,
+            'event_title': db_event.event_title,
+            'event_start': str(db_event.event_start),
+            'event_end': str(db_event.event_end),
+            'event_description': db_event.event_description,
+            'event_impact': db_event.event_impact,
+            'all_day': db_event.all_day
+        }
+        
+        await broadcast_message({'action': 'create', 'event': event_dict})
         return db_event
 
 @router.get(
@@ -171,7 +184,18 @@ async def update_extra_events(
                     s.add(event_type_event)
         
         await s.commit()
-        await s.refresh(db_events)
+        # Create broadcast message with serializable data
+        event_dict = {
+            'id': db_events.id,
+            'event_title': db_events.event_title,
+            'event_start': str(db_events.event_start),
+            'event_end': str(db_events.event_end),
+            'event_description': db_events.event_description,
+            'event_impact': db_events.event_impact,
+            'all_day': db_events.all_day
+        }
+        
+        await broadcast_message({'action': 'update', 'event': event_dict})
         return db_events
 
 @router.delete(
@@ -199,8 +223,15 @@ async def delete_extra_events(
         if not db_extra_events:
             raise HTTPException(status_code=404, detail="extra_events not found")
         
+        event_dict = {
+            'id': db_extra_events.id,
+            'event_title': db_extra_events.event_title
+        }
+
         await s.delete(db_extra_events)
         await s.commit()
+        
+        await broadcast_message({'action': 'delete', 'event': event_dict})
         return db_extra_events
 
 @router.delete("/extra_events/{event_id}/queue/{queue_id}", tags=["extra_events"])

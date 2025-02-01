@@ -3,13 +3,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import ValidationError
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 
 
 
 from ..helpers.base import get_session
 from ..helpers.logging import logger
+from ..socket_instance import broadcast_message
 
 from ..models.tab3cxcdr import (CallDataRecords as call_data_records, 
                                 CallDataRecordsDetails as call_data_records_details
@@ -32,6 +33,8 @@ async def create_cdr(call_data_record:call_data_records_create,
             s.add(db_cdr)
             await s.commit()
             await s.refresh(db_cdr)
+            
+        await broadcast_message({'action': 'create', 'cdr': db_cdr.dict()})
         logger.info(f"CDR created successfully with callid: {db_cdr.callid}")
         return db_cdr
     except Exception as e:
@@ -39,7 +42,7 @@ async def create_cdr(call_data_record:call_data_records_create,
         raise HTTPException(status_code=500, detail="Failed to create CDR record")
 
 @router.get('/cdr', response_model=List[call_data_records_read], tags=["cdr"])
-async def read_cdr(*,
+async def read_cdrs(*,
     session: AsyncSession = Depends(get_session),
     offset: int = 0,
     limit: int = Query(default=100, lte=100),
@@ -90,6 +93,25 @@ async def search_cdr(
         result = await s.execute(query.limit(limit))
     return result.scalars().all()
 
+@router.get('/cdr/search_by_time', response_model=List[call_data_records_read], tags=["cdr"])
+async def search_cdr_by_time(
+    *,
+    session: AsyncSession = Depends(get_session),
+    time_start: Optional[datetime] = Query(None),
+    time_answered: Optional[datetime] = Query(None),
+    time_end: Optional[datetime] = Query(None),
+    limit: int = Query(default=100, lte=100)
+):
+    query = select(call_data_records)
+    if time_start:
+        query = query.where(call_data_records.time_start == time_start)
+    if time_answered:
+        query = query.where(call_data_records.time_answered == time_answered)
+    if time_end:
+        query = query.where(call_data_records.time_end == time_end)
+    async with session as s:
+        result = await s.execute(query.limit(limit))
+    return result.scalars().all()
 
 @router.post('/cdrdetails', response_model=call_data_records_details_read, tags=["cdr_details"])
 async def create_cdr_details(call_data_record_detail:call_data_records_details_create,
@@ -100,6 +122,8 @@ async def create_cdr_details(call_data_record_detail:call_data_records_details_c
             s.add(db_cdr_detail)
             await s.commit()
             await s.refresh(db_cdr_detail)
+            
+        await broadcast_message({'action': 'create', 'cdr_details': db_cdr_detail.dict()})
         return db_cdr_detail
     except Exception as e:
         logger.error(f"Error creating CDR details: {str(e)}")
@@ -127,6 +151,25 @@ async def read_cdrdetails_by_historyid(historyid: str,
         raise HTTPException(status_code=404, detail="cdr non trouvée")
     return db_cdr_by_hid
 
+@router.get('/cdrdetails/search_by_time', response_model=List[call_data_records_details_read], tags=["cdr_details"])
+async def search_cdr_details_by_time(
+    *,
+    session: AsyncSession = Depends(get_session),
+    time_start: Optional[datetime] = Query(None),
+    time_answered: Optional[datetime] = Query(None),
+    time_end: Optional[datetime] = Query(None),
+    limit: int = Query(default=100, lte=100)
+):
+    query = select(call_data_records_details)
+    if time_start:
+        query = query.where(call_data_records_details.time_start == time_start)
+    if time_answered:
+        query = query.where(call_data_records_details.time_answered == time_answered)
+    if time_end:
+        query = query.where(call_data_records_details.time_end == time_end)
+    async with session as s:
+        result = await s.execute(query.limit(limit))
+    return result.scalars().all()
 
 @router.post("/cdr/validate", status_code=200, tags=["cdr"])
 async def validate_cdr(cdr: call_data_records_create):

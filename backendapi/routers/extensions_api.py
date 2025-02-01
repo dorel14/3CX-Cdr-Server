@@ -7,6 +7,8 @@ from datetime import datetime
 
 from ..helpers.base import get_session
 from ..helpers.logging import logger
+from ..socket_instance import broadcast_message
+
 from ..models.extensions import Extensions
 from ..models.queues import Queues
 from ..models.extensionsandqueues import Extensiontoqueuelink
@@ -35,7 +37,20 @@ async def create_extensions(
         
         stmt = select(Extensions).options(selectinload(Extensions.queueslist)).filter(Extensions.id == created_id)
         result = await s.execute(stmt)
-        return result.unique().scalar_one()
+        
+        db_extension = result.unique().scalar_one()
+
+        # Create a dictionary with the extension data
+        extension_dict = {
+            'id': db_extension.id,
+            'extension': db_extension.extension,
+            'name': db_extension.name,
+            'date_added': str(db_extension.date_added),
+            'date_modified': str(db_extension.date_modified)
+        }
+        # Broadcast the message to all connected clients
+        await broadcast_message({'action': 'create', 'extension': extension_dict})
+        return db_extension
 
 @router.get("/extensions", response_model=List[Extension], tags=["extensions"])
 async def read_extensions(
@@ -133,7 +148,17 @@ async def update_extension(
         
         await s.commit()
         await s.refresh(db_extension)
+
+        # Create a dictionary with the extension data
+        extension_dict = {
+            'id': db_extension.id,
+            'extension': db_extension.extension,
+            'name': db_extension.name,
+            'date_added': str(db_extension.date_added),
+            'date_modified': str(db_extension.date_modified)
+        }
         
+        await broadcast_message({'action': 'update', 'extension': extension_dict})
         return db_extension
 
 @router.post("/extensions/{extension_id}/queue/{queue_id}", response_model=Extension, tags=["extensions"])
@@ -194,6 +219,15 @@ async def delete_extension(
             raise HTTPException(status_code=404, detail="Extension non trouvée")
         await s.delete(db_extension)
         await s.commit()
-
+        # Create a dictionary with the extension data
+        extension_dict = {
+            'id': db_extension.id,
+            'extension': db_extension.extension,
+            'name': db_extension.name,
+            'date_added': str(db_extension.date_added),
+            'date_modified': str(db_extension.date_modified)
+        }
+        
+        await broadcast_message({'action': 'update', 'extension': extension_dict})        
         return {"ok": True}
 

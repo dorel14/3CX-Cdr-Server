@@ -5,13 +5,43 @@ from nicegui import ui, APIRouter
 from nicegui_tabulator import tabulator
 from .generals import theme
 import requests
-
+import websockets
+import asyncio
 import json
 
 import os
 
 router = APIRouter(prefix='/event_types')
 api_base_url = os.environ.get('API_URL')
+
+# Add WebSocket event handler
+async def handle_queue_websocket():
+    uri = f"{api_base_url.replace('http', 'ws')}/ws"
+    print(f"Attempting WebSocket connection to: {uri}")
+    while True:
+        try:
+            async with websockets.connect(uri) as websocket:
+                print("WebSocket connection established")
+                while True:
+                    message = await websocket.recv()
+                    print(f"Received WebSocket message: {message}")
+                    data = json.loads(message)
+                    action = data.get('action')
+                    if action == 'create':
+                        print(f"Creating event with id: {data.get('event["id"]')}")
+                        refresh_event_types.refresh()
+                    elif action == 'update':
+                        print(f"Updating event with id: {data.get('event["id"]')}")
+                        refresh_event_types.refresh()
+                    elif action == 'delete':
+                        print(f"Deleting event with id: {data.get('event["id"]')}")
+                        refresh_event_types.refresh()
+        except websockets.ConnectionClosed:
+            print("WebSocket connection closed")
+        except Exception as e:
+            print(f"WebSocket error: {e}, attempting to reconnect in 5 seconds...")
+            await asyncio.sleep(5)
+
 
 def get_event_types_data():
     url = f"{api_base_url}/v1/event_types"
@@ -100,6 +130,7 @@ def refresh_event_types():
 
 @router.page('/')
 def event_types_page():
+    asyncio.create_task(handle_queue_websocket())
     ui.page_title("3CX CDR Server app - Event Types")
     with theme.frame('- Event Types -'):
         ui.label('Event Types')

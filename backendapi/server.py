@@ -1,23 +1,44 @@
 # -*- coding: UTF-8 -*-
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, WebSocket, WebSocketDisconnect
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.middleware.cors import CORSMiddleware
+from .socket_instance import connect, disconnect
 
 
-from .helpers.base import get_session
-from .helpers.init_data import create_default_event_type
 
 from .routers import extensions_api, cdr_api,queues_api, extra_events_api, event_types_api
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+
 app.include_router(extensions_api.router) #permet d'ajouter les routes d'un fichier externe
 app.include_router(cdr_api.router)
 app.include_router(queues_api.router)
 app.include_router(extra_events_api.router)
 app.include_router(event_types_api.router)
+
+# Add socketio app to the main app
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await disconnect(websocket)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

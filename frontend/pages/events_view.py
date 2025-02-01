@@ -5,7 +5,8 @@ from nicegui import ui, APIRouter, events
 from .generals import theme
 import requests
 import json
-
+import websockets
+import asyncio
 import os
 from datetime import datetime, time
 
@@ -39,6 +40,34 @@ today = parse_iso_datetime(datetime.now().strftime("%Y/%m/%d %H:%M"))
 datetimeformat = "%Y/%m/%d %H:%M"
 date_format = "DD/MM/YYYY"
 time_format = '%H:%M'
+
+# Add WebSocket event handler
+async def handle_queue_websocket():
+    uri = f"{api_base_url.replace('http', 'ws')}/ws"
+    print(f"Attempting WebSocket connection to: {uri}")
+    while True:
+        try:
+            async with websockets.connect(uri) as websocket:
+                print("WebSocket connection established")
+                while True:
+                    message = await websocket.recv()
+                    print(f"Received WebSocket message: {message}")
+                    data = json.loads(message)
+                    action = data.get('action')
+                    if action == 'create':
+                        print(f"Creating event with id: {data.get('event["id"]')}")
+                        create_calendar.refresh()
+                    elif action == 'update':
+                        print(f"Updating event with id: {data.get('event["id"]')}")
+                        create_calendar.refresh()
+                    elif action == 'delete':
+                        print(f"Deleting event with id: {data.get('event["id"]')}")
+                        create_calendar.refresh()
+        except websockets.ConnectionClosed:
+            print("WebSocket connection closed")
+        except Exception as e:
+            print(f"WebSocket error: {e}, attempting to reconnect in 5 seconds...")
+            await asyncio.sleep(5)
 
 def get_extensions():
     url = f'{api_base_url}/v1/extensions'
@@ -350,6 +379,7 @@ async def delete_event(event_id):
 
 def add_event_to_db(data):
     
+    
     #print(f'data: {data}')
     if data['event_allday'] :
         event_start = datetime_to_str(str_to_datetime(data['event_start_date'], str(mintime)))
@@ -364,10 +394,41 @@ def add_event_to_db(data):
         'event_description': data['event_description'],
         'event_impact': data['event_impact'],
         'all_day': data['event_allday'],
-        'eventtypeslist': [{'id': int(event_type['id'])} for event_type in data['eventtypeslist'] if isinstance(event_type, dict)] if isinstance(data['eventtypeslist'][0], dict) else [{'id': int(event_type_id)} for event_type_id in data['eventtypeslist']],
-        'extensionslist': [{'id': int(ext['id'])} for ext in data['extensionslist'] if isinstance(ext, dict)] if isinstance(data['extensionslist'][0], dict) else [{'id': int(ext_id)} for ext_id in data['extensionslist']],
-        'queueslist': [{'id': int(queue['id'])} for queue in data['queueslist'] if isinstance(queue, dict)] if isinstance(data['queueslist'][0], dict) else [{'id': int(queue_id)} for queue_id in data['queueslist']]
-}
+        'eventtypeslist': [],
+        'extensionslist': [],
+        'queueslist': []
+        }
+    # Process lists only if they exist and have items
+    if data.get('eventtypeslist'):
+        if isinstance(data['eventtypeslist'][0], dict):
+            e['eventtypeslist'] = [{'id': int(event_type['id'])} for event_type in data['eventtypeslist']]
+        else:
+            e['eventtypeslist'] = [{'id': int(event_type_id)} for event_type_id in data['eventtypeslist']]
+
+    if data.get('extensionslist'):
+        if isinstance(data['extensionslist'][0], dict):
+            e['extensionslist'] = [{'id': int(ext['id'])} for ext in data['extensionslist']]
+        else:
+            e['extensionslist'] = [{'id': int(ext_id)} for ext_id in data['extensionslist']]
+
+    if data.get('queueslist'):
+        if isinstance(data['queueslist'][0], dict):
+            e['queueslist'] = [{'id': int(queue['id'])} for queue in data['queueslist']]
+        else:
+            e['queueslist'] = [{'id': int(queue_id)} for queue_id in data['queueslist']]
+
+    j=json.dumps(e, default=str)
+    print(f'json: {j}')
+    url = f'{api_base_url}/v1/extra_events'
+    headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
+    response = requests.post(url, headers=headers, data=j)
+    
+    if response.status_code == 200:
+        ui.notify('Event added successfully!', type='positive')
+        create_calendar.refresh()
+    else:
+        ui.notify('Failed to add event', type='negative')
+
     j=json.dumps(e, default=str)
     print(f'json: {j}')
     url = f'{api_base_url}/v1/extra_events'
@@ -408,6 +469,7 @@ def create_calendar():
 
 @router.page('/')
 def events_view():
+    asyncio.create_task(handle_queue_websocket())
     ui.page_title("3CX CDR Server app - Events")    
     with theme.frame('- Events -'):
         ui.label('')

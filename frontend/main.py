@@ -10,8 +10,10 @@ from pages import parameters_view
 from fastapi import status
 from nicegui import app, ui
 import os
+from socket_instance import connect_websocket
 
 
+    
 # Example 1: use a custom page decorator directly and putting the content creation into a separate function
 @ui.page('/')
 def index_page() -> None:
@@ -53,6 +55,11 @@ def perform_healthcheck():
     return {'healthcheck': 'Webapp OK!'}
 
 language = os.environ.get('LOCALE_LANGUAGE').split('_')[0] #here to get 2 letters language
+
+# Create async startup handler
+@app.on_startup
+async def startup():
+    await connect_websocket()
 
 ui.run(host='0.0.0.0',
         port=8181,

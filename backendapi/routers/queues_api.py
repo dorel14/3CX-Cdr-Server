@@ -7,12 +7,16 @@ from datetime import datetime
 
 from ..helpers.base import get_session
 from ..helpers.logging import logger
+
 from ..models.queues import Queues
 from ..models.extensions import Extensions
 from ..models.extensionsandqueues import Extensiontoqueuelink
 from ..schemas.queues_schemas import Queue, QueueCreate, QueueUpdate
+from ..socket_instance import broadcast_message
 
 router = APIRouter(prefix="/v1", tags=["queues"])
+
+
 
 @router.post("/queues", response_model=Queue, tags=["queues"])
 async def create_queues(
@@ -31,9 +35,30 @@ async def create_queues(
             for ext in queue.extensionslist:
                 link = Extensiontoqueuelink(queue_id=db_queues.id, extension_id=ext.id)
                 s.add(link)
-            await s.commit()
-        await s.refresh(db_queues)
+        await s.commit()
+
+        # Reload the queue with its relationships
+        result = await s.execute(
+            select(Queues)
+            .options(selectinload(Queues.extensionslist))
+            .filter(Queues.id == db_queues.id)
+        )
+
+        db_queues = result.scalar_one()
         
+        # Create WebSocket message after commit and refresh
+        queue_dict = {
+            'id': db_queues.id,
+            'queue': db_queues.queue,
+            'queuename': db_queues.queuename,
+            'extensionslist': [{
+                'id': ext.id,
+                'extension': ext.extension,
+                'name': ext.name
+            } for ext in db_queues.extensionslist]
+        }
+
+        await broadcast_message({'action': 'create', 'queue': queue_dict})
         return db_queues
 
 @router.get("/queues", response_model=List[Queue], tags=["queues"])
@@ -100,8 +125,16 @@ async def delete_queue(*, session: AsyncSession = Depends(get_session), queue_id
         db_queue = resultqueue.scalar_one_or_none()
         if db_queue is None:
             raise HTTPException(status_code=404, detail="Queue not found")
+        queue_dict = {
+            'id': db_queue.id,
+            'queue': db_queue.queue,
+            'queuename': db_queue.queuename
+        }
         await s.delete(db_queue)
         await s.commit()
+        message = {'action': 'delete', 'queue': queue_dict}
+        print(f"Broadcasting delete message: {message}")  # Debug log
+        await broadcast_message(message)        
         return db_queue
 
 @router.patch("/queues/{queue_id}", response_model=Queue, tags=["queues"])
@@ -128,11 +161,10 @@ async def update_queue(
         
         s.add(db_queue)
         await s.commit()
-        await s.refresh(db_queue)
         
         # Update extensionslist
         if 'extensionslist' in queue_data:
-            existing_links = {link.extension_id for link in db_queue.extensionslist}
+            existing_links = {link.extension for link in db_queue.extensionslist}
             new_links = {ext['id'] if isinstance(ext, dict) else ext for ext in queue_data['extensionslist']}
             
             # Add new links
@@ -141,8 +173,28 @@ async def update_queue(
                 s.add(link)
             
             await s.commit()
-            await s.refresh(db_queue)
+        # Reload the queue with its relationships
+        result = await s.execute(
+            select(Queues)
+            .options(selectinload(Queues.extensionslist))
+            .filter(Queues.id == db_queue.id)
+        )
+
+        db_queues = result.scalar_one()
         
+        # Create WebSocket message after commit and refresh
+        queue_dict = {
+            'id': db_queues.id,
+            'queue': db_queues.queue,
+            'queuename': db_queues.queuename,
+            'extensionslist': [{
+                'id': ext.id,
+                'extension': ext.extension,
+                'name': ext.name
+            } for ext in db_queues.extensionslist]
+        }
+
+        await broadcast_message({'action': 'update', 'queue': queue_dict})
         return db_queue
 
 # Add endpoints to manage the links between queues and extensions

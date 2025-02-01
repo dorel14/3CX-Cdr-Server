@@ -9,6 +9,8 @@ import requests
 import pandas as pd
 import json
 import os
+import websockets
+import asyncio
 
 from helpers.queues_import import post_queues
 
@@ -19,6 +21,34 @@ api_base_url = os.environ.get('API_URL')
 data_folder = "/data/files"
 data_files = os.path.join(data_folder, "queues.csv")
 
+# Add WebSocket event handler
+async def handle_queue_websocket():
+    uri = f"{api_base_url.replace('http', 'ws')}/ws"
+    print(f"Attempting WebSocket connection to: {uri}")
+    while True:
+        try:
+            async with websockets.connect(uri) as websocket:
+                print("WebSocket connection established")
+                while True:
+                    message = await websocket.recv()
+                    print(f"Received WebSocket message: {message}")
+                    data = json.loads(message)
+                    action = data.get('action')
+                    if action == 'create':
+                        print(f"Creating queue with id: {data.get('queue["id"]')}")
+                        refresh_queues.refresh()
+                    elif action == 'update':
+                        print(f"Updating queue with id: {data.get('queue["id"]')}")
+                        refresh_queues.refresh()
+                    elif action == 'delete':
+                        print(f"Deleting queue with id: {data.get('queue["id"]')}")
+                        refresh_queues.refresh()
+        except websockets.ConnectionClosed:
+            print("WebSocket connection closed")
+        except Exception as e:
+            print(f"WebSocket error: {e}, attempting to reconnect in 5 seconds...")
+            await asyncio.sleep(5)
+
 # Add error handling for the API call
 def get_queues():
     try:
@@ -28,6 +58,7 @@ def get_queues():
     except requests.exceptions.RequestException as e:
         ui.notify(f"Error fetching queues: {str(e)}", type='negative')
         return []
+    
 def get_extensions():
     try:
         response =  requests.get(f"{api_base_url}/v1/extensions")
@@ -37,6 +68,7 @@ def get_extensions():
         ui.notify(f"Error fetching extensions: {str(e)}", type='negative')
         return []
 
+# Update delete function to handle WebSocket response
 async def delete_queue(queue_id):
     try:
         # First delete all extension links
@@ -46,8 +78,7 @@ async def delete_queue(queue_id):
         response = requests.delete(f"{api_base_url}/v1/queues/{queue_id}")
         
         if response.status_code == 200:
-            ui.notify('Queue and its extension links deleted successfully', type='positive')
-            refresh_queues.refresh()
+            ui.notify('Queue deletion initiated', type='positive')
         else:
             ui.notify(f'Failed to delete queue: {response.status_code}', type='negative')
     except requests.exceptions.RequestException as e:
@@ -218,8 +249,7 @@ async def queue_dialog(row_data=None):
                 print(response)
             if response.status_code == 200:
                 ui.notify('Queue saved successfully', type='positive')
-                dialog.close()
-                refresh_queues.refresh()
+                dialog.close()                
             else:
                 ui.notify(f'Operation failed: {response.status_code} {response.content}')
                 
@@ -236,7 +266,9 @@ async def handle_row_click(e):
     await queue_dialog(row_data)
     
 @router.page('/')
-def queue_page():
+async def queue_page():
+    asyncio.create_task(handle_queue_websocket())
+    
     ui.page_title("3CX CDR Server app - Queues")    
     with theme.frame('- Queues -'):
         ui.label('')
