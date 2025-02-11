@@ -28,13 +28,13 @@ async def handle_queue_websocket():
                     data = json.loads(message)
                     action = data.get('action')
                     if action == 'create':
-                        print(f"Creating event with id: {data.get('event["id"]')}")
+                        print(f"Creating event with id: {data.get('event["id"]')}")  # Correction: data.get('event["id"]')
                         refresh_event_types.refresh()
                     elif action == 'update':
-                        print(f"Updating event with id: {data.get('event["id"]')}")
+                        print(f"Updating event with id: {data.get('event["id"]')}")  # Correction: data.get('event["id"]')
                         refresh_event_types.refresh()
                     elif action == 'delete':
-                        print(f"Deleting event with id: {data.get('event["id"]')}")
+                        print(f"Deleting event with id: {data.get('event["id"]')}")  # Correction: data.get('event["id"]')
                         refresh_event_types.refresh()
         except websockets.ConnectionClosed:
             print("WebSocket connection closed")
@@ -52,7 +52,6 @@ def get_event_types_data():
         return []
 
 async def event_type_dialog(row_data=None):
-    dialog = ui.dialog()
     data = {}
 
     if row_data:
@@ -60,7 +59,8 @@ async def event_type_dialog(row_data=None):
     else:
         data['name'] = ''
 
-    with dialog, ui.card().classes('w-1/3'):
+    
+    with ui.dialog() as dialog, ui.card().classes('w-1/3'):
         ui.label('Event Type details')
         with ui.row().classes('flex-wrap'):
             name_input = ui.input(
@@ -73,8 +73,10 @@ async def event_type_dialog(row_data=None):
                 value=data.get('description', ''),
                 on_change=lambda e: data.update({'description': e.value})
             )
-            with ui.button(icon='palette'):
-                picker = ui.color_picker(on_pick=lambda e: data.update({'color': e.color}))
+            with ui.button(icon='palette').classes(f'!bg-[{data.get('color','grey')}]') as button:
+                picker = ui.color_picker(on_pick=lambda e: data.update({'color': e.color})
+                                        ).on_pick(lambda e: button.classes(f'!bg-[{e.color}]')
+                                        )
                 picker.q_color.props('default-view=palette no-header no-footer')
 
         async def handle_save():
@@ -126,14 +128,16 @@ def refresh_event_types():
             {'title': 'Date Modified', 'field': 'date_modified'},
         ],
         'height': 205,
-    }).classes('w-full')
+    }).classes('w-full').on_event('rowClick', lambda e: event_type_dialog(e.args['row']))
+
+
 
 @router.page('/')
 def event_types_page():
     asyncio.create_task(handle_queue_websocket())
     ui.page_title("3CX CDR Server app - Event Types")
     with theme.frame('- Event Types -'):
-        ui.label('Event Types')
+        ui.label('').classes('text-lg font-bold')    
     with ui.row().classes('w-full border-b pb-2'):
         ui.button('Add',
                 icon='add',
