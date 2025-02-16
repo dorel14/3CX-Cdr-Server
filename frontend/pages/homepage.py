@@ -13,8 +13,8 @@ def content() -> None:
     
     ui.markdown('Here are the differents Urls you can use : ')
     with ui.column():
-        ui.button('- Api docs', on_click=lambda: ui.navigate.to(f'http://{host}/webapi/docs', new_tab=True)).classes('flat')
-        ui.button('- Pg Admin', on_click=lambda: ui.navigate.to(f'http://{host}/pgadmin', new_tab=True)).classes('flat')
-        ui.button('- Grafana', on_click=lambda: ui.navigate.to(f'http://{host}/grafana', new_tab=True)).classes('flat')
-        ui.button('- Traefik', on_click=lambda: ui.navigate.to(f'http://{host}/dashboard/', new_tab=True)).classes('flat')
+        ui.button('- Api docs', on_click=lambda: ui.navigate.to(f'http://webapi.{host}/docs', new_tab=True)).classes('flat')
+        ui.button('- Pg Admin', on_click=lambda: ui.navigate.to(f'http://pgadmin.{host}/', new_tab=True)).classes('flat')
+        ui.button('- Grafana', on_click=lambda: ui.navigate.to(f'http://grafana.{host}/', new_tab=True)).classes('flat')
+        ui.button('- Traefik', on_click=lambda: ui.navigate.to(f'http://dashboard.{host}/', new_tab=True)).classes('flat')
         

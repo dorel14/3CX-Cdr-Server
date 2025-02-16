@@ -66,5 +66,5 @@ ui.run(host='0.0.0.0',
         title='3CX CDR Server app',
         language=language,
         favicon="🚀",
-        root_path="/webapp",
+        #root_path="/webapp",
         )
