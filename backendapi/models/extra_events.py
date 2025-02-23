@@ -19,6 +19,7 @@ class ExtraEvents(Base):
     date_added = Column(DateTime, default=datetime.now())
     date_modified = Column(DateTime, default=datetime.now())
     all_day = Column(Boolean, default=False)
+    recurrence_rule = Column(String, nullable=True) 
     extensionslist = relationship("Extensions",
                                 secondary="extensions_events",
                                 back_populates="eventslist")

@@ -3,8 +3,6 @@ from datetime import datetime
 from typing import Optional, List
 
 
-
-
 class QueueId(BaseModel):
     id: int
 
@@ -24,6 +22,7 @@ class ExtraEventBase(BaseModel):
     date_added: datetime = datetime.now()
     date_modified: datetime = datetime.now()
     all_day: bool = False
+    recurrence_rule: Optional[str] = None
 
 
 class ExtraEventCreate(BaseModel):
@@ -35,6 +34,7 @@ class ExtraEventCreate(BaseModel):
     date_added: datetime = datetime.now()
     date_modified: datetime = datetime.now()
     all_day: bool = False
+    recurrence_rule: Optional[str] = None
     queueslist: Optional[List[QueueId]] = []
     extensionslist: Optional[List[ExtensionId]] = []
     eventtypeslist: Optional[List[EventTypesId]] = []
@@ -48,13 +48,14 @@ class ExtraEvent(ExtraEventBase):
     class Config:
         from_attributes = True
 class ExtraEventUpdate(BaseModel):
-    event_title: str
+    event_title: Optional[str]
     event_start: Optional[datetime] = datetime.now()
     event_end: Optional[datetime] = None
     event_description: Optional[str] = None
     event_impact: Optional[str] = None
     date_modified: datetime = datetime.now()
     all_day: bool = False
+    recurrence_rule: Optional[str] = None
     queueslist: Optional[List[QueueId]] = []
     extensionslist: Optional[List[ExtensionId]] = []
     eventtypeslist: Optional[List[EventTypesId]] = []
