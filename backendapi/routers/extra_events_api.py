@@ -33,7 +33,8 @@ async def create_event(
             event_end=event.event_end,
             event_description=event.event_description,
             event_impact=event.event_impact,
-            all_day=event.all_day        
+            all_day=event.all_day,
+            recurrence_rule=event.recurrence_rule
         )
         s.add(db_event)
         await s.flush()  # Pour obtenir l'ID de l'événement
@@ -74,7 +75,8 @@ async def create_event(
             'event_end': str(db_event.event_end),
             'event_description': db_event.event_description,
             'event_impact': db_event.event_impact,
-            'all_day': db_event.all_day
+            'all_day': db_event.all_day,
+            'recurrence_rule': db_event.recurrence_rule
         }
         
         await broadcast_message({'action': 'create', 'event': event_dict})
@@ -192,7 +194,8 @@ async def update_extra_events(
             'event_end': str(db_events.event_end),
             'event_description': db_events.event_description,
             'event_impact': db_events.event_impact,
-            'all_day': db_events.all_day
+            'all_day': db_events.all_day,
+            'recurrence_rule': db_events.recurrence_rule
         }
         
         await broadcast_message({'action': 'update', 'event': event_dict})

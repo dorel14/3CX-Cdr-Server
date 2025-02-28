@@ -29,7 +29,7 @@ def parse_rrule(rrule_str):
         interval = rule._interval
         days = [weekday_map[day] for day in rule._byweekday] if rule._byweekday else []
         until = rule._until if hasattr(rule, '_until') else None
-        count = int(rule._count) if hasattr(rule, '_count') else None
+        count = int(round(rule._count,0)) if hasattr(rule, '_count') else None
 
         return freq, interval, days, until, count
 

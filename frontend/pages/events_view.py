@@ -226,7 +226,7 @@ class Event_Dialog(ui.dialog):
                 with ui.row():
                     ui.select(options=recurrence_options, value=data['recurrence_freq']).on_value_change(lambda e: data.update({'recurrence_freq': e.value}))
                     ui.number(label='Interval', value=data['recurrence_interval'], min=1).on_value_change(lambda e: data.update({'recurrence_interval': e.value}))
-                    ui.number('Number of occurrences', value=data['recurrence_number']).on_value_change(lambda e: data.update({'recurrence_number': e.value}))
+                    ui.number('Number of occurrences', value=data['recurrence_number'], precision=0).on_value_change(lambda e: data.update({'recurrence_number': e.value}))
                 with ui.row():
                     for day, code in weekday_options.items():
                         ui.checkbox(day, value=code in data['recurrence_days']).on_value_change(lambda e, code=code: data['recurrence_days'].append(code) if e.value else data['recurrence_days'].remove(code))
@@ -331,7 +331,7 @@ async def Event_Dialog_open():
     print('Event_Dialog_open')
     result = await Event_Dialog(id='', title='', start=today, end=today, impact='0', description='', all_day=False, extensions=[], queues=[], eventtypes=[], recurrence_rule=None)
     if result:
-        #print(result)
+        print(result)
         add_event_to_db(result)
     ui.notify(f'Event added: {result}')
 
@@ -344,11 +344,16 @@ async def handle_dateclick(event: events.GenericEventArguments):
         end=parse_iso_datetime(event_info['date']),
         impact='0',
         description='',
-        all_day=False
+        all_day=False,
+        extensions=[],
+        queues=[],
+        eventtypes=[],
+        recurrence_rule=None
         )
     if result:
+        print(f'Dateclick: {result}')
         add_event_to_db(result)
-        ui.notify('Event added', type='positive')
+        #ui.notify('Event added', type='positive')
 
 
 async def handle_eventclick(event: events.GenericEventArguments):
