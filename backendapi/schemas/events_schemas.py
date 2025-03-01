@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List
 
 
@@ -23,7 +23,7 @@ class ExtraEventBase(BaseModel):
     date_modified: datetime = datetime.now()
     all_day: bool = False
     recurrence_rule: Optional[str] = None
-
+    exdate:Optional[List[datetime]] = []
 
 class ExtraEventCreate(BaseModel):
     event_title: str
@@ -35,6 +35,7 @@ class ExtraEventCreate(BaseModel):
     date_modified: datetime = datetime.now()
     all_day: bool = False
     recurrence_rule: Optional[str] = None
+    exdate:Optional[List[datetime]] = []
     queueslist: Optional[List[QueueId]] = []
     extensionslist: Optional[List[ExtensionId]] = []
     eventtypeslist: Optional[List[EventTypesId]] = []
@@ -48,7 +49,7 @@ class ExtraEvent(ExtraEventBase):
     class Config:
         from_attributes = True
 class ExtraEventUpdate(BaseModel):
-    event_title: Optional[str]
+    event_title: Optional[str]= None
     event_start: Optional[datetime] = datetime.now()
     event_end: Optional[datetime] = None
     event_description: Optional[str] = None
@@ -56,6 +57,7 @@ class ExtraEventUpdate(BaseModel):
     date_modified: datetime = datetime.now()
     all_day: bool = False
     recurrence_rule: Optional[str] = None
+    exdate:Optional[List[datetime]] = []
     queueslist: Optional[List[QueueId]] = []
     extensionslist: Optional[List[ExtensionId]] = []
     eventtypeslist: Optional[List[EventTypesId]] = []

@@ -67,7 +67,22 @@ def get_weekday_options(locale):
         days.get(5, 'Saturday').capitalize(): 'SA',
         days.get(6, 'Sunday').capitalize(): 'SU'
     }
-
+def get_months_options(locale):
+    months = get_period_names(width='wide', context='stand-alone', locale=locale)
+    return {
+        months.get('january', 'January'): 'JAN',
+        months.get('february', 'February'): 'FEB',
+        months.get('march', 'March'): 'MAR',
+        months.get('april', 'April'): 'APR',
+        months.get('may', 'May'): 'MAY',
+        months.get('june', 'June'): 'JUN',
+        months.get('july', 'July'): 'JUL',
+        months.get('august', 'August'): 'AUG',
+        months.get('september', 'September'): 'SEP',
+        months.get('october', 'October'): 'OCT',
+        months.get('november', 'November'): 'NOV',
+        months.get('december', 'December'): 'DEC'
+    }
     
 # Add WebSocket event handler
 async def handle_queue_websocket():
@@ -127,7 +142,8 @@ def get_events():
         data = response.json()
         events = []
         for event in data:
-            freq, interval, days, until, count = parse_rrule(event['recurrence_rule'])
+            print(event)
+            freq, interval, days, months, until, count = parse_rrule(event['recurrence_rule'])
             event_data = {
                 'id': event['id'],
                 'title': event['event_title'],
@@ -140,8 +156,10 @@ def get_events():
                 'recurrence_freq': freq,
                 'recurrence_interval': interval,
                 'recurrence_days': days,
+                'recurrence_months': months,
                 'recurrence_until': until,
                 'recurrence_count': count,
+                'exdate': event['exdate']
             }
             if event['recurrence_rule']:
                 event_data['rrule'] = event['recurrence_rule']
@@ -192,7 +210,7 @@ class Event_Dialog(ui.dialog):
         self.close_button = True
         selected_language = get_locale_language()
         
-        freq, interval, days, until, count = parse_rrule(recurrence_rule)
+        freq, interval, days, months,until, count = parse_rrule(recurrence_rule)
         
         data={
             'id': id,
@@ -212,6 +230,7 @@ class Event_Dialog(ui.dialog):
             'recurrence_freq': freq,
             'recurrence_interval': interval,
             'recurrence_days': days,
+            'recurrence_months' : months,
             'recurrence_number': count,
         }
 
@@ -219,7 +238,7 @@ class Event_Dialog(ui.dialog):
             if data['recurrence_enabled'] and count:
                 start_date = str_to_datetime(data['event_start_date'], data['event_start_time'])
                 rule_kwargs = {
-                    'freq': reverse_freq_map[data['recurrence_freq']],
+                    'freq': freq_map[data['recurrence_freq']],
                     'interval': int(data['recurrence_interval']),
                     'dtstart': start_date,
                     'count': int(count)
@@ -243,7 +262,8 @@ class Event_Dialog(ui.dialog):
         with self, ui.card():
             recurrence_options = get_recurrence_options(selected_language)
             weekday_options = get_weekday_options(selected_language)
-            
+            months_options = get_months_options(selected_language)
+
             ui.label('Add Event')
             ui.input(label='id', value=data['id']).props('readonly').classes('hidden')
             ui.input(label='Event title', placeholder='Event Title', value=data['event_title']).on_value_change(lambda e: data.update({'event_title': e.value}))
@@ -253,8 +273,11 @@ class Event_Dialog(ui.dialog):
 
             with ui.column().bind_visibility_from(data, 'recurrence_enabled', value=True):
                 with ui.row():
-                    ui.select(options=recurrence_options, value=data['recurrence_freq']).on_value_change(lambda e: data.update({'recurrence_freq': e.value}))
-                    ui.number(label='Interval', value=data['recurrence_interval'], min=1).on_value_change(lambda e: data.update({'recurrence_interval': e.value}))
+                    ui.select(options=recurrence_options, value=data['recurrence_freq']).on_value_change(lambda e: (data.update({'recurrence_freq': e.value},
+                                                                                                                                update_end_date(e.value))
+                                                                                                                                ))
+                    ui.number(label='Interval', value=data['recurrence_interval'], min=1).on_value_change(lambda e: (data.update({'recurrence_interval': e.value}),
+                                                                                                                    update_end_date(e.value)))
                     ui.number('Number of occurrences', value=data['recurrence_number'], precision=0).on_value_change(
                         lambda e: (
                             data.update({'recurrence_number': e.value}),
@@ -262,7 +285,9 @@ class Event_Dialog(ui.dialog):
                 with ui.row():
                     for day, code in weekday_options.items():
                         ui.checkbox(day, value=code in data['recurrence_days']).on_value_change(lambda e, code=code: data['recurrence_days'].append(code) if e.value else data['recurrence_days'].remove(code))
-
+                with ui.row():
+                    for month, code in months_options.items():
+                        ui.checkbox(month, value=code in data['recurrence_months']).on_value_change(lambda e, code=code: data['recurrence_months'].append(code) if e.value else data['recurrence_months'].remove(code))
             with ui.grid(columns=2):
                 with ui.column():
                     ui.label('Start date')    
@@ -349,15 +374,12 @@ class Event_Dialog(ui.dialog):
 
             with ui.row():
                 ui.button('Save Event', on_click=lambda: self.submit(data), icon='save').classes('text-xs')
-                ui.button('Delete Event', on_click=lambda: delete_event(data['id']),icon='delete').classes('text-xs')
+                ui.button('Delete Event', on_click=lambda: delete_event(data['id'], data),icon='delete').classes('text-xs')
                 ui.button('Cancel', icon='close', on_click=self.close).classes('text-xs')
 
             # Calculate end date for existing recurring events
             if recurrence_rule and count:
                 update_end_date(count)
-
-
-
         
 
 async def Event_Dialog_open():
@@ -381,7 +403,8 @@ async def handle_dateclick(event: events.GenericEventArguments):
         extensions=[],
         queues=[],
         eventtypes=[],
-        recurrence_rule=None
+        recurrence_rule=None,
+        exdate=None
         )
     if result:
         print(f'Dateclick: {result}')
@@ -398,7 +421,8 @@ async def handle_eventclick(event: events.GenericEventArguments):
             'end': event.args['info']['event'].get('end', event.args['info']['event']['start']),
             'allDay': event.args['info']['event']['allDay'],
             'extendedProps': event.args['info']['event']['extendedProps'],
-            'rrule': event.args['info']['event'].get('rrule', None)
+            'rrule': event.args['info']['event'].get('rrule', None),
+            'exdate': event.args['info']['event'].get('exdate', None),
         }
 
         # Get full event details from API
@@ -418,7 +442,8 @@ async def handle_eventclick(event: events.GenericEventArguments):
                 eventtypes=full_event.get('eventtypeslist', []),
                 extensions=full_event.get('extensionslist', []),
                 queues=full_event.get('queueslist', []),
-                recurrence_rule=full_event.get('recurrence_rule', None)
+                recurrence_rule=full_event.get('recurrence_rule', None),
+                exdate=full_event.get('exdate', None)
             )
         if result:
             print(f"result: {result}")
@@ -455,7 +480,8 @@ async def handle_eventclick(event: events.GenericEventArguments):
                 'eventtypeslist': eventtypeslist,
                 'extensionslist': extensionslist,
                 'queueslist': queueslist,
-                'recurrence_rule': rrule_str
+                'recurrence_rule': rrule_str,
+                'exdate': result['exdate'] if result['exdate'] else []
             }
             j = json.dumps(e, default=str)
             print(f'jsonupdate {j}')
@@ -472,17 +498,57 @@ async def handle_eventclick(event: events.GenericEventArguments):
             else:
                 ui.notify('Failed to add event', type='negative')
     
-
-
-async def delete_event(event_id):
+async def delete_event(event_id, form_data):
     url = f'{api_base_url}/v1/extra_events/{event_id}'
-    response = requests.delete(url)
+    response = requests.get(url)
+    if response.status_code == 200:
+        event = response.json()
+        if event['recurrence_rule']:
+            with ui.dialog() as dialog, ui.card():
+                ui.label('Delete Recurring Event')
+                ui.label('Do you want to delete this occurrence or all occurrences?')
+                with ui.row():
+                    ui.button('This Occurrence', on_click=lambda: handle_delete(event_id, 'single', event, form_data))
+                    ui.button('All Occurrences', on_click=lambda: handle_delete(event_id, 'all', event, form_data))
+                    ui.button('Cancel', on_click=dialog.close)
+                await dialog
+        else:
+            # Non-recurring event - delete directly
+            response = requests.delete(url)
+            if response.status_code == 200:
+                ui.notify('Event deleted successfully!', type='positive')
+                create_calendar.refresh()
+            else:
+                ui.notify('Failed to delete event', type='negative')
+
+
+async def handle_delete(event_id, delete_type, event, form_data):
+    url = f'{api_base_url}/v1/extra_events/{event_id}'
+    if delete_type == 'single':
+        # Initialize exdate as empty list if None
+        exdate = event.get('exdate', []) or []
+        # Use the form's displayed date instead of event start
+        form_date = str_to_datetime(
+            form_data['event_start_date'], form_data['event_start_time']
+        ).replace(tzinfo=None)
+        exdate.append(form_date)
+        
+        # Update event with new exdate
+        update_data = {'exdate': exdate}
+        response = requests.patch(
+            url=url,
+            headers={'Content-type': 'application/json'},
+            data=json.dumps(update_data, default=str)
+        )
+    else:  # delete_type == 'all'
+        response = requests.delete(url)
+    
     if response.status_code == 200:
         ui.notify('Event deleted successfully!', type='positive')
         create_calendar.refresh()
     else:
+        print(f"Failed to delete event: {response.text}")
         ui.notify('Failed to delete event', type='negative')
-
 
 def add_event_to_db(data):
     if data['event_allday']:
@@ -505,7 +571,9 @@ def add_event_to_db(data):
         'eventtypeslist': [],
         'extensionslist': [],
         'queueslist': [],
-        'recurrence_rule': rrule_str     
+        'recurrence_rule': rrule_str,
+        'exdate': data['exdate'] if data['exdate'] else []
+
     }
     if data.get('eventtypeslist'):
         if isinstance(data['eventtypeslist'][0], dict):

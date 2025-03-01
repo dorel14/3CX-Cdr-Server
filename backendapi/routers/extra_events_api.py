@@ -34,7 +34,8 @@ async def create_event(
             event_description=event.event_description,
             event_impact=event.event_impact,
             all_day=event.all_day,
-            recurrence_rule=event.recurrence_rule
+            recurrence_rule=event.recurrence_rule,
+            exdate=event.exdate
         )
         s.add(db_event)
         await s.flush()  # Pour obtenir l'ID de l'événement
@@ -76,7 +77,8 @@ async def create_event(
             'event_description': db_event.event_description,
             'event_impact': db_event.event_impact,
             'all_day': db_event.all_day,
-            'recurrence_rule': db_event.recurrence_rule
+            'recurrence_rule': db_event.recurrence_rule,
+            'exdate': db_event.exdate
         }
         
         await broadcast_message({'action': 'create', 'event': event_dict})
@@ -141,10 +143,14 @@ async def update_extra_events(
 
         events_data = ex_events.dict(exclude_unset=True, exclude={'extensionslist', 'queueslist', 'eventtypeslist'})
         events_data["date_modified"] = datetime.now()
-        
+        # Log received data
+        print(f"Received data for update: {events_data}")
+
         # Update basic fields
         for key, value in events_data.items():
             setattr(db_events, key, value)
+        # Log updated event
+        print(f"Updated event: {db_events}")
         
         # Update extensions relationships
         if ex_events.extensionslist is not None:
@@ -195,7 +201,8 @@ async def update_extra_events(
             'event_description': db_events.event_description,
             'event_impact': db_events.event_impact,
             'all_day': db_events.all_day,
-            'recurrence_rule': db_events.recurrence_rule
+            'recurrence_rule': db_events.recurrence_rule,
+            'exdate': db_events.exdate
         }
         
         await broadcast_message({'action': 'update', 'event': event_dict})

@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Date
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -19,7 +20,8 @@ class ExtraEvents(Base):
     date_added = Column(DateTime, default=datetime.now())
     date_modified = Column(DateTime, default=datetime.now())
     all_day = Column(Boolean, default=False)
-    recurrence_rule = Column(String, nullable=True) 
+    recurrence_rule = Column(String, nullable=True)
+    exdate = Column(ARRAY(DateTime), nullable=True)
     extensionslist = relationship("Extensions",
                                 secondary="extensions_events",
                                 back_populates="eventslist")
