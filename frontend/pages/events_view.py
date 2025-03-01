@@ -2,7 +2,7 @@
 
 from fullcalendar.FullCalendar import FullCalendar as fullcalendar
 from nicegui import ui, APIRouter, events
-
+from dateutil.rrule import rrule
 from .generals import theme
 import requests
 import json
@@ -18,6 +18,7 @@ from helpers.date_helpers import str_to_datetime,\
     datetime_to_time_str,\
     datetime_to_iso_string
 from helpers.rrule_helper import parse_rrule, build_rrule_string
+from helpers.rrule_helper import freq_map, weekday_map, reverse_freq_map
 
 router = APIRouter(prefix='/events')
 api_base_url = os.environ.get('API_URL')
@@ -190,31 +191,59 @@ class Event_Dialog(ui.dialog):
         self.auto_close = False
         self.close_button = True
         selected_language = get_locale_language()
-        print(recurrence_rule)
+        
         freq, interval, days, until, count = parse_rrule(recurrence_rule)
+        
+        data={
+            'id': id,
+            'event_title': title if title else '',
+            'event_allday':all_day,
+            'event_start_date':datetime_to_date_to_str(start),
+            'event_start_time':datetime_to_time_str(start),
+            'event_end_date':datetime_to_date_to_str(end),
+            'event_end_time':datetime_to_time_str(end),
+            'event_impact':impact if impact else '0',
+            'eventtypeslist': eventtypes if eventtypes else [],
+            'event_description':description if description else '',
+            'extensionslist': extensions if extensions else [],
+            'queueslist': queues if queues else [],
+            'recurrence_enabled': bool(recurrence_rule),
+            'recurrence_rule': recurrence_rule,
+            'recurrence_freq': freq,
+            'recurrence_interval': interval,
+            'recurrence_days': days,
+            'recurrence_number': count,
+        }
+
+        def update_end_date(count):
+            if data['recurrence_enabled'] and count:
+                start_date = str_to_datetime(data['event_start_date'], data['event_start_time'])
+                rule_kwargs = {
+                    'freq': reverse_freq_map[data['recurrence_freq']],
+                    'interval': int(data['recurrence_interval']),
+                    'dtstart': start_date,
+                    'count': int(count)
+                }
+                if data['recurrence_days']:
+                    rule_kwargs['byweekday'] = [weekday_map[day] for day in data['recurrence_days']]
+        
+                # Generate all occurrences and take the last one
+                rule = rrule(**rule_kwargs)
+                dates = list(rule)
+                last_date = dates[-1]
+    
+                # Update end date/time fields
+                data.update({
+                    'event_end_date': datetime_to_date_to_str(last_date),
+                    'event_end_time': datetime_to_time_str(last_date)
+                })
+                end_date_input.value = data['event_end_date']
+                end_time_input.value = data['event_end_time']
+
         with self, ui.card():
             recurrence_options = get_recurrence_options(selected_language)
             weekday_options = get_weekday_options(selected_language)
-            data={
-                    'id': id,
-                    'event_title': title if title else '',
-                    'event_allday':all_day,
-                    'event_start_date':datetime_to_date_to_str(start),
-                    'event_start_time':datetime_to_time_str(start),
-                    'event_end_date':datetime_to_date_to_str(end), #if all_day and datetime_to_date_to_str(end) == datetime_to_date_to_str(start) else  datetime_to_date_to_str(end),
-                    'event_end_time':datetime_to_time_str(end),
-                    'event_impact':impact if impact else '0',
-                    'eventtypeslist': eventtypes if eventtypes else [],
-                    'event_description':description if description else '',
-                    'extensionslist': extensions if extensions else [],
-                    'queueslist': queues if queues else [],
-                    'recurrence_enabled': bool(recurrence_rule),
-                    'recurrence_rule': recurrence_rule,
-                    'recurrence_freq': freq,
-                    'recurrence_interval': interval,
-                    'recurrence_days': days,
-                    'recurrence_number': count,
-                    }
+            
             ui.label('Add Event')
             ui.input(label='id', value=data['id']).props('readonly').classes('hidden')
             ui.input(label='Event title', placeholder='Event Title', value=data['event_title']).on_value_change(lambda e: data.update({'event_title': e.value}))
@@ -226,11 +255,14 @@ class Event_Dialog(ui.dialog):
                 with ui.row():
                     ui.select(options=recurrence_options, value=data['recurrence_freq']).on_value_change(lambda e: data.update({'recurrence_freq': e.value}))
                     ui.number(label='Interval', value=data['recurrence_interval'], min=1).on_value_change(lambda e: data.update({'recurrence_interval': e.value}))
-                    ui.number('Number of occurrences', value=data['recurrence_number'], precision=0).on_value_change(lambda e: data.update({'recurrence_number': e.value}))
+                    ui.number('Number of occurrences', value=data['recurrence_number'], precision=0).on_value_change(
+                        lambda e: (
+                            data.update({'recurrence_number': e.value}),
+                            update_end_date(e.value)))                    
                 with ui.row():
                     for day, code in weekday_options.items():
                         ui.checkbox(day, value=code in data['recurrence_days']).on_value_change(lambda e, code=code: data['recurrence_days'].append(code) if e.value else data['recurrence_days'].remove(code))
-            
+
             with ui.grid(columns=2):
                 with ui.column():
                     ui.label('Start date')    
@@ -243,7 +275,6 @@ class Event_Dialog(ui.dialog):
                             ui.icon('edit_calendar').on('click', datemenu.open).classes('cursor-pointer')
                 with ui.column().bind_visibility_from(checkbox,'value', value=False): 
                     ui.label('Start time')
-                    #ui.time(value=nowhour).on_value_change(lambda e: data.update({'event_start_time': e.value}))
                     with ui.input(label='Start Time', value=data['event_start_time']).on_value_change(lambda e: data.update({'event_start_time': e.value})) as time:
                         with ui.menu().props('no-parent-event') as menu:
                             with ui.time(value=data['event_start_time']).bind_value(time):
@@ -253,24 +284,23 @@ class Event_Dialog(ui.dialog):
                             ui.icon('access_time').on('click', menu.open).classes('cursor-pointer')
                 with ui.column():
                     ui.label('End date')    
-                    with ui.input(label='End Date', value=data['event_end_date']).on_value_change(lambda e: data.update({'event_end_date': e.value})) as date:
-                        with ui.menu().props('no-parent-event') as datemenu:
-                            with ui.date(value=data['event_end_date'], mask=date_format).bind_value(date):
-                                with ui.row().classes('justify-end'):
-                                    ui.button('Close', on_click=datemenu.close).props('flat')
-                        with date.add_slot('append'):
-                            ui.icon('edit_calendar').on('click', datemenu.open).classes('cursor-pointer')
+                    end_date_input = ui.input(label='End Date', value=data['event_end_date']).on_value_change(lambda e: data.update({'event_end_date': e.value}))
+                    with ui.menu().props('no-parent-event') as datemenu:
+                        with ui.date(value=data['event_end_date'], mask=date_format).bind_value(end_date_input):
+                            with ui.row().classes('justify-end'):
+                                ui.button('Close', on_click=datemenu.close).props('flat')
+                    with end_date_input.add_slot('append'):
+                        ui.icon('edit_calendar').on('click', datemenu.open).classes('cursor-pointer')
                 with ui.column().bind_visibility_from(checkbox,'value', value=False): 
                     ui.label('End time')
-                    #ui.time(value=nowhour).on_value_change(lambda e: data.update({'event_start_time': e.value}))
-                    with ui.input(label='End Time', value=data['event_end_time']).on_value_change(lambda e: data.update({'event_end_time': e.value})) as time:
-                        with ui.menu().props('no-parent-event') as menu:
-                            with ui.time(value=data['event_end_time']).bind_value(time):
-                                with ui.row().classes('justify-end'):
-                                    ui.button('Close', on_click=menu.close).props('flat')
-                        with time.add_slot('append'):
-                            ui.icon('access_time').on('click', menu.open).classes('cursor-pointer')
-            
+                    end_time_input = ui.input(label='End Time', value=data['event_end_time']).on_value_change(lambda e: data.update({'event_end_time': e.value}))
+                    with ui.menu().props('no-parent-event') as menu:
+                        with ui.time(value=data['event_end_time']).bind_value(end_time_input):
+                            with ui.row().classes('justify-end'):
+                                ui.button('Close', on_click=menu.close).props('flat')
+                    with end_time_input.add_slot('append'):
+                        ui.icon('access_time').on('click', menu.open).classes('cursor-pointer')
+
             ui.label('Impact of event')
             ui.select(options=impact_levels, value=data['event_impact']).on_value_change(lambda e: data.update({'event_impact': e.value})).classes('w-full')
             ui.textarea('Event Description', placeholder='Event description', value=data['event_description']).on_value_change(lambda e: data.update({'event_description': e.value})).classes('w-full')
@@ -297,34 +327,37 @@ class Event_Dialog(ui.dialog):
                         ui.chip(text=f"{extensions_options.get(ext['id'], '')}",
                                 removable=True,
                                 color='white',
-                                #on_click=lambda e, ext_id=ext['id']: remove_extension_from_event(data['id'], ext_id, self)
                                 ).on(
                                     'remove',
                                     lambda e, ext_id=ext['id']: remove_extension_from_event(data['id'], ext_id, self)
                                 ).classes('text-xs')
             ui.label('Queues')
             queues_options = get_queues()
-            # Filter out already selected queues from options
             available_queues = {k:v for k,v in get_queues().items() if not any(q['id'] == k for q in data['queueslist'])}
             ui.select(options=available_queues,  multiple=True
                     ).on_value_change(lambda e: data.update({'queueslist': [{'id': queue_id} for queue_id in e.value]}))
-            # After the existing Queues select            
+            
             with ui.row():
                 for queue in data['queueslist']:
                         ui.chip(text=f"{queues_options.get(queue['id'], '')}",
                         removable=True,
                         color='white',
-                        #on_click=lambda e, queue_id=queue['id']: remove_queue_from_event(data['id'], queue_id, self)
                         ).on(
                             'remove',
                             lambda e, queue_id=queue['id']: remove_queue_from_event(data['id'], queue_id, self)
                         ).classes('text-xs')
 
-
             with ui.row():
                 ui.button('Save Event', on_click=lambda: self.submit(data), icon='save').classes('text-xs')
                 ui.button('Delete Event', on_click=lambda: delete_event(data['id']),icon='delete').classes('text-xs')
-                ui.button('Cancel', icon='close', on_click=self.close).classes('text-xs')  
+                ui.button('Cancel', icon='close', on_click=self.close).classes('text-xs')
+
+            # Calculate end date for existing recurring events
+            if recurrence_rule and count:
+                update_end_date(count)
+
+
+
         
 
 async def Event_Dialog_open():
@@ -385,7 +418,7 @@ async def handle_eventclick(event: events.GenericEventArguments):
                 eventtypes=full_event.get('eventtypeslist', []),
                 extensions=full_event.get('extensionslist', []),
                 queues=full_event.get('queueslist', []),
-                recurrence_rule=event_info.get('recurrence_rule', None)
+                recurrence_rule=full_event.get('recurrence_rule', None)
             )
         if result:
             print(f"result: {result}")

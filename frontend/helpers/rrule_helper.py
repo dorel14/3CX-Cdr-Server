@@ -1,61 +1,71 @@
 # -*- coding: UTF-8 -*-
 from dateutil.rrule import rrule, rrulestr, DAILY, WEEKLY, MONTHLY, YEARLY, MO, TU, WE, TH, FR, SA, SU
 from helpers.date_helpers import str_to_datetime
+from helpers.logging import logger
+import traceback
 
+freq_map = {
+    DAILY: 'DAILY',
+    WEEKLY: 'WEEKLY', 
+    MONTHLY: 'MONTHLY',
+    YEARLY: 'YEARLY'
+}
+
+reverse_freq_map = {
+    'DAILY': DAILY,
+    'WEEKLY': WEEKLY,
+    'MONTHLY': MONTHLY,
+    'YEARLY': YEARLY
+}
+
+weekday_map = {
+    'MO': MO, 'TU': TU, 'WE': WE, 
+    'TH': TH, 'FR': FR, 'SA': SA, 'SU': SU
+}
+
+weekday_index_map = {
+    0: 'MO', 1: 'TU', 2: 'WE',
+    3: 'TH', 4: 'FR', 5: 'SA', 6: 'SU'
+}
 
 def parse_rrule(rrule_str):
     if not rrule_str:
         return None, 1, [], None, None
 
     try:
-        # Parse the RRULE directly using dateutil
+        # Extract only RRULE part if DTSTART is present
+        if '\n' in rrule_str:
+            rrule_parts = rrule_str.split('\n')
+            dtstart = rrule_parts[0]  # Keep DTSTART for debugging
+            for part in rrule_parts:
+                if part.startswith('RRULE:'):
+                    rrule_str = part
+                    break
+        
+        if not rrule_str.startswith('RRULE:'):
+            rrule_str = f'RRULE:{rrule_str}'
+
         rule = rrulestr(rrule_str)
-        
-        # Map frequencies to string representations
-        freq_map = {
-            DAILY: 'DAILY',
-            WEEKLY: 'WEEKLY', 
-            MONTHLY: 'MONTHLY',
-            YEARLY: 'YEARLY'
-        }
-        
-        # Map weekdays to string representations
-        weekday_map = {
-            MO: 'MO', TU: 'TU', WE: 'WE',
-            TH: 'TH', FR: 'FR', SA: 'SA', SU: 'SU'
-        }
-        
-        freq = freq_map.get(rule._freq, 'WEEKLY')
-        interval = rule._interval
-        days = [weekday_map[day] for day in rule._byweekday] if rule._byweekday else []
-        until = rule._until if hasattr(rule, '_until') else None
-        count = int(round(rule._count,0)) if hasattr(rule, '_count') else None
+
+        freq = freq_map.get(rule._freq)
+        interval = getattr(rule, '_interval', 1)
+        days = [weekday_index_map[day] for day in rule._byweekday] if hasattr(rule, '_byweekday') and rule._byweekday is not None else []
+        until = getattr(rule, '_until', None)
+        count = getattr(rule, '_count', None)
 
         return freq, interval, days, until, count
 
     except Exception as e:
-        print(f"Error parsing rrule: {e}")
-        return 'WEEKLY', 1, [], None, None
+        logger.debug(f"Error parsing rrule: {str(e)}")
+        logger.debug(f"Input rrule string: {rrule_str}")
+        logger.debug(f"Full traceback:", traceback.format_exc())
+        return None, 1, [], None, None
 
 def build_rrule_string(result, event_start, event_end=None):
-    # Convert string dates to datetime objects
     if isinstance(event_start, str):
         event_start = str_to_datetime(result['event_start_date'], result['event_start_time'])
     if event_end and isinstance(event_end, str):
         event_end = str_to_datetime(result['event_end_date'], result['event_end_time'])
-
-    freq_map = {
-        'DAILY': DAILY,
-        'WEEKLY': WEEKLY,
-        'MONTHLY': MONTHLY,
-        'YEARLY': YEARLY,
-        None: WEEKLY  # Default to WEEKLY if frequency is None
-    }
-    
-    weekday_map = {
-        'MO': MO, 'TU': TU, 'WE': WE, 
-        'TH': TH, 'FR': FR, 'SA': SA, 'SU': SU
-    }
     
     rule_kwargs = {
         'freq': freq_map[result['recurrence_freq']],
@@ -74,4 +84,3 @@ def build_rrule_string(result, event_start, event_end=None):
         
     rule = rrule(**rule_kwargs)
     return str(rule)
-
