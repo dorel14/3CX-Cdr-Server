@@ -34,7 +34,7 @@ weekday_index_map = {
 
 def parse_rrule(rrule_str):
     if not rrule_str:
-        return None, 1, [], None, None, None
+        return None, 1, [], [], None, None
 
     try:
         # Extract only RRULE part if DTSTART is present
