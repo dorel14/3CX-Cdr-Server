@@ -20,6 +20,10 @@ Det låter dig samla in samtalsdata från ditt 3CX-telefonsystem och lagra det i
 - **Händelsehantering**: Hantera händelser med återkommande regler, påverkningsnivåer och associationer med förlängningar och köer.
 - **WebSocket-integration**: Realtidsuppdateringar med WebSocket för händelsehantering.
 
+## Viktigt Meddelande
+
+**Denna nya version introducerar betydande förändringar. Det är viktigt att säkerhetskopiera dina data innan du uppdaterar.**
+
 ## Använda teknologier
 
 - Python

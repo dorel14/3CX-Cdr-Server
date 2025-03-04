@@ -20,6 +20,10 @@ Ela permite coletar dados de chamadas do seu sistema de telefonia 3CX e armazen�
 - **Gerenciamento de Eventos**: Gerencie eventos com regras de recorrência, níveis de impacto e associações com extensões e filas.
 - **Integração com WebSocket**: Atualizações em tempo real usando WebSocket para gerenciamento de eventos.
 
+## Aviso Importante
+
+**Esta nova versão introduz mudanças significativas. É crucial fazer backup dos seus dados antes de atualizar.**
+
 ## Tecnologias Utilizadas
 
 - Python
