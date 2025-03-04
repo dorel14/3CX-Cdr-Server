@@ -1,34 +1,37 @@
-
 # 3CX CDR SERVER APPLICATION
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.md)
 
-# Registrering av 3CX CDR i en PostgreSQL-databas med Grafana
+# Inspelning av 3CX CDR i en PostgreSQL-databas med Grafana
 
 ## Beskrivning
 
-Detta verktyg underlättar registreringen av 3CX Call Detail Records (CDR) i en PostgreSQL-databas och skapandet av dashboards med Grafana.
+Detta verktyg underlättar inspelning av 3CX Call Detail Records (CDR) i en PostgreSQL-databas och skapandet av instrumentpaneler med Grafana.
 
-Det gör det möjligt att samla in samtalsdata från ditt 3CX-telefonsystem och lagra dem i en PostgreSQL-databas. Med Grafana kan du sedan visualisera dessa data i form av interaktiva och anpassningsbara dashboards.
+Det låter dig samla in samtalsdata från ditt 3CX-telefonsystem och lagra det i en PostgreSQL-databas. Med Grafana kan du sedan visualisera dessa data i form av interaktiva och anpassningsbara instrumentpaneler.
 
 ## Huvudfunktioner
 
 - **CDR-insamling**: Hämtning av CDR från 3CX via olika överföringslägen (TCP, FTP, SFTP, SCP).
-- **Integrering av 3CX-information**: Tillägg och köer kan integreras i databasen via det tillgängliga webbgränssnittet för att möjliggöra mer detaljerad analys av CDR.
-- **Lagring i PostgreSQL**: Registrering av CDR i en PostgreSQL-databas för centraliserad och strukturerad lagring.
-- **Webb-API**: Ett webb-API tillhandahålls för att interagera med de lagrade CDR-data.
-- **Visualisering med Grafana**: Skapande av Grafana-dashboards för att visualisera och analysera samtalsdata interaktivt.
+- **Integration av 3CX-information**: Förlängningar och köer kan integreras i databasen via det tillgängliga webbgränssnittet för att möjliggöra mer detaljerad analys av CDR.
+- **Lagring i PostgreSQL**: Inspelning av CDR i en PostgreSQL-databas för centraliserad och strukturerad lagring.
+- **Web API**: Ett Web API tillhandahålls för att interagera med de lagrade CDR-data.
+- **Visualisering med Grafana**: Skapande av Grafana-instrumentpaneler för att visualisera och analysera samtalsdata interaktivt.
+- **Händelsehantering**: Hantera händelser med återkommande regler, påverkningsnivåer och associationer med förlängningar och köer.
+- **WebSocket-integration**: Realtidsuppdateringar med WebSocket för händelsehantering.
 
-## Använda tekniker
+## Använda teknologier
 
 - Python
-- FastAPI (Webb-API)
+- FastAPI (Web API)
 - PostgreSQL (Databas)
 - Grafana (Datavisualisering)
 - Docker (Containerisering)
+- NiceGUI (Frontend)
+- WebSockets (Realtidsuppdateringar)
 
 ## Bidrag
 
-Om du uppskattar detta projekt och vill bidra, är du välkommen att skicka pull-förfrågningar eller rapportera problem. Alla bidrag är välkomna!
+Om du uppskattar detta projekt och vill bidra, tveka inte att skicka in pull requests eller rapportera problem. Alla bidrag är välkomna!
 
-För mer information om installation, konfiguration och användning av detta verktyg, se projektets wiki.
+För mer information om installation, konfiguration och användning av detta verktyg, vänligen se projektets wiki.
