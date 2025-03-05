@@ -2,7 +2,7 @@
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.md)
 
-# Registro de CDRs do 3CX em um banco de dados PostgreSQL com Grafana
+## Registro de CDRs do 3CX em um banco de dados PostgreSQL com Grafana
 
 ## Descrição
 

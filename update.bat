@@ -3,7 +3,8 @@ setlocal enabledelayedexpansion
 
 echo 📦 Sauvegarde de la base de données...
 for /f "tokens=1,2 delims==" %%a in (.env) do set %%a=%%b
-docker exec %DB_CONTAINER% pg_dump -U %DB_USER% -d %DB_NAME% > backup.sql
+if not exist db_folder mkdir db_folder
+docker exec %DB_CONTAINER% pg_dump -U %DB_USER% -d %DB_NAME% > db_folder/backup.sql
 
 echo 📂 Détection des fichiers déplacés...
 

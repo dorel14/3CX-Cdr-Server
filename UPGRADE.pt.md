@@ -20,15 +20,18 @@ Este documento explica o propósito dos scripts de atualização e como usá-los
 
 Para usuários de Linux e macOS, use o script `update.sh`.
 
-#### Uso
+#### Uso do PowerShell
 
 1. Abra um terminal.
 2. Navegue até o diretório do projeto.
 3. Torne o script executável:
+
     ```sh
     chmod +x update.sh
     ```
+
 4. Execute o seguinte comando:
+
     ```sh
     ./update.sh
     ```
@@ -37,11 +40,12 @@ Para usuários de Linux e macOS, use o script `update.sh`.
 
 Para usuários de Windows usando PowerShell, use o script `update.ps1`.
 
-#### Uso
+#### Uso do Prompt de Comando
 
 1. Abra o PowerShell como administrador.
 2. Navegue até o diretório do projeto.
 3. Execute o seguinte comando:
+
     ```powershell
     ./update.ps1
     ```
@@ -55,6 +59,7 @@ Para usuários de Windows usando o Prompt de Comando, use o script `update.bat`.
 1. Abra o Prompt de Comando como administrador.
 2. Navegue até o diretório do projeto.
 3. Execute o seguinte comando:
+
     ```bat
     update.bat
     ```

@@ -11,7 +11,10 @@ if (Test-Path .env) {
 }
 
 Write-Host "📦 Sauvegarde de la base de données..."
-docker exec $Env:DB_CONTAINER pg_dump -U $Env:DB_USER -d $Env:DB_NAME > backup.sql
+if (-Not (Test-Path -Path db_folder)) {
+    New-Item -ItemType Directory -Path db_folder -Force | Out-Null
+}
+docker exec $Env:DB_CONTAINER pg_dump -U $Env:DB_USER -d $Env:DB_NAME > db_folder/backup.sql
 
 Write-Host "📂 Détection des fichiers déplacés..."
 

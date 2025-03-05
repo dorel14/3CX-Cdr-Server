@@ -2,7 +2,7 @@
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.md)
 
-# Inspelning av 3CX CDR i en PostgreSQL-databas med Grafana
+## Inspelning av 3CX CDR i en PostgreSQL-databas med Grafana
 
 ## Beskrivning
 

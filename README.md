@@ -5,7 +5,7 @@
 [![swe](https://img.shields.io/badge/lang-swe-blue.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.swe.md)
 [![pt](https://img.shields.io/badge/lang-pt-yellow.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.pt.md)
 
-# Recording 3CX CDRs in a PostgreSQL Database with Grafana
+## Recording 3CX CDRs in a PostgreSQL Database with Grafana
 
 ## Description
 

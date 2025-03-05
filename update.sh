@@ -8,7 +8,8 @@ if [ -f .env ]; then
 fi
 
 echo "📦 Sauvegarde de la base de données..."
-docker exec $DB_CONTAINER pg_dump -U $DB_USER -d $DB_NAME > backup.sql
+[ ! -d db_folder ] && mkdir -p db_folder
+docker exec $DB_CONTAINER pg_dump -U $DB_USER -d $DB_NAME > db_folder/backup.sql
 
 echo "📂 Détection des fichiers déplacés..."
 
