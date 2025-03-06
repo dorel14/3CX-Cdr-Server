@@ -119,7 +119,7 @@ services:
     volumes:
       - app-code:/home/appuser/app
       - cdr_datas:/home/appuser/cdrfiles
-      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
+      - ${LOCAL_CDR_FOLDER_ARCHIVE:./backup/datas/cdr}:/home/appuser/cdrfiles/cdrfiles_archives:rw
     #labels:
       #- "traefik.enable=true"
       #- "traefik.tcp.routers.3cxtcpservice.rule=HostSNI(`*`)"  # Règle pour router en fonction de l'hostname

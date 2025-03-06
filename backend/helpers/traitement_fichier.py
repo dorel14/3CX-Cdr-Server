@@ -7,8 +7,6 @@ import shutil
 from .cdr import parse_cdr, push_cdr_api, validate_cdr
 from .logging import logger
 
-#filefolder = '/opt/cdrfiles'
-#savefolder = '/opt/cdrfiles_archives'
 
 def sanitize_filepath(filepath):
     # Nettoie le chemin en ne gardant que le nom de base du fichier

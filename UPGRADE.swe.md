@@ -20,15 +20,18 @@ Detta dokument förklarar syftet med uppdateringsskripten och hur man använder 
 
 För Linux- och macOS-användare, använd skriptet `update.sh`.
 
-#### Användning
+#### Användning för Linux / macOS
 
 1. Öppna en terminal.
 2. Navigera till projektkatalogen.
 3. Gör skriptet körbart:
+
     ```sh
     chmod +x update.sh
     ```
+
 4. Kör följande kommando:
+
     ```sh
     ./update.sh
     ```
@@ -37,11 +40,12 @@ För Linux- och macOS-användare, använd skriptet `update.sh`.
 
 För Windows-användare som använder PowerShell, använd skriptet `update.ps1`.
 
-#### Användning
+#### Användning för Windows PowerShell
 
 1. Öppna PowerShell som administratör.
 2. Navigera till projektkatalogen.
 3. Kör följande kommando:
+
     ```powershell
     ./update.ps1
     ```
@@ -55,6 +59,7 @@ För Windows-användare som använder Kommandotolken, använd skriptet `update.b
 1. Öppna Kommandotolken som administratör.
 2. Navigera till projektkatalogen.
 3. Kör följande kommando:
+
     ```bat
     update.bat
     ```
