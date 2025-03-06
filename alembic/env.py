@@ -2,12 +2,13 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from sqlmodel import SQLModel
+
 from alembic import context
 import os
-from models import *
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+
+from backendapi.helpers.base import Base
+from backendapi.models import *
+
 dbUser = os.environ.get('POSTGRES_USER')
 dbPassword = os.environ.get('POSTGRES_PASSWORD')
 dbServer = os.environ.get('POSTGRES_SERVER')
@@ -15,29 +16,29 @@ dbPort = os.environ.get('POSTGRES_PORT')
 dbName = os.environ.get('POSTGRES_DB')
 dburl=os.environ.get('DATABASE_URL')
 
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
-
+sanitized_dburl = f'postgresql://{dbUser}:****@{dbServer}:{dbPort}/{dbName}'
+print(sanitized_dburl)
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+context.config.set_main_option('sqlalchemy.url', dburl)
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-#target_metadata = None
-target_metadata = SQLModel.metadata
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-config.set_section_option(
-    config.config_ini_section, "sqlalchemy.url", dburl)
 
 
 def run_migrations_offline() -> None:
@@ -52,7 +53,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = dburl
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -79,7 +80,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, 
+            target_metadata=target_metadata,
+            render_as_batch=True,
         )
 
         with context.begin_transaction():

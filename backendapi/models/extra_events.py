@@ -1,0 +1,34 @@
+# -*- coding: UTF-8 -*-
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Date
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import relationship
+from datetime import datetime
+
+
+
+from ..helpers.base import Base
+
+class ExtraEvents(Base):
+    __tablename__ = "extraevents"
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    event_title = Column(String)
+    event_start = Column(DateTime, default=datetime.now())
+    event_end = Column(DateTime, nullable=True)
+    event_description = Column(String, nullable=True)
+    event_impact = Column(String, nullable=False, default="0") 
+    date_added = Column(DateTime, default=datetime.now())
+    date_modified = Column(DateTime, default=datetime.now())
+    all_day = Column(Boolean, default=False)
+    recurrence_rule = Column(String, nullable=True)
+    exdate = Column(ARRAY(DateTime), nullable=True)
+    extensionslist = relationship("Extensions",
+                                secondary="extensions_events",
+                                back_populates="eventslist")
+    queueslist = relationship("Queues",
+                            secondary="queues_events",
+                            back_populates="eventslist")
+    eventtypeslist = relationship("EventsTypes",
+                            secondary="events_types_events",
+                            back_populates="eventslist")
+
