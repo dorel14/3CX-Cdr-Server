@@ -20,7 +20,7 @@ test/
 db_folder/pg_*/*
 
 srv/datas/*
-
+fake_data/*
 #exceptions
 !srv/datas/.gitkeep 
 
