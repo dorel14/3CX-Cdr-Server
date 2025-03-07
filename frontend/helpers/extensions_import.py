@@ -10,16 +10,20 @@ from .logging import logger
 
 api_base_url = os.environ.get('API_URL')
 
-def post_extensions(extensions_file):
+def post_extensions(extensions:str | pd.DataFrame):
     """Fonction permettant de poster les extensions au serveur
     Cette fonction teste si l'enregistrement existe avant de le poster
     """
-    extensions = pd.read_csv(extensions_file, delimiter=",")
+
     if len(extensions) > 0:
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
         webapi_url_extensions = api_base_url + '/v1/extensions'
 
-        list_of_jsons = extensions.to_json(orient='records', lines=True).splitlines()
+        if isinstance(extensions, str):
+            list_of_jsons=[extensions]
+        elif isinstance(extensions, pd.DataFrame):
+            list_of_jsons = extensions.to_json(orient='records', lines=True).splitlines()
+            
         for js in list_of_jsons:
                 logger.info(js)            
                 try:

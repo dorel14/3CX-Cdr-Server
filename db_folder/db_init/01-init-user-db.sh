@@ -2,6 +2,7 @@
 
 set -e
 
+# Set timezone and locale
 # Update and install necessary packages
 apk update && apk add --no-cache \
     musl \
@@ -32,9 +33,10 @@ else
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname ${POSTGRES_DB} <<-EOSQL
         SELECT 'CREATE USER grafanareader' WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafanareader')\gexec
         ALTER USER grafanareader WITH PASSWORD 'grafanareader';
-        GRANT CONNECT ON DATABASE ${POSTGRES_DB} TO grafanareader;    
+        GRANT CONNECT ON DATABASE ${POSTGRES_DB} TO grafanareader;
         GRANT USAGE ON SCHEMA public TO grafanareader;
         ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO grafanareader;
         GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafanareader;
     EOSQL
 fi
+>>>>>>> 83ff6239c787804cbf99e0f039ad1303cfb0dec0:db_folder/db_init/01-init-user-db.sh
