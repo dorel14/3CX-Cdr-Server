@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/v1", tags=["queues"])
 @router.post("/queues", response_model=Queue, tags=["queues"])
 async def create_queues(
     queue: QueueCreate,
-    session: AsyncSession = Depends(get_session)    
+    session: AsyncSession = Depends(get_session)
 ):
     async with session as s:
         logger.info(queue)
@@ -29,23 +30,20 @@ async def create_queues(
         db_queues = Queues(**queue_data)
         s.add(db_queues)
         await s.flush()  # Pour obtenir l'ID de la queue
-        
+        created_id = db_queues.id
         # Add extensions links
         if queue.extensionslist:
             for ext in queue.extensionslist:
-                link = Extensiontoqueuelink(queue_id=db_queues.id, extension_id=ext.id)
+                link = Extensiontoqueuelink(queue_id=created_id, extension_id=ext.id)
                 s.add(link)
         await s.commit()
 
         # Reload the queue with its relationships
-        result = await s.execute(
-            select(Queues)
-            .options(selectinload(Queues.extensionslist))
-            .filter(Queues.id == db_queues.id)
-        )
+        stmt = select(Queues).options(selectinload(Queues.extensionslist)).filter(Queues.id == created_id)
+        result = await s.execute(stmt)
 
         db_queues = result.scalar_one()
-        
+
         # Create WebSocket message after commit and refresh
         queue_dict = {
             'id': db_queues.id,

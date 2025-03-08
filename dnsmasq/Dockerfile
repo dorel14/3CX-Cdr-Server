@@ -1,12 +1,9 @@
-FROM jpillora/dnsmasq
+FROM liip/dnsmasq:1.0.0
+#Permet de forcer le vidage de cahche des varaibles d'environnement
+ARG CACHEBUST=1
 
 
-RUN mkdir /scripts
+COPY --chmod=755 /dnsmasq/start.sh /start.sh
 
-WORKDIR /scripts
-COPY /dnsmasq/start.sh /scripts/start.sh
+RUN /start.sh
 
-
-RUN chmod +x /scripts/start.sh
-
-CMD ["/scripts/start.sh"]

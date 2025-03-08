@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 
+from venv import logger
 from fullcalendar.FullCalendar import FullCalendar as fullcalendar
 from nicegui import ui, APIRouter, events
 from dateutil.rrule import rrule
@@ -174,7 +175,7 @@ def get_events():
             }
             if event['recurrence_rule']:
                 event_data['rrule'] = event['recurrence_rule']
-            events.append(event_data)        
+            events.append(event_data)
         return events
     return []
 
@@ -208,7 +209,7 @@ async def remove_extension_from_event(event_id: str, extension_id: int, dialog_i
             dialog_instance.queues = event_data['queueslist']
             dialog_instance.extensions = event_data['extensionslist']
             dialog_instance.update()
-            
+
         #create_calendar.refresh()
     else:
         ui.notify('Failed to remove extension', type='negative')
@@ -220,9 +221,9 @@ class Event_Dialog(ui.dialog):
         self.auto_close = False
         self.close_button = True
         selected_language = get_locale_language()
-        
+
         freq, interval, days, months, until, count = parse_rrule(recurrence_rule)
-        
+
         data={
             'id': id,
             'event_title': title if title else '',
@@ -280,7 +281,7 @@ class Event_Dialog(ui.dialog):
             ui.label('Add Event')
             ui.input(label='id', value=data['id']).props('readonly').classes('hidden')
             ui.input(label='Event title', placeholder='Event Title', value=data['event_title']).on_value_change(lambda e: data.update({'event_title': e.value}))
-            with ui.row():              
+            with ui.row():
                 checkbox = ui.switch('All Day', value=data['event_allday']  if all_day else False ).on_value_change(lambda e: data.update({'event_allday': e.value}))
                 ui.switch('Enable Recurrence', value=data['recurrence_enabled']).on_value_change(lambda e: data.update({'recurrence_enabled': e.value}))
 
@@ -381,7 +382,7 @@ class Event_Dialog(ui.dialog):
             available_queues = {k:v for k,v in get_queues().items() if not any(q['id'] == k for q in data['queueslist'])}
             ui.select(options=available_queues,  multiple=True
                     ).on_value_change(lambda e: data.update({'queueslist': [{'id': queue_id} for queue_id in e.value]}))
-            
+
             with ui.row():
                 for queue in data['queueslist']:
                         ui.chip(text=f"{queues_options.get(queue['id'], '')}",
@@ -401,15 +402,14 @@ class Event_Dialog(ui.dialog):
             # Calculate end date for existing recurring events
             if recurrence_rule and count:
                 update_end_date(count)
-        
+
 
 async def Event_Dialog_open():
-    print('Event_Dialog_open')
     result = await Event_Dialog(id='', title='', start=today, end=today, impact='0', description='', all_day=False, extensions=[], queues=[], eventtypes=[], recurrence_rule=None)
     if result:
-        print(result)
+        logger.debug(f'Event_Dialog_open: {result}')
         add_event_to_db(result)
-    ui.notify(f'Event added: {result}')
+    #ui.notify(f'Event added: {result}')
 
 async def handle_dateclick(event: events.GenericEventArguments):
     event_info = event.args['info']
@@ -449,7 +449,7 @@ async def handle_eventclick(event: events.GenericEventArguments):
         response = requests.get(url)
         if response.status_code == 200:
             full_event = response.json()
-            
+
             result = await Event_Dialog(
                 id=event_info['id'],
                 title=event_info['title'],
@@ -516,7 +516,7 @@ async def handle_eventclick(event: events.GenericEventArguments):
                 create_calendar.refresh()
             else:
                 ui.notify('Failed to add event', type='negative')
-    
+
 async def delete_event(event_id, form_data):
     url = f'{api_base_url}/v1/extra_events/{event_id}'
     response = requests.get(url)
@@ -551,7 +551,7 @@ async def handle_delete(event_id, delete_type, event, form_data):
             form_data['event_start_date'], form_data['event_start_time']
         ).replace(tzinfo=None)
         exdate.append(form_date)
-        
+
         # Update event with new exdate
         update_data = {'exdate': exdate}
         response = requests.patch(
@@ -561,7 +561,7 @@ async def handle_delete(event_id, delete_type, event, form_data):
         )
     else:  # delete_type == 'all'
         response = requests.delete(url)
-    
+
     if response.status_code == 200:
         ui.notify('Event deleted successfully!', type='positive')
         create_calendar.refresh()
@@ -579,7 +579,7 @@ def add_event_to_db(data):
     rrule_str = None
     if data.get('recurrence_enabled'):
         rrule_str = build_rrule_string(data, event_start, event_end)
-    
+
     e = {
         'event_title': data['event_title'],
         'event_start': datetime_to_iso_string(event_start),
@@ -591,7 +591,7 @@ def add_event_to_db(data):
         'extensionslist': [],
         'queueslist': [],
         'recurrence_rule': rrule_str,
-        'exdate': data['exdate'] if data['exdate'] else []
+        #'exdate': data['exdate'] if data['exdate'] else []
 
     }
     if data.get('eventtypeslist'):
@@ -611,10 +611,10 @@ def add_event_to_db(data):
             e['queueslist'] = [{'id': int(queue['id'])} for queue in data['queueslist']]
         else:
             e['queueslist'] = [{'id': int(queue_id)} for queue_id in data['queueslist']]  
-    
+
 
     j = json.dumps(e, default=str)
-    print(f'json: {j}')
+    logger.debug(f'json: {j}')
     url = f'{api_base_url}/v1/extra_events'
     headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
     response = requests.post(url, headers=headers, data=j)
@@ -623,7 +623,7 @@ def add_event_to_db(data):
         ui.notify('Event added successfully!', type='positive')
         create_calendar.refresh()
     else:
-        ui.notify('Failed to add event', type='negative')    
+        ui.notify('Failed to add event', type='negative')
 
 
 @ui.refreshable

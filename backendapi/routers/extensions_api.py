@@ -19,25 +19,25 @@ router = APIRouter(prefix="/v1", tags=["extensions"])
 @router.post("/extensions", response_model=Extension, tags=["extensions"])
 async def create_extensions(
     extension: ExtensionCreate,
-    session: AsyncSession = Depends(get_session)    
+    session: AsyncSession = Depends(get_session)
 ):
     async with session as s:
         extension_data = extension.dict(exclude={"queues"})
         db_extension = Extensions(**extension_data)
         s.add(db_extension)
         await s.flush()
-        
+
         created_id = db_extension.id
-        
+
         if extension.queues:
             for queue in extension.queues:
                 link = Extensiontoqueuelink(extension_id=created_id, queue_id=queue.id)
                 s.add(link)
         await s.commit()
-        
+
         stmt = select(Extensions).options(selectinload(Extensions.queueslist)).filter(Extensions.id == created_id)
         result = await s.execute(stmt)
-        
+
         db_extension = result.unique().scalar_one()
 
         # Create a dictionary with the extension data
@@ -60,7 +60,7 @@ async def read_extensions(
 ):
     async with session as s:
         db_extensions = await s.execute(select(Extensions)
-                                        .options(selectinload(Extensions.queueslist)                                                
+                                        .options(selectinload(Extensions.queueslist)
                                                 )
                                         .offset(offset)
                                         .limit(limit))
@@ -75,7 +75,7 @@ async def read_extension(
     ):
     async with session as s:
         result = await s.execute(select(Extensions)
-                                .options(selectinload(Extensions.queueslist)                                        
+                                .options(selectinload(Extensions.queueslist)
                                         )
                                 .where(Extensions.id == extension_id)
                                 .order_by(Extensions.id))
@@ -114,22 +114,22 @@ async def update_extension(
             .filter(Extensions.id == extension_id)
         )
         db_extension = result.unique().scalar_one()
-        
+
         extension_data = extension.dict(exclude_unset=True)
         extension_data["date_modified"] = datetime.now()
-        
+
         # Update basic extension attributes
         for key, value in extension_data.items():
             if key != 'queues':
                 setattr(db_extension, key, value)
-        
+
         # Update queue links
         if 'queues' in extension_data:
             # Get current queue IDs
             current_queue_ids = {q.id for q in db_extension.queueslist}
             # Get new queue IDs from request
             new_queue_ids = {q['id'] for q in extension_data['queues']}
-            
+
             # Remove links that are no longer needed
             queues_to_remove = current_queue_ids - new_queue_ids
             if queues_to_remove:
@@ -139,13 +139,13 @@ async def update_extension(
                         Extensiontoqueuelink.queue_id.in_(queues_to_remove)
                     )
                 )
-            
+
             # Add new links
             queues_to_add = new_queue_ids - current_queue_ids
             for queue_id in queues_to_add:
                 link = Extensiontoqueuelink(extension_id=extension_id, queue_id=queue_id)
                 s.add(link)
-        
+
         await s.commit()
         await s.refresh(db_extension)
 
@@ -157,7 +157,7 @@ async def update_extension(
             'date_added': str(db_extension.date_added),
             'date_modified': str(db_extension.date_modified)
         }
-        
+
         await broadcast_message({'action': 'update', 'extension': extension_dict})
         return db_extension
 
@@ -227,7 +227,7 @@ async def delete_extension(
             'date_added': str(db_extension.date_added),
             'date_modified': str(db_extension.date_modified)
         }
-        
-        await broadcast_message({'action': 'update', 'extension': extension_dict})        
+
+        await broadcast_message({'action': 'update', 'extension': extension_dict})
         return {"ok": True}
 

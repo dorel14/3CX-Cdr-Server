@@ -14,7 +14,7 @@ DOCKER_GATEWAY=172.18.0.1
 
 # Traefik informations
 # Optionally change this to a FQDN
-WEB_SERVER_NAME=localhost
+WEB_SERVER_NAME=test.local
 
 # Db informations
 POSTGRES_USER=

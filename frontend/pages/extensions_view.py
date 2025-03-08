@@ -73,10 +73,10 @@ async def delete_extension(extension_id):
     try:
         # First delete all queue associations
         response_queues = requests.delete(f"{api_base_url}/v1/extensions/{extension_id}/queues")
-        
+
         # Then delete the extension
         response = requests.delete(f"{api_base_url}/v1/extensions/{extension_id}")
-        
+
         if response.status_code == 200:
             ui.notify('Extension and its queue associations deleted successfully', type='positive')
             refresh_extensions.refresh()
@@ -95,7 +95,7 @@ def refresh_extensions():
             local_date = date_obj.astimezone(timezone)
             return local_date.strftime('%d/%m/%Y')
         return ''
-    
+
     with ui.grid(columns=7).classes('w-full col-span-7 flex-wrap'):
         # Headers
         ui.label('').classes('font-bold')
@@ -106,9 +106,9 @@ def refresh_extensions():
         ui.label('Created').classes('font-bold')
         ui.label('Modified').classes('font-bold')
     with ui.scroll_area().classes('w-full h-dvh'):
-        for ext in extensions:            
+        for ext in extensions:
             with ui.expansion(group='group').classes('w-full ').props('dense expand-separator duration:10') as expansion:
-                with expansion.add_slot('header'):                    
+                with expansion.add_slot('header'):
                     with ui.grid(columns=8).classes('w-full flex-wrap align-middle gap-2'):
                         with ui.button_group().props('outline').classes('h-8 w-16'):
                             ui.button(icon='mode_edit',
@@ -135,7 +135,7 @@ def refresh_extensions():
                         'minWidth': 30,
                         'resizable': True,
                         'cellStyle': {'fontSize': '14px'},
-                        },                        
+                        },
                         'rowSelection': 'single',
                         "stopEditingWhenCellsLoseFocus": True,
                         }               # Queues subgrid
@@ -148,7 +148,8 @@ def refresh_extensions():
 
 
 async def click_import():
-    response = await run.io_bound(post_extensions, data_files)
+    df = pd.read_csv(data_files, delimiter=",")
+    response = await run.io_bound(post_extensions, df)
     ui.notify(f'Extensions {response}')
     ui.tab('Extensions_list').update()
 
@@ -164,7 +165,7 @@ def read_uploaded_file(e: events.UploadEventArguments):
     with open(data_files, "wb") as fcsv:
             fcsv.write(b)
     df = pd.read_csv(data_files, delimiter=",")
-    print(df)
+    #print(df)
     csv_table_config = {
         "data":df.to_dict('records'),
         "columns": [{"field": col, "title": col} for col in df.columns],
@@ -185,7 +186,7 @@ def read_uploaded_file(e: events.UploadEventArguments):
 async def extension_dialog(row_data=None):
     dialog = ui.dialog()
     data = {}
-    
+
     if row_data:
         data = row_data
         data['queues'] = [{'id': q['id']} for q in data.get('queueslist', [])]
@@ -218,7 +219,7 @@ async def extension_dialog(row_data=None):
                 value=data.get('out', False),
                 on_change=lambda e: data.update({'out': e.value})
             )
-        
+
         ui.label('Queues:').classes('mt-4 font-bold')
         queues = get_queues()
         if isinstance(queues, list):
@@ -228,7 +229,7 @@ async def extension_dialog(row_data=None):
         ui.select(options=available_queues, multiple=True).on_value_change(
             lambda e: data.update({'queues': [{'id': queue_id} for queue_id in e.value]})
         ).classes('w-full')
-        
+
         with ui.row():
             for queue_id in assigned_queues:
                 ui.chip(
@@ -253,7 +254,7 @@ async def extension_dialog(row_data=None):
                 'out': data.get('out'),
                 'queues': data.get('queues')
             }
-            
+
             if data.get('id'):
                 headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
                 response = requests.patch(
@@ -268,18 +269,18 @@ async def extension_dialog(row_data=None):
                     headers=headers,
                     data=json.dumps(save_data)
                 )
-                
+
             if response.status_code == 200:
                 ui.notify('Extension saved successfully', type='positive')
                 dialog.close()
                 refresh_extensions.refresh()
             else:
                 ui.notify(f'Operation failed: {response.status_code} {response.content}')
-                
+
         with ui.row().classes('w-full justify-end'):
             ui.button('Save', on_click=handle_save).classes('text-xs')
             ui.button('Cancel', on_click=dialog.close).classes('text-xs')
-    
+
     dialog.open()
 
 
@@ -288,19 +289,19 @@ async def handle_row_click(e):
     print("Row clicked:", e['row'])  # Debug
     row_data = e['row']
     await extension_dialog(row_data)
-    
+
 @router.page('/')
 def extension_page():
     asyncio.create_task(handle_queue_websocket())
-    ui.page_title("3CX CDR Server app - Extensions")    
+    ui.page_title("3CX CDR Server app - Extensions")
     with theme.frame('- Extensions -'):
         ui.label('')
         #message('Extensions')
     with ui.tabs().classes('w-full') as tabs:
         Extensions_list = ui.tab('Extensions List')
         Extensions_Import = ui.tab('Extensions Import')
-    ui.label('Extensions informations are editable on pencil button.')  
-    with ui.tab_panels(tabs, value=Extensions_list).classes('w-full'):
+    ui.label('Extensions informations are editable on pencil button.')
+    with ui.tab_panels(tabs, value=Extensions_list).classes('w-full').on('click',refresh_extensions):
         with ui.tab_panel(Extensions_list):
             extensions = get_extensions()
             if not extensions:
@@ -323,7 +324,7 @@ def extension_page():
                             on_click=lambda: ui.download(src='extensions.csv',filename='extensions.csv',media_type='csv')).classes('ml-auto text-xs')
 
             else:
-                with ui.row().classes('w-full border-b pb-2'):            
+                with ui.row().classes('w-full border-b pb-2'):
                     ui.button('Add extension', icon='add', on_click=lambda: extension_dialog()).classes('text-xs')
                     ui.button('Download CSV',
                             icon='download',
