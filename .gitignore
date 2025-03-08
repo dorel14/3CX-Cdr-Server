@@ -18,6 +18,7 @@ test/
 *.csv
 *.~csv
 db_folder/pg_*/*
+*.logs
 
 srv/datas/*
 fake_data/*

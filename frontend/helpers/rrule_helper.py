@@ -6,7 +6,7 @@ import traceback
 
 freq_map = {
     DAILY: 'DAILY',
-    WEEKLY: 'WEEKLY', 
+    WEEKLY: 'WEEKLY',
     MONTHLY: 'MONTHLY',
     YEARLY: 'YEARLY'
 }
@@ -45,7 +45,7 @@ def parse_rrule(rrule_str):
                 if part.startswith('RRULE:'):
                     rrule_str = part
                     break
-        
+
         if not rrule_str.startswith('RRULE:'):
             rrule_str = f'RRULE:{rrule_str}'
 
@@ -71,13 +71,13 @@ def build_rrule_string(result, event_start, event_end=None):
         event_start = str_to_datetime(result['event_start_date'], result['event_start_time'])
     if event_end and isinstance(event_end, str):
         event_end = str_to_datetime(result['event_end_date'], result['event_end_time'])
-    
+
     rule_kwargs = {
-        'freq': freq_map[result['recurrence_freq']],
+        'freq': reverse_freq_map[result['recurrence_freq']],
         'interval': int(result['recurrence_interval']),
         'dtstart': event_start
     }
-    
+
     if result['recurrence_number']:
         rule_kwargs['count'] = int(result['recurrence_number'])
 
@@ -86,9 +86,9 @@ def build_rrule_string(result, event_start, event_end=None):
 
     if result['recurrence_months']:
         rule_kwargs['bymonth'] = [month_index_map[month] for month in result['recurrence_months']]
-    
+
     if event_end and not result['recurrence_number']:
         rule_kwargs['until'] = event_end
-        
+
     rule = rrule(**rule_kwargs)
     return str(rule)

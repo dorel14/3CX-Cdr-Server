@@ -46,7 +46,7 @@ services:
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
-      - PK_EXTENSION_QUEUE_NAME = 'pk_extensiontoqueuelink'
+      - PK_EXTENSION_QUEUE_NAME=pk_extensiontoqueuelink
     healthcheck:
       test: curl http://webapi:8000/healthcheck || exit 1
       interval: 60s
@@ -119,7 +119,7 @@ services:
     volumes:
       - app-code:/home/appuser/app
       - cdr_datas:/home/appuser/cdrfiles
-      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
+      #- ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
     #labels:
       #- "traefik.enable=true"
       #- "traefik.tcp.routers.3cxtcpservice.rule=HostSNI(`*`)"  # Règle pour router en fonction de l'hostname
@@ -129,7 +129,6 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
-    container_name: pgadmin
     depends_on:
       db:
         condition: service_healthy
@@ -157,6 +156,7 @@ services:
     image: grafana/grafana:latest
     environment:
       - CONTAINER_NAME=grafana
+      - WEB_SERVER_NAME=${WEB_SERVER_NAME}
     depends_on:
       - db
     networks:
@@ -173,27 +173,42 @@ services:
       - ./grafana/grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(\"grafana.${WEB_SERVER_NAME:-localhost}\")"
+      - "traefik.http.routers.grafana.rule=Host(\"grafana.${WEB_SERVER_NAME}\")"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       - "traefik.http.routers.grafana.entrypoints=web"
 
   dnsmasq:
-    build: 
+    build:
       context: .
       dockerfile: ./dnsmasq/Dockerfile
-    container_name: dnsmasq
-    restart: always
+    restart: unless-stopped
+    user: root
+    cap_add:
+      - NET_ADMIN
+    env_file:
+      - .env
     volumes:
-      - ./dnsmasq/start.sh:/start.sh
+      #- ./dnsmasq/start.sh:/start.sh
+      - ./dnsmasq/dnsmasq.conf:/etc/dnsmasq.d/mydnsmasq.conf
     environment:
-      - WEB_SERVER_NAME=${WEB_SERVER_NAME:-localhost}
+      - WEB_SERVER_NAME=${WEB_SERVER_NAME}
+      #- DNSMASQ_DEFAULT_DOMAIN=${WEB_SERVER_NAME:-localhost}
+      #- DNSMASQ_DNS_SERVER_1=1.1.1.1
+      #- DNSMASQ_DNS_SERVER_2=8.8.8.8
+      - CONTAINER_NAME=dnsmasq
     networks:
-      - custom_network
+      custom_network:
+        ipv4_address: 172.18.0.254
     ports:
       - "53:53/udp"  # DNS service
-
+      #- "8053:8080"  # DNS web interface
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dnsmasq.rule=Host(\"dnsmasq.${WEB_SERVER_NAME:-localhost}\")"
+      - "traefik.http.services.dnsmasq.loadbalancer.server.port=8080"
+      - "traefik.http.routers.dnsmasq.entrypoints=web"
   traefik:
-    build: 
+    build:
       context: .
       dockerfile: ./traefik/Dockerfile
     env_file:
@@ -208,13 +223,14 @@ services:
         condition: service_healthy
     environment:
       - SERVER_PORT=${SERVER_PORT}
+      - WEB_SERVER_NAME=test.local
       - CONTAINER_NAME=traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml
     networks:
-      - custom_network
-    #entrypoint: ["/bin/sh", "/scripts/entrypoint.sh"]
+      custom_network:
+        ipv4_address: 172.18.0.190
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-api.rule=Host(\"traefik.${WEB_SERVER_NAME:-localhost}\")"
@@ -250,4 +266,3 @@ networks:
     ipam:
       config:
         - subnet: ${DOCKER_SUBNET}
-          gateway: ${DOCKER_GATEWAY}

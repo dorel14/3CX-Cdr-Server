@@ -9,7 +9,7 @@ date_format = "%Y%m%d"
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 logdir = os.path.join(parentdir, './logs')
-logfiles = os.path.join(logdir, '3cxtcpserver'+ datetime.today().strftime(date_format) +'.log')
+logfiles = os.path.join(logdir, 'webapi'+ datetime.today().strftime(date_format) +'.log')
 
 pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
 print(parentdir)
