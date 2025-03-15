@@ -1,23 +1,25 @@
 FROM python:3.13-slim AS builder
 
 # Prepare apt files
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    apt-transport-https \
-    curl \
+RUN apt update \
+    && apt-get install -y apt-transport-https \
+    && apt install -y libpq-dev \
     gcc \
     g++ \
-    libpq-dev \
     unixodbc \
     unixodbc-dev \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
+RUN mkdir /fastapi
+
 WORKDIR /fastapi
 
 # Install pip requirements
-COPY requirements.txt .
+COPY requirements.txt /fastapi/requirements.txt
 RUN python -m venv /opt/venv && \
     pip install --upgrade pip && \
     pip install -r requirements.txt
@@ -26,13 +28,16 @@ RUN python -m venv /opt/venv && \
 FROM python:3.13-slim
 
 # Prepare apt files
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    apt-transport-https \
-    curl \
-    libpq-dev \
+RUN apt-get update \
+    && apt-get install -y apt-transport-https \
+    && apt install -y libpq-dev \
+    gcc \
+    g++ \
     unixodbc \
     unixodbc-dev \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Keeps Python from generating .pyc files in the container
 # Turns off buffering for easier container logging
@@ -42,10 +47,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY --from=builder /opt/venv /opt/venv
 
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+    && mkdir /fastapi
+
 WORKDIR /fastapi
 
 # Add docker-compose-wait tool
-ENV WAIT_VERSION=2.12.0
+ENV WAIT_VERSION 2.12.0
 ADD https://github.com/ufoscout/docker-compose-wait/releases/download/$WAIT_VERSION/wait /wait
 RUN chmod +x /wait
 

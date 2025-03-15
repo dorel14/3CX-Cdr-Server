@@ -177,36 +177,6 @@ services:
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       - "traefik.http.routers.grafana.entrypoints=web"
 
-  dnsmasq:
-    build:
-      context: .
-      dockerfile: ./dnsmasq/Dockerfile
-    restart: unless-stopped
-    user: root
-    cap_add:
-      - NET_ADMIN
-    env_file:
-      - .env
-    volumes:
-      #- ./dnsmasq/start.sh:/start.sh
-      - ./dnsmasq/dnsmasq.conf:/etc/dnsmasq.d/mydnsmasq.conf
-    environment:
-      - WEB_SERVER_NAME=${WEB_SERVER_NAME}
-      #- DNSMASQ_DEFAULT_DOMAIN=${WEB_SERVER_NAME:-localhost}
-      #- DNSMASQ_DNS_SERVER_1=1.1.1.1
-      #- DNSMASQ_DNS_SERVER_2=8.8.8.8
-      - CONTAINER_NAME=dnsmasq
-    networks:
-      custom_network:
-        ipv4_address: 172.18.0.254
-    ports:
-      - "53:53/udp"  # DNS service
-      #- "8053:8080"  # DNS web interface
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dnsmasq.rule=Host(\"dnsmasq.${WEB_SERVER_NAME:-localhost}\")"
-      - "traefik.http.services.dnsmasq.loadbalancer.server.port=8080"
-      - "traefik.http.routers.dnsmasq.entrypoints=web"
   traefik:
     build:
       context: .
@@ -223,14 +193,14 @@ services:
         condition: service_healthy
     environment:
       - SERVER_PORT=${SERVER_PORT}
-      - WEB_SERVER_NAME=test.local
+      - WEB_SERVER_NAME=${WEB_SERVER_NAME:-localhost}
       - CONTAINER_NAME=traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik/logs:/var/log/traefik
     networks:
-      custom_network:
-        ipv4_address: 172.18.0.190
+      - custom_network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-api.rule=Host(\"traefik.${WEB_SERVER_NAME:-localhost}\")"

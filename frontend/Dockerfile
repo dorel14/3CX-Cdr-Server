@@ -1,71 +1,57 @@
-# For more information, please refer to https://aka.ms/vscode-docker-python
 FROM python:3.13-slim AS builder
 
-#Prepare apt files
-RUN apt update \
-    && apt-get install -y apt-transport-https \
-&&  apt install -y libpq-dev \
+# Prepare apt files
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    apt-transport-https \
+    curl \
     gcc \
     g++ \
+    libpq-dev \
     unixodbc \
-    unixodbc-dev\
-    curl \
-&&	apt-get clean && rm -rf /var/lib/apt/lists/*
+    unixodbc-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN mkdir /webapp \
-&& mkdir /data  \
-&& mkdir /data/files
-
+RUN python -m venv /opt/venv && \
+    mkdir -p /webapp /data/files
 
 WORKDIR /webapp
-
 
 # Install pip requirements
-COPY requirements.txt /webapp/requirements.txt
-RUN python -m venv /opt/venv && \
-    pip install --upgrade pip && \
-    pip install -r requirements.txt 
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
-
-# final stage
+# Final stage
 FROM python:3.13-slim
 
-
-
-#Prepare apt files
-RUN apt-get update \
-    && apt-get install -y apt-transport-https \
-&& apt install -y libpq-dev \
-    gcc \
-    g++ \
+# Prepare apt files
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    apt-transport-https \
+    curl \
+    libpq-dev \
     unixodbc \
-    unixodbc-dev\
-    curl\
-&&	apt-get clean && rm -rf /var/lib/apt/lists/* \
-&& ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-# Keeps Python from generating .pyc files in the container
-# Turns off buffering for easier container logging
+    unixodbc-dev && \
+    rm -rf /var/lib/apt/lists/*
 
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1\
+    PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
 
-
+# Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
-&& mkdir /webapp
-#Permet de forcer le vidage de cahche des varaibles d'environnement
-ARG CACHEBUST=1
+# Set timezone and create necessary directories
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    mkdir -p /webapp
 
 WORKDIR /webapp
 
-#COPY . /webapp
-
+# Expose application port
 EXPOSE 8080
 
-
+# Command to run the application
 CMD ["python", "./frontend/main.py"]
