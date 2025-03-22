@@ -1,6 +1,6 @@
 nicegui==2.5.0
 nicegui-tabulator==0.2.1
-pandas==2.1.3
+pandas==2.2.3
 python-dotenv==1.0.0
 pytz==2024.2
 babel==2.16.0
