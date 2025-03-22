@@ -2,6 +2,7 @@
 import os
 import logging
 import pathlib
+import stat
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
@@ -12,7 +13,24 @@ logdir = os.path.join(parentdir, './logs')
 logfiles = os.path.join(logdir, '3cxtcpserver'+ datetime.today().strftime(date_format) +'.log')
 
 pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
-print(parentdir)
+# Définir les permissions du répertoire de logs (777 = rwxrwxrwx)
+try:
+    os.chmod(logdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # équivalent à 0o777
+    print(f"Permissions du répertoire {logdir} modifiées avec succès")
+except Exception as e:
+    print(f"Impossible de modifier les permissions du répertoire {logdir}: {e}")
+
+# Créer le fichier de log s'il n'existe pas et définir ses permissions
+if not os.path.exists(logfiles):
+    try:
+        # Créer un fichier vide
+        with open(logfiles, 'a'):
+            pass
+        # Définir les permissions du fichier (666 = rw-rw-rw-)
+        os.chmod(logfiles, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)  # équivalent à 0o666
+        print(f"Fichier {logfiles} créé avec les permissions appropriées")
+    except Exception as e:
+        print(f"Impossible de créer ou de modifier les permissions du fichier {logfiles}: {e}")
 
 # création de l'objet logger qui va nous servir à écrire dans les logs
 logger = logging.getLogger()

@@ -13,7 +13,7 @@ import os
 from socket_instance import connect_websocket
 
 
-    
+
 # Example 1: use a custom page decorator directly and putting the content creation into a separate function
 @ui.page('/')
 def index_page() -> None:

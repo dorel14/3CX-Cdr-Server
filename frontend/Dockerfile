@@ -1,57 +1,81 @@
+# For more information, please refer to https://aka.ms/vscode-docker-python
 FROM python:3.13-slim AS builder
+# Create the sources.list file if it doesn't exist
+RUN touch /etc/apt/sources.list
+# Add the default debian repository
+RUN echo "deb http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list
 
-# Prepare apt files
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    apt-transport-https \
-    curl \
+RUN sed -i 's|http://deb.debian.org|http://ftp.fr.debian.org|g' /etc/apt/sources.list
+#Prepare apt files
+RUN apt update \
+    && apt-get install -y apt-transport-https \
+&&  apt install -y libpq-dev \
     gcc \
     g++ \
-    libpq-dev \
+    build-essential \
+    rustc cargo \
     unixodbc \
-    unixodbc-dev && \
-    rm -rf /var/lib/apt/lists/*
+    unixodbc-dev\
+    curl \
+&&	apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN python -m venv /opt/venv && \
-    mkdir -p /webapp /data/files
+RUN mkdir /data  \
+&& mkdir /data/files
+
 
 WORKDIR /webapp
+ADD --chmod=755 https://astral.sh/uv/install.sh /install.sh
+RUN /install.sh && rm /install.sh
 
 # Install pip requirements
-COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+COPY ./frontend/requirements.txt /webapp/requirements.txt
+RUN /root/.local/bin/uv venv /opt/venv
+RUN /root/.local/bin/uv pip install --no-cache -r requirements.txt
 
-# Final stage
+# final stage
 FROM python:3.13-slim
+RUN touch /etc/apt/sources.list
+# Add the default debian repository
+RUN echo "deb http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list
 
-# Prepare apt files
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    apt-transport-https \
-    curl \
-    libpq-dev \
+RUN sed -i 's|http://deb.debian.org|http://ftp.fr.debian.org|g' /etc/apt/sources.list
+
+
+#Prepare apt files
+RUN apt-get update \
+    && apt-get install -y apt-transport-https \
+&& apt install -y libpq-dev \
+    gcc \
+    g++ \
     unixodbc \
-    unixodbc-dev && \
-    rm -rf /var/lib/apt/lists/*
+    unixodbc-dev\
+    curl\
+&&	apt-get clean && rm -rf /var/lib/apt/lists/* \
+&& ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# Keeps Python from generating .pyc files in the container
+# Turns off buffering for easier container logging
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
+    PYTHONUNBUFFERED=1\
     PATH="/opt/venv/bin:$PATH"
 
-# Copy virtual environment from builder
+
 COPY --from=builder /opt/venv /opt/venv
 
-# Set timezone and create necessary directories
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
-    mkdir -p /webapp
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+&& mkdir /webapp
+#Permet de forcer le vidage de cahche des varaibles d'environnement
+ARG CACHEBUST=1
 
 WORKDIR /webapp
 
-# Expose application port
+#COPY . /webapp
+
 EXPOSE 8080
 
-# Command to run the application
+
 CMD ["python", "./frontend/main.py"]
