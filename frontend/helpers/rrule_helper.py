@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 from dateutil.rrule import rrule, rrulestr, DAILY, WEEKLY, MONTHLY, YEARLY, MO, TU, WE, TH, FR, SA, SU
+from dateutil import parser
 from helpers.date_helpers import str_to_datetime
 from helpers.logging import logger
 import traceback
@@ -60,11 +61,30 @@ def parse_rrule(rrule_str):
 
         return freq, interval, days, months, until, count
 
-    except Exception as e:
-        logger.debug(f"Error parsing rrule: {str(e)}")
+    except ValueError as e:
+        logger.debug(f"Invalid rrule format: {str(e)}")
         logger.debug(f"Input rrule string: {rrule_str}")
         logger.debug(f"Full traceback: {traceback.format_exc()}")
         return None, 1, [], None, None
+    except rrule.InvalidRRuleParamValue as e:
+        logger.debug(f"Invalid rrule parameter: {str(e)}")
+        logger.debug(f"Input rrule string: {rrule_str}")
+        logger.debug(f"Full traceback: {traceback.format_exc()}")
+        return None, 1, [], None, None
+    except parser._parser.ParserError as e:
+        logger.debug(f"Date parsing error: {str(e)}")
+        logger.debug(f"Input rrule string: {rrule_str}")
+        logger.debug(f"Full traceback: {traceback.format_exc()}")
+        return None, 1, [], None, None
+    except Exception as e:
+        # Still keep a generic handler as a last resort, but re-raise with more context
+        logger.error(f"Unexpected error parsing rrule: {str(e)}")
+        logger.error(f"Input rrule string: {rrule_str}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        # Either re-raise with more context:
+        raise ValueError(f"Failed to parse rrule '{rrule_str}': {str(e)}") from e
+        # Or return a default value with an error indicator:
+        # return None, 2, [], None, None  # Using 2 as an error code to distinguish from the other error case
 
 def build_rrule_string(result, event_start, event_end=None):
     if isinstance(event_start, str):
