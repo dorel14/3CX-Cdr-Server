@@ -7,7 +7,7 @@ def run_alembic_command(command):
         # Use python -m alembic instead of direct alembic command
         python_executable = sys.executable
         modified_command = [python_executable, "-m", "alembic"] + command[1:]
-        
+
         result = subprocess.run(
             modified_command,
             capture_output=True,
