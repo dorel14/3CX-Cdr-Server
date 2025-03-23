@@ -5,7 +5,7 @@ import sys
 def run_alembic_command(command):
     try:
         # Use python -m alembic instead of direct alembic command
-        python_executable = sys.executable
+        python_executable = os.path.join("/opt/venv/bin", "python") #sys.executable
         modified_command = [python_executable, "-m", "alembic"] + command[1:]
 
         result = subprocess.run(
@@ -18,9 +18,9 @@ def run_alembic_command(command):
         if result.stderr:
             print(result.stderr, file=sys.stderr)
     except subprocess.CalledProcessError as e:
-        print(f"Erreur lors de l'exécution de la commande: {e}", file=sys.stderr)
-        print(e.stdout)
-        print(e.stderr, file=sys.stderr)
+        print(f"Alembic command failed with exit code {e.returncode}")
+        print(f"Command: {e.cmd}")
+        print(f"Error output: {e.stderr}")
         raise
 
 def init_database():

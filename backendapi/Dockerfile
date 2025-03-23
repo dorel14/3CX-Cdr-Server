@@ -28,7 +28,7 @@ RUN /root/.local/bin/uv venv /opt/venv
 RUN /root/.local/bin/uv pip install --no-cache -r requirements.txt
 
 # Final stage
-FROM python:3.13-slim as runner
+FROM python:3.13-slim AS runner
 # Create the sources.list file if it doesn't exist
 RUN touch /etc/apt/sources.list
 # Add the default debian repository
