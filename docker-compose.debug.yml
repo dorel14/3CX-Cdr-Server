@@ -3,7 +3,7 @@ services:
     image: "pgautoupgrade/pgautoupgrade:17-alpine"
     restart: unless-stopped
     networks:
-      - custom_network
+      - internal_network
     ports:
       - 5432:5432
     environment:
@@ -36,6 +36,7 @@ services:
         condition: service_healthy
     networks:
       - custom_network
+      - internal_network
     ports:
       - 8004:8000
     command: bash -c  "/wait && python -m backendapi.helpers.init_db && uvicorn backendapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --log-level info"
@@ -46,7 +47,7 @@ services:
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
-      - PK_EXTENSION_QUEUE_NAME = 'pk_extensiontoqueuelink'
+      - PK_EXTENSION_QUEUE_NAME=pk_extensiontoqueuelink
     healthcheck:
       test: curl http://webapi:8000/healthcheck || exit 1
       interval: 60s
@@ -103,13 +104,14 @@ services:
     tty: true
     networks:
       - custom_network
+      - internal_network
     env_file:
       - .env
     depends_on:
       webapi:
         condition: service_healthy
     restart: unless-stopped
-    command: bash -c "/wait && python -m backend.runserver"
+    command: bash -c "python -m backend.runserver"
     environment:
       - API_URL=http://webapi:8000
       - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
@@ -118,8 +120,9 @@ services:
       - WAIT_HOST_CONNECT_TIMEOUT=30
     volumes:
       - app-code:/home/appuser/app
+      - app-logs:/home/appuser/app/logs:rw
       - cdr_datas:/home/appuser/cdrfiles
-      - ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
+      #- ${LOCAL_CDR_FOLDER_ARCHIVE}:/home/appuser/cdrfiles/cdrfiles_archives:rw
     #labels:
       #- "traefik.enable=true"
       #- "traefik.tcp.routers.3cxtcpservice.rule=HostSNI(`*`)"  # Règle pour router en fonction de l'hostname
@@ -129,12 +132,12 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
-    container_name: pgadmin
     depends_on:
       db:
         condition: service_healthy
     networks:
       - custom_network
+      - internal_network
     ports:
       - 5555:80
     env_file:
@@ -157,10 +160,12 @@ services:
     image: grafana/grafana:latest
     environment:
       - CONTAINER_NAME=grafana
+      - WEB_SERVER_NAME=${WEB_SERVER_NAME}
     depends_on:
       - db
     networks:
       - custom_network
+      - internal_network
     ports:
       - 3000:3000
     restart: unless-stopped
@@ -173,27 +178,12 @@ services:
       - ./grafana/grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(\"grafana.${WEB_SERVER_NAME:-localhost}\")"
+      - "traefik.http.routers.grafana.rule=Host(\"grafana.${WEB_SERVER_NAME}\")"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       - "traefik.http.routers.grafana.entrypoints=web"
 
-  dnsmasq:
-    build: 
-      context: .
-      dockerfile: ./dnsmasq/Dockerfile
-    container_name: dnsmasq
-    restart: always
-    volumes:
-      - ./dnsmasq/start.sh:/start.sh
-    environment:
-      - WEB_SERVER_NAME=${WEB_SERVER_NAME:-localhost}
-    networks:
-      - custom_network
-    ports:
-      - "53:53/udp"  # DNS service
-
   traefik:
-    build: 
+    build:
       context: .
       dockerfile: ./traefik/Dockerfile
     env_file:
@@ -208,13 +198,14 @@ services:
         condition: service_healthy
     environment:
       - SERVER_PORT=${SERVER_PORT}
+      - WEB_SERVER_NAME=${WEB_SERVER_NAME:-localhost}
       - CONTAINER_NAME=traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik/logs:/var/log/traefik
     networks:
       - custom_network
-    #entrypoint: ["/bin/sh", "/scripts/entrypoint.sh"]
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-api.rule=Host(\"traefik.${WEB_SERVER_NAME:-localhost}\")"
@@ -231,6 +222,7 @@ volumes:
       type: none
       device: .
       o: bind
+  app-logs:
   api-dir:
     driver: local
     driver_opts:
@@ -250,4 +242,5 @@ networks:
     ipam:
       config:
         - subnet: ${DOCKER_SUBNET}
-          gateway: ${DOCKER_GATEWAY}
+  internal_network:
+    internal: true

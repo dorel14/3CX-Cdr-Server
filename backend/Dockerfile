@@ -1,63 +1,81 @@
-# For more information, please refer to https://aka.ms/vscode-docker-python
-# using ubuntu LTS version
 FROM python:3.13-slim AS builder
 
-# avoid stuck build due to user prompt
 ARG DEBIAN_FRONTEND=noninteractive
+# Create the sources.list file if it doesn't exist
+RUN touch /etc/apt/sources.list
+# Add the default debian repository
+RUN echo "deb http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list
 
-# Prepare apt files and install dependencies
+RUN sed -i 's|http://deb.debian.org|http://ftp.fr.debian.org|g' /etc/apt/sources.list
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    python3-pip python3-wheel gcc g++ curl libpq-dev iputils-ping \
+    wget \
+    gcc \
+    g++ \
+    iputils-ping \
+    libpq-dev \
+    curl \
+    build-essential \
+    rustc cargo \
+    #python3-pip \
+    #python3-wheel \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home myuser
 
-# Activate the virtual environment
-RUN python -m venv /home/myuser/venv
-ENV PATH="/home/myuser/venv/bin:$PATH"
 
-# Create necessary directories
-RUN mkdir /home/myuser/app
+ENV PATH="/home/myuser/.venv/bin:$PATH"
 WORKDIR /home/myuser/app
 
-# Install pip requirements
-COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir wheel && \
-    pip install --no-cache-dir -r requirements.txt
+ADD --chmod=755 https://astral.sh/uv/install.sh /install.sh
+RUN /install.sh && rm /install.sh
+
+COPY ./backend/requirements.txt .
+
+
+RUN /root/.local/bin/uv venv /home/myuser/.venv
+
+RUN /root/.local/bin/uv pip install --no-cache -r requirements.txt
+# RUN --mount=type=cache,target=/root/.cache/pip pip install --upgrade pip && \
+#     pip install --no-cache-dir wheel && \
+#     pip install --no-cache-dir -r requirements.txt
 
 FROM python:3.13-slim AS runner
 
-# Prepare apt files and install dependencies
+ARG DEBIAN_FRONTEND=noninteractive
+# Create the sources.list file if it doesn't exist
+RUN touch /etc/apt/sources.list
+# Add the default debian repository
+RUN echo "deb http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list
+
+RUN sed -i 's|http://deb.debian.org|http://ftp.fr.debian.org|g' /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    net-tools tzdata curl locales iputils-ping \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+    iputils-ping \
+    locales \
+    net-tools \
+    tzdata \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables
-ENV LANG ${LOCALE_LANGUAGE}.utf8
-ENV APP_DIR=/home/appuser/app
-ENV PYTHONDONTWRITEBYTECODE=1 \
+ENV LANG=${LOCALE_LANGUAGE}.utf8 \
+    APP_DIR=/home/appuser/app \
+    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/home/appuser/venv/bin:$PATH" \
-    VIRTUAL_ENV=/home/appuser/venv
+    PATH="/home/appuser/.venv/bin:$PATH" \
+    VIRTUAL_ENV=/home/appuser/.venv
 
-# Copy virtual environment and application code from builder stage
-COPY --from=builder /home/myuser/venv /home/appuser/venv
+COPY --from=builder /home/myuser/.venv /home/appuser/.venv
 COPY --from=builder /home/myuser/app /home/appuser/app
 
-# Add docker-compose-wait tool
-ENV WAIT_VERSION 2.12.0
-ADD https://github.com/ufoscout/docker-compose-wait/releases/download/$WAIT_VERSION/wait /wait
-RUN chmod +x /wait
 
-# Create necessary directories and set permissions
 RUN groupadd -r appgroup && \
-    useradd -u 1000 --create-home appuser --no-log-init -g appgroup --shell /bin/bash --groups sudo && \
+    useradd -u 1000 --create-home appuser --no-log-init -g appgroup --shell /bin/bash  --groups sudo && \
     mkdir -p /opt/cdrfiles /opt/cdrfiles_archives && \
+    mkdir -p /home/appuser/app/backend/logs && \
     chown -R appuser:appgroup /opt/cdrfiles /opt/cdrfiles_archives && \
-    chmod -R 777 ${APP_DIR} /opt/cdrfiles /opt/cdrfiles_archives
+    chown -R appuser:appgroup /home/appuser/app/backend/logs && \
+    chmod -R 777 ${APP_DIR} /opt/cdrfiles /opt/cdrfiles_archives /home/appuser/app/backend/logs
 
 WORKDIR ${APP_DIR}
 
-# Expose port
+#USER appuser
+
 EXPOSE 5000

@@ -1,5 +1,8 @@
-nicegui==1.4.0
-nicegui-tabulator==0.1.0
-pandas==2.1.3
-requests==2.31.0
+nicegui==2.5.0
+nicegui-tabulator==0.2.1
+pandas==2.2.3
 python-dotenv==1.0.0
+pytz==2024.2
+babel==2.16.0
+holidays==0.63
+httpx==0.27.2

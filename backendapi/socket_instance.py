@@ -1,5 +1,7 @@
 # -*- coding: UTF-8 -*-
 from fastapi import WebSocket
+from starlette.websockets import WebSocketDisconnect
+from websockets.exceptions import ConnectionClosed
 
 active_connections: set[WebSocket] = set()
 
@@ -19,5 +21,11 @@ async def broadcast_message(message: dict):
     for connection in active_connections:
         try:
             await connection.send_json(message)
-        except:
+        except (WebSocketDisconnect, ConnectionClosed) as e:
+            # Ces exceptions indiquent que la connexion est fermée
+            print(f"Connexion fermée: {e}")
+            active_connections.discard(connection)
+        except Exception as e:
+            # Pour toute autre erreur inattendue
+            print(f"Erreur inattendue: {e}")
             active_connections.discard(connection)

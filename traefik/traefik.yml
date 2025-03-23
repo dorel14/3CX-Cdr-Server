@@ -1,7 +1,18 @@
-accessLog: {}
+
 
 logs:
   level: "INFO"
+  filepath: "/var/log/traefik.log"
+  maxSize: 1
+  maxAge: 1
+  maxBackups: 3
+
+accessLog:
+  filepath: "/var/log/traefik-access.log"
+  format: "json"
+  bufferingSize: 100
+
+
 
 ping:
   entryPoint: "web"

@@ -143,7 +143,7 @@ def parse_cdr(data,filename=''):
             - pd.to_datetime(df_cdr["time_start"], format=date_format)
         ).dt.total_seconds()
         )
-    
+
     df_cdr_details["call_date"] = df_cdr["time_start"].apply(
         lambda x: dt.date(dt.strptime(x, date_format))
     )
@@ -178,7 +178,7 @@ def parse_cdr(data,filename=''):
     df_cdr["to_dispname"] = df_cdr["to_dispname"].apply(str)
     df_cdr["final_dispname"] = df_cdr["final_dispname"].apply(str)
     df_cdr["final_number"] = df_cdr["final_number"].apply(str)
-    
+
     cdr = df_cdr.to_json(orient="records", lines=True)
     cdr_details = df_cdr_details.to_json(orient="records", lines=True)
 
@@ -231,63 +231,98 @@ def push_cdr_api(cdr, cdr_details):
         mcdrdetails = r_cdrdetails.status_code
     else :
         logger.info("cdr detail existant")
-        mcdrdetails="cdr detail existant"      
+        mcdrdetails="cdr detail existant"
 
     return mcdr, mcdrdetails
 
 
 def validate_cdr(cdr, cdr_details):
+    """
+    Validates CDR and CDR details data by sending them to dedicated validation endpoints.
+
+    This implementation replaces the previous in-memory validation approach for several reasons:
+    1. Centralizes validation logic at the API level to ensure consistent validation rules
+    2. Allows validation rules to be updated without requiring client code changes
+    3. Leverages the same validation used during direct API submissions
+    4. Reduces code duplication between client and server components
+
+    If the API validation endpoints are unavailable, falls back to basic validation checks.
+
+    Args:
+        cdr (str): JSON string containing CDR data
+        cdr_details (str): JSON string containing CDR details data
+
+    Returns:
+        bool: True if validation passes, False otherwise
+    """
     webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr/validate'
     webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails/validate'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 
     try:
-        #Validation CDR 
+        # Primary validation method: API endpoints
         cdr_validation = requests.post(webapi_url_cdr, data=cdr, headers=headers)
         cdr_validation.raise_for_status()
 
-        #Validation des détails
         cdr_details_validation = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
         cdr_details_validation.raise_for_status()
 
         return True
+    except requests.exceptions.ConnectionError as e:
+        # Connection to API failed, log warning and fall back to basic validation
+        logger.warning(f"API validation unavailable, falling back to basic validation: {str(e)}")
+        return perform_basic_validation(cdr, cdr_details)
     except requests.exceptions.HTTPError as e:
-        logger.error(f"Erreur de Validation: {str(e)} ")
+        # API returned an error response
+        logger.error(f"Erreur de Validation: {str(e)}")
         return False
 
 
+def perform_basic_validation(cdr, cdr_details):
+    """
+    Performs basic validation of CDR and CDR details when API validation is unavailable.
 
+    This is a simplified version of the original validation logic that checks for
+    required fields and basic data integrity.
 
-    # cdr_data = [json.loads(row) for row in cdr.splitlines()]
-    # cdr_details_data = [json.loads(row) for row in cdr_details.splitlines()]
+    Args:
+        cdr (str): JSON string containing CDR data
+        cdr_details (str): JSON string containing CDR details data
 
-    # cdr_errors = []
-    # cdr_details_errors = []
+    Returns:
+        bool: True if basic validation passes, False otherwise
+    """
+    try:
+        # Parse JSON strings
+        cdr_data = json.loads(cdr)
+        cdr_details_data = json.loads(cdr_details)
 
-    # for i, row in enumerate(cdr_data):
-    #     row["time_start"] = dt.fromtimestamp(row["time_start"] / 1000)
-    #     row["time_answered"] = dt.fromtimestamp(row["time_answered"] / 1000) if row["time_answered"] else None
-    #     row["time_end"] = dt.fromtimestamp(row["time_end"] / 1000)
-    #     try:
-    #         call_data_records(**row)
-    #     except Exception as e:
-    #         cdr_errors.append((i + 1, row, str(e)))
+        # Check required fields in CDR
+        required_cdr_fields = ["historyid", "callid", "time_start", "time_end"]
+        for field in required_cdr_fields:
+            if field not in cdr_data or cdr_data[field] is None:
+                logger.error(f"Missing required CDR field: {field}")
+                return False
 
-    # for i, row in enumerate(cdr_details_data):
-    #     try:
-    #         call_data_records_details(**row)
-    #     except Exception as e:
-    #         cdr_details_errors.append((i + 1, row, str(e)))
+        # Check required fields in CDR details
+        required_details_fields = ["cdr_historyid"]
+        for field in required_details_fields:
+            if field not in cdr_details_data or cdr_details_data[field] is None:
+                logger.error(f"Missing required CDR details field: {field}")
+                return False
 
-    # if not cdr_errors and not cdr_details_errors:
-    #     return True
-    # else:
-    #     for line_number, row, error in cdr_errors:
-    #         logger.error(f"Erreur de validation ligne: {line_number} - Données: {row} - Erreur: {error}")
-    #     for line_number, row, error in cdr_details_errors:
-    #         logger.error(f"Erreur de validation ligne: {line_number} - Données: {row} - Erreur: {error}")
-    #     return False
+        # Verify historyid matches between CDR and CDR details
+        if cdr_data["historyid"] != cdr_details_data["cdr_historyid"]:
+            logger.error("Mismatch between CDR historyid and CDR details cdr_historyid")
+            return False
 
+        return True
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON format: {str(e)}")
+        return False
+    except Exception as e:
+        logger.error(f"Basic validation error: {str(e)}")
+        return False
 def push_cdr_api2(cdr, cdr_details):
 
     """Fonction permettant de poster le CDR et son détail vers l'API

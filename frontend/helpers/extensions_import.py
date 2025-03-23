@@ -14,6 +14,7 @@ def post_extensions(extensions:str | pd.DataFrame):
     """Fonction permettant de poster les extensions au serveur
     Cette fonction teste si l'enregistrement existe avant de le poster
     """
+    print(f"Table: {extensions}")
 
     if len(extensions) > 0:
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
@@ -23,9 +24,9 @@ def post_extensions(extensions:str | pd.DataFrame):
             list_of_jsons=[extensions]
         elif isinstance(extensions, pd.DataFrame):
             list_of_jsons = extensions.to_json(orient='records', lines=True).splitlines()
-            
+
         for js in list_of_jsons:
-                logger.info(js)            
+                logger.info(f"Json: {js}")
                 try:
                     j = json.loads(js)
                     testextension = requests.get(f"{webapi_url_extensions}/byextension/{j["extension"]}")

@@ -39,13 +39,14 @@ async def create_event(
         )
         s.add(db_event)
         await s.flush()  # Pour obtenir l'ID de l'événement
+        create_event_id = db_event.id
 
         # Création des liaisons avec les queues
         if event.queueslist:
             for queue in event.queueslist:
                 queue_event = QueuesEvents(
                     queue_id=queue.id,
-                    event_id=db_event.id
+                    event_id=create_event_id
                 )
                 s.add(queue_event)
 
@@ -68,6 +69,13 @@ async def create_event(
                 s.add(event_type_event)
 
         await s.commit()
+        stmt = select(ExtraEvents
+                    ).options(selectinload(ExtraEvents.extensionslist)
+                    ).options(selectinload(ExtraEvents.queueslist)
+                    ).options(selectinload(ExtraEvents.eventtypeslist)
+                    ).where(ExtraEvents.id == create_event_id)
+        result = await s.execute(stmt)
+        db_event = result.unique().scalar_one()
         # Create broadcast message with serializable data
         event_dict = {
             'id': db_event.id,
@@ -80,7 +88,7 @@ async def create_event(
             'recurrence_rule': db_event.recurrence_rule,
             'exdate': db_event.exdate
         }
-        
+
         await broadcast_message({'action': 'create', 'event': event_dict})
         return db_event
 
