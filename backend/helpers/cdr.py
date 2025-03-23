@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 from datetime import datetime as dt
-
+import traceback
 import requests
 from requests.exceptions import HTTPError
 from .logging import logger
@@ -273,9 +273,25 @@ def validate_cdr(cdr, cdr_details):
         logger.warning(f"API validation unavailable, falling back to basic validation: {str(e)}")
         return perform_basic_validation(cdr, cdr_details)
     except requests.exceptions.HTTPError as e:
-        # API returned an error response
-        logger.error(f"Erreur de Validation: {str(e)}")
-        return False
+        # API returned an error response - check if it's a server error (5xx)
+        if e.response.status_code >= 500:
+            logger.error(f"API server error during validation (code {e.response.status_code}): {str(e)}")
+            logger.warning("Falling back to basic validation due to API server error")
+            return perform_basic_validation(cdr, cdr_details)
+        else:
+            # Client error (4xx) - likely a validation failure, log details from response if available
+            try:
+                error_details = e.response.json()
+                logger.error(f"Validation error (code {e.response.status_code}): {error_details}")
+            except ValueError:
+                logger.error(f"Validation error (code {e.response.status_code}): {str(e)}")
+            return False
+    except Exception as e:
+        # Catch any other unexpected exceptions
+        logger.error(f"Unexpected error during validation: {str(e)}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        logger.warning("Falling back to basic validation due to unexpected error")
+        return perform_basic_validation(cdr, cdr_details)
 
 
 def perform_basic_validation(cdr, cdr_details):
@@ -408,6 +424,6 @@ def push_cdr_api2(cdr, cdr_details):
         else:
             logger.info("cdr existant")
             mcdrdetails = "cdr existant"
-    
+
 
     return mcdr, mcdrdetails
