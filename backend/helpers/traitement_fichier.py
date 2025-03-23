@@ -14,9 +14,36 @@ def sanitize_filepath(filepath):
 
 def check_directory_permissions(directory_path):
     """
-    Checks the permissions of the specified directory path and logs the read, write, and execute permissions, as well as the user and group ownership.
+    Checks and logs the permissions of the specified directory path to ensure proper file operations.
 
-    This function is used to ensure that the necessary permissions are set on directories used for file operations, such as creating new directories or moving files.
+    This function examines the read, write, and execute permissions of a directory, as well as
+    its ownership information (user and group IDs). These permission checks are critical for
+    the application's file handling operations, particularly for:
+
+    1. File Movement: When moving files between directories using files_move(), the application
+    needs write permissions in both source and destination directories.
+
+    2. CSV Processing: When reading and processing CSV files with csv_files_read(), the application
+    requires read permissions on the source directory and files.
+
+    3. Archive Operations: When creating archive directories with year/month structure, the application
+    needs execute and write permissions to create subdirectories.
+
+    4. Security: Logging ownership information helps identify potential permission issues related
+    to user/group access, especially in containerized environments where UID/GID mapping
+    can cause unexpected behavior.
+
+    The function logs all permission information at ERROR level to ensure visibility during
+    troubleshooting, even when normal logging is set to a higher threshold.
+
+    Args:
+        directory_path (str): The absolute path to the directory whose permissions should be checked
+
+    Returns:
+        None: Results are logged but not returned
+
+    Raises:
+        OSError: If the directory does not exist or cannot be accessed
     """
     permissions = os.stat(directory_path).st_mode
     logger.error(f"Permissions of the directory:{directory_path}")
