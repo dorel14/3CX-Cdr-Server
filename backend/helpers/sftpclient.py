@@ -21,7 +21,6 @@ class sftpclient:
 
     The `monitor` method is the main entry point for interacting with the SFTP server. It will connect to the SFTP server, change to the specified `ftpfolder`, download any new files to the `localfolder`, and then either archive or delete the files on the SFTP server based on the value of the `FTP_3CX_ARCHIVE_OR_DELETE` environment variable. Finally, it will read any CSV files that were downloaded and move them to the `archivefolder`.
     """
-
     def __init__(self, host, user, password, server_dir, interval, port=22, private_key=None, private_key_pass=None):
         self.host = host
         self.user = user
