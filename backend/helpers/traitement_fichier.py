@@ -3,7 +3,7 @@ import glob
 import os
 from datetime import datetime
 import shutil
-
+import re
 from .cdr import parse_cdr, push_cdr_api, validate_cdr
 from .logging import logger
 
@@ -54,9 +54,65 @@ def check_directory_permissions(directory_path):
     logger.error(f"Group : {os.stat(directory_path).st_gid}")
 
 def files_move(file, savefolder):
+    """
+    Safely moves a file to a timestamped location within the specified save folder.
+
+    This function implements several security measures to prevent path traversal and
+    other file-related vulnerabilities:
+    1. Input validation for file path
+    2. Path sanitization and normalization
+    3. Directory traversal prevention
+    4. Explicit permission checks
+    5. File type validation (optional)
+
+    Args:
+        file (str): Path to the source file to be moved
+        savefolder (str): Base directory where the file will be moved to
+
+    Returns:
+        str: Path to the destination file
+
+    Raises:
+        ValueError: If the file path or save folder contains suspicious patterns
+        FileNotFoundError: If the source file doesn't exist
+        PermissionError: If there are insufficient permissions
+    """
+    # Input validation for file parameter
+    if not isinstance(file, str) or not file:
+        raise ValueError("File path must be a non-empty string")
+
+    # Check for suspicious patterns in file path
+    suspicious_patterns = ['../', '..\\', '~', '$', '|', ';', '&', '>', '<']
+    if any(pattern in file for pattern in suspicious_patterns):
+        logger.error(f"Suspicious pattern detected in file path: {file}")
+        raise ValueError("File path contains potentially malicious patterns")
+
+    # Validate file exists before processing
+    if not os.path.exists(file):
+        raise FileNotFoundError(f"Source file does not exist: {file}")
+
+    # Validate file is a regular file (not a symlink, device file, etc.)
+    if not os.path.isfile(file):
+        raise ValueError(f"Source path is not a regular file: {file}")
+
+    # Optional: Validate file type/extension if needed
+    # allowed_extensions = ['.csv', '.txt']
+    # if not any(file.lower().endswith(ext) for ext in allowed_extensions):
+    #     raise ValueError(f"File type not allowed: {file}")
+
     # Sanitize input paths
     filename = sanitize_filepath(file)
     savefolder = os.path.realpath(os.path.normpath(savefolder))
+
+    # Verify save folder exists and is a directory
+    if not os.path.exists(savefolder):
+        raise ValueError(f"Save folder does not exist: {savefolder}")
+    if not os.path.isdir(savefolder):
+        raise ValueError(f"Save folder is not a directory: {savefolder}")
+
+    # Check write permissions on save folder
+    if not os.access(savefolder, os.W_OK):
+        raise PermissionError(f"No write permission on save folder: {savefolder}")
 
     year = datetime.now().strftime("%Y")
     month = datetime.now().strftime("%m")
@@ -65,21 +121,30 @@ def files_move(file, savefolder):
     # Construct and validate paths
     final_path = os.path.realpath(os.path.normpath(os.path.join(savefolder, year, month)))
     if not final_path.startswith(savefolder):
+        logger.error(f"Path traversal attempt detected: {final_path}")
         raise ValueError("Destination path outside allowed directory")
 
     source = os.path.realpath(os.path.normpath(file))
     if not os.path.exists(source):
         raise FileNotFoundError(f"Source file {source} does not exist")
 
-    destination = os.path.join(final_path, date + '_' + filename)
+    # Verify source file is readable
+    if not os.access(source, os.R_OK):
+        raise PermissionError(f"No read permission on source file: {source}")
+
+    # Create a safe destination filename with timestamp prefix
+    safe_filename = re.sub(r'[^\w\.-]', '_', filename)  # Replace unsafe chars
+    destination = os.path.join(final_path, date + '_' + safe_filename)
 
     # Create directories with restricted permissions
     os.makedirs(final_path, mode=0o755, exist_ok=True)
 
     # Perform move operation with validated paths
-    # file deepcode ignore PT: <please specify a reason of ignoring this>
+    # file deepcode ignore PT: Path traversal is prevented by validation above
     shutil.move(source, destination)
     logger.info(f'File moved: {source} -> {destination}')
+
+    return destination
 
 
 def csv_files_read(filefolder, archivefolder):

@@ -11,18 +11,18 @@ archivefolder= '/home/appuser/cdrfiles/cdrfiles_archives/'
 def create_client(server_type, **kwargs):
     """
     Creates a client instance based on the specified server type.
-    
+
     Args:
         server_type (str): The type of server to connect to, either 'FTP', 'SFTP', or 'SCP'.
         **kwargs: Additional keyword arguments to pass to the specific client implementation.
-    
+
     Returns:
         An instance of the appropriate client class (ftpclient, sftpclient, or scpclient) based on the server_type.
-    
+
     Raises:
         ValueError: If an invalid server_type is provided.
     """
-        
+
     if server_type == 'FTP':
         from .helpers.ftpclient import FTPClient as ftpclient
         return ftpclient(**kwargs)

@@ -1,8 +1,11 @@
+alembic==1.14.0
+asyncpg==0.30.0
 fastapi==0.115.4
 uvicorn==0.24.0
-sqlalchemy==2.0.23
+sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 python-dotenv==1.0.0
 pydantic==2.9.2
 pydantic_core==2.23.4
-alembic==1.14.0
+websockets==14.0
+starlette==0.41.2
