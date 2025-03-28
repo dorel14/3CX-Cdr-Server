@@ -1,39 +1,96 @@
-# -*- coding: UTF-8 -*-
-import pysftp
+# -*- coding: utf-8 -*-
 import os
 import socket
+import pysftp
+import paramiko
+import traceback
 from time import sleep
 from .logging import logger
 from .traitement_fichier import csv_files_read
-from pathlib import Path
 
-path = Path(__file__).resolve()
-dir_path = path.parent
-working_path = path.cwd()
-
-class sftpclient:
+class sftpclient():
     """
-    The sftpclient class provides a convenient way to interact with an SFTP server. It allows you to:
-
-        - Connect to an SFTP server with the provided host, user, password, and optional port, private key, and private key password.
-        - Monitor an SFTP folder, download any new files to a local folder, and optionally archive or delete the files on the SFTP server.
-        - Read any CSV files that were downloaded to the local folder and move them to an archive folder.
-
-    The `monitor` method is the main entry point for interacting with the SFTP server. It will connect to the SFTP server, change to the specified `ftpfolder`, download any new files to the `localfolder`, and then either archive or delete the files on the SFTP server based on the value of the `FTP_3CX_ARCHIVE_OR_DELETE` environment variable. Finally, it will read any CSV files that were downloaded and move them to the `archivefolder`.
+    Provides a class `sftpclient` that handles connecting to an SFTP server, downloading files, and processing them.
     """
-    def __init__(self, host, user, password, server_dir, interval, port=22, private_key=None, private_key_pass=None):
+    def __init__(self, host, user, password=None, port=22, private_key=None, private_key_pass=None):
+        """
+        Initializes an instance of the `sftpclient` class with the specified SFTP server parameters.
+        """
         self.host = host
         self.user = user
-        self.password = os.getenv("SFTP_PASSWORD", password)  # Sécurisation
+        self.password = password
         self.port = port
-        self.server_dir = server_dir
-        self.interval = interval
         self.private_key = private_key
         self.private_key_pass = private_key_pass
+
+    def handle_remote_file(self, sftp, file_path, action="ARCHIVE", archive_folder=None):
+        """
+        Gère un fichier distant sur un serveur SFTP (archivage ou suppression)
+
+        Args:
+            sftp (paramiko.SFTPClient): Connexion SFTP active
+            file_path (str): Chemin du fichier à traiter
+            action (str): Action à effectuer ("ARCHIVE" ou "DELETE")
+            archive_folder (str, optional): Dossier d'archivage si action="ARCHIVE"
+
+        Returns:
+            bool: True si l'opération a réussi, False sinon
+        """
+        try:
+            file_name = os.path.basename(file_path)
+
+            if action == "ARCHIVE":
+                if not archive_folder:
+                    logger.error(f"Dossier d'archivage non spécifié pour {file_path}")
+                    return False
+
+                # Vérifier si le dossier d'archive existe, sinon le créer
+                try:
+                    sftp.stat(archive_folder)
+                except FileNotFoundError:
+                    logger.info(f"Création du dossier d'archive {archive_folder}")
+                    sftp.mkdir(archive_folder)
+
+                # Archiver le fichier (renommer/déplacer)
+                archive_path = os.path.join(archive_folder, file_name)
+                logger.info(f"Archivage du fichier {file_path} vers {archive_path}")
+                sftp.rename(file_path, archive_path)
+                logger.info(f"Fichier {file_name} archivé avec succès")
+
+            elif action == "DELETE":
+                logger.info(f"Suppression du fichier {file_path}")
+                sftp.remove(file_path)
+                logger.info(f"Fichier {file_name} supprimé avec succès")
+
+            else:
+                logger.warning(f"Action non reconnue: {action}. Fichier {file_path} non traité.")
+                return False
+
+            return True
+
+        except paramiko.SSHException as e:
+            logger.error(f"Erreur SSH lors du traitement de {file_path}: {str(e)}")
+        except paramiko.SFTPError as e:
+            logger.error(f"Erreur SFTP lors du traitement de {file_path}: {str(e)}")
+        except FileNotFoundError as e:
+            logger.error(f"Fichier non trouvé lors du traitement de {file_path}: {str(e)}")
+        except PermissionError as e:
+            logger.error(f"Erreur de permission lors du traitement de {file_path}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Erreur inattendue lors du traitement de {file_path}: {str(e)}")
+            logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
+
+        return False
 
     def monitor(self, ftpfolder='', localfolder='', archivefolder='', interval=50):
         """
         Surveillance d'un dossier SFTP et gestion des fichiers.
+
+        Args:
+            ftpfolder (str): Chemin du dossier distant à surveiller
+            localfolder (str): Dossier local où télécharger les fichiers
+            archivefolder (str): Dossier où déplacer les fichiers traités
+            interval (int): Intervalle en secondes entre les vérifications
         """
 
         # Vérification de la résolution du hostname
@@ -58,34 +115,57 @@ class sftpclient:
             logger.warning(f"Valeur invalide pour 3CX_FILES_ARCHIVE_OR_DELETE : {action}. Utilisation de ARCHIVE.")
             action = 'ARCHIVE'
 
-        try:
-            with pysftp.Connection(host=self.host, port=self.port,
-                                    username=self.user, password=self.password,
-                                    private_key=self.private_key, private_key_pass=self.private_key_pass,
-                                    cnopts=cnopts) as sftp:
-                sftp.chdir(ftpfolder)
-                fNames = sftp.listdir()
+        while True:
+            try:
+                with pysftp.Connection(host=self.host,
+                                        port=self.port,
+                                        username=self.user,
+                                        password=self.password,
+                                        private_key=self.private_key,
+                                        private_key_pass=self.private_key_pass,
+                                        cnopts=cnopts) as sftp:
+                    sftp.chdir(ftpfolder)
+                    fNames = sftp.listdir()
 
-                for f in fNames:
-                    logger.info(f"Traitement du fichier : {f}")
-                    if not f.endswith('old'):
+                    # Filtrer les fichiers selon l'extension définie
+                    file_extension = os.environ.get('3CX_FILEEXT', '.csv')
+                    filtered_files = [f for f in fNames if f.endswith(file_extension)]
+
+                    downloaded_files = False
+
+                    for f in filtered_files:
+                        logger.info(f"Traitement du fichier : {f}")
                         local_file_path = os.path.join(localfolder, f)
                         try:
                             sftp.get(f, local_file_path)
                             logger.info(f"Fichier téléchargé : {f}")
+                            downloaded_files = True
 
-                            if action == 'ARCHIVE':
-                                sftp.rename(f, f + ".old")
-                            elif action == 'DELETE':
-                                sftp.remove(f)
+                            # Gérer le fichier distant (archiver ou supprimer)
+                            archive_folder = os.path.join(ftpfolder, 'cdrfiles_archives') if action == 'ARCHIVE' else None
+                            self.handle_remote_file(sftp, f, action, archive_folder)
+
                         except Exception as e:
-                            logger.error(f"Erreur lors du traitement du fichier {f} : {e}")
+                            logger.error(f"Erreur lors du traitement du fichier {f}: {str(e)}")
+                            logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
 
-                csv_files_read(localfolder, archivefolder)
+                    # Traiter les fichiers téléchargés avec la fonction existante
+                    if downloaded_files:
+                        logger.info('New files detected')
+                        csv_files_read(localfolder, archivefolder)
 
-        except pysftp.ConnectionException as e:
-            logger.error(f"Échec de la connexion SFTP : {e}")
-        except Exception as e:
-            logger.error(f"Erreur inattendue : {e}")
+                # Attendre avant la prochaine vérification
+                logger.info(f"Attente de {interval} secondes avant la prochaine vérification")
+                sleep(interval)
 
-        sleep(interval)
+            except paramiko.SSHException as e:
+                logger.error(f"Erreur SSH: {str(e)}")
+            except socket.error as e:
+                logger.error(f"Erreur de socket: {str(e)}")
+            except Exception as e:
+                logger.error(f"Erreur inattendue: {str(e)}")
+                logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
+
+            # En cas d'erreur, attendre avant de réessayer
+            logger.info(f"Tentative de reconnexion dans {interval} secondes")
+            sleep(interval)

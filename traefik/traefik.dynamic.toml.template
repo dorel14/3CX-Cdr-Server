@@ -1,2 +1,0 @@
-[entryPoints.tcp]
-  address = ":${SERVER_PORT}"
