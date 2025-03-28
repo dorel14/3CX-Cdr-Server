@@ -1,8 +1,7 @@
-# -*- coding: UTF-8 -*-
-from scp import SCPClient
-import paramiko
+# -*- coding: utf-8 -*-
 import os
-import fnmatch
+import paramiko
+import traceback
 import socket
 from time import sleep
 from .logging import logger
@@ -21,7 +20,72 @@ class scpclient():
         self.password=password
         self.port=port
 
-    def monitor(self, ftpfolder='', localfolder='',archivefolder='', interval=50):
+    def handle_remote_file(self, ssh, file_path, action="ARCHIVE", archive_folder=None):
+        """
+        Gère un fichier distant sur un serveur SSH/SCP (archivage ou suppression)
+
+        Args:
+            ssh (paramiko.SSHClient): Connexion SSH active
+            file_path (str): Chemin du fichier à traiter
+            action (str): Action à effectuer ("ARCHIVE" ou "DELETE")
+            archive_folder (str, optional): Dossier d'archivage si action="ARCHIVE"
+
+        Returns:
+            bool: True si l'opération a réussi, False sinon
+        """
+        try:
+            file_name = os.path.basename(file_path)
+
+            if action == "ARCHIVE":
+                if not archive_folder:
+                    logger.error(f"Dossier d'archivage non spécifié pour {file_path}")
+                    return False
+
+                # Exécuter des commandes via SSH pour gérer les fichiers
+                # Vérifier si le dossier d'archive existe, sinon le créer
+                stdin, stdout, stderr = ssh.exec_command(f"test -d {archive_folder} || mkdir -p {archive_folder}")
+                if stderr.read():
+                    logger.error(f"Erreur lors de la vérification/création du dossier {archive_folder}: {stderr.read().decode()}")
+                    return False
+
+                # Archiver le fichier (renommer/déplacer)
+                archive_path = os.path.join(archive_folder, file_name)
+                logger.info(f"Archivage du fichier {file_path} vers {archive_path}")
+                stdin, stdout, stderr = ssh.exec_command(f"mv {file_path} {archive_path}")
+                error = stderr.read()
+                if error:
+                    logger.error(f"Erreur lors de l'archivage du fichier {file_path}: {error.decode()}")
+                    return False
+                logger.info(f"Fichier {file_name} archivé avec succès")
+
+            elif action == "DELETE":
+                logger.info(f"Suppression du fichier {file_path}")
+                stdin, stdout, stderr = ssh.exec_command(f"rm {file_path}")
+                error = stderr.read()
+                if error:
+                    logger.error(f"Erreur lors de la suppression du fichier {file_path}: {error.decode()}")
+                    return False
+                logger.info(f"Fichier {file_name} supprimé avec succès")
+
+            else:
+                logger.warning(f"Action non reconnue: {action}. Fichier {file_path} non traité.")
+                return False
+
+            return True
+
+        except paramiko.SSHException as e:
+            logger.error(f"Erreur SSH lors du traitement de {file_path}: {str(e)}")
+        except paramiko.AuthenticationException as e:
+            logger.error(f"Erreur d'authentification lors du traitement de {file_path}: {str(e)}")
+        except paramiko.ChannelException as e:
+            logger.error(f"Erreur de canal SSH lors du traitement de {file_path}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Erreur inattendue lors du traitement de {file_path}: {str(e)}")
+            logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
+
+        return False
+
+    def monitor(self, ftpfolder='', localfolder='', archivefolder='', interval=50):
         """
         Monitors a remote directory via SCP/SSH, downloads new files, and processes them.
 
@@ -40,108 +104,95 @@ class scpclient():
         """
         ssh = paramiko.SSHClient()
 
-        try:
-            # Use system host keys
-            ssh.load_system_host_keys()
+        # Validation de l'action d'archivage/suppression
+        action = os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE', 'ARCHIVE').upper()
+        if action not in ['ARCHIVE', 'DELETE']:
+            logger.warning(f"Valeur invalide pour 3CX_FILES_ARCHIVE_OR_DELETE : {action}. Utilisation de ARCHIVE.")
+            action = 'ARCHIVE'
 
-            # Or load from known_hosts file
-            known_hosts_path = os.path.expanduser('~/.ssh/known_hosts')
-            if os.path.exists(known_hosts_path):
-                ssh.load_host_keys(known_hosts_path)
-
-            # Reject unknown hosts by using the default policy
-            ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
-
-            # Connect with strict host key checking
-            logger.info(f"Connecting to {self.host}:{self.port} as {self.user}")
-            ssh.connect(
-                hostname=self.host, 
-                port=self.port, 
-                username=self.user, 
-                password=self.password, 
-                banner_timeout=200
-            )
-
-            sftp = ssh.open_sftp()
-
+        while True:
             try:
-                sftp.chdir(ftpfolder)
-            except IOError as e:
-                logger.error(f"Cannot access remote directory {ftpfolder}: {str(e)}")
-                return
+                # Use system host keys
+                ssh.load_system_host_keys()
 
-            fNames = sftp.listdir(sftp.getcwd())
-            with SCPClient(ssh.get_transport(), sanitize=lambda x: x) as scp:
-                for f in fNames:
-                    logger.info(f"Found file: {f}")
-                    scpfilename = os.path.join(ftpfolder, f)
+                # Or load from known_hosts file
+                known_hosts_path = os.path.expanduser('~/.ssh/known_hosts')
+                if os.path.exists(known_hosts_path):
+                    ssh.load_host_keys(known_hosts_path)
 
-                    # Only process files matching the configured pattern
-                    if fnmatch.fnmatch(f, os.environ.get('3CX_FILEEXT')):
-                        try:
-                            # Check if file exists and is accessible
-                            sftp.stat(scpfilename)
+                # Reject unknown hosts by using the default policy
+                ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
 
-                            # Download the file
-                            local_path = os.path.join(localfolder, f)
-                            logger.info(f"Downloading {scpfilename} to {local_path}")
-                            scp.get(remote_path=scpfilename, local_path=local_path)
-                            logger.info("File downloaded successfully.")
+                # Connect with strict host key checking
+                logger.info(f"Connecting to {self.host}:{self.port} as {self.user}")
+                ssh.connect(
+                    hostname=self.host, 
+                    port=self.port, 
+                    username=self.user, 
+                    password=self.password
+                )
 
-                            # Archive or delete the remote file based on configuration
-                            if os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'ARCHIVE':
-                                try:
-                                    sftp.rename(scpfilename, f"{scpfilename}.old")
-                                    logger.info(f"Archived remote file to {scpfilename}.old")
-                                except IOError as e:
-                                    logger.error(f"Failed to archive remote file {scpfilename}: {str(e)}")
-                            elif os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'DELETE':
-                                try:
-                                    # Exécuter la commande sans sudo
-                                    stdin, stdout, stderr = ssh.exec_command(f"rm -f {scpfilename}")
-                                    exit_status = stdout.channel.recv_exit_status()
-                                    if exit_status == 0:
-                                        logger.info(f"Deleted remote file {scpfilename}")
-                                    else:
-                                        error_output = stderr.read().decode('utf-8').strip()
-                                        logger.error(f"Command failed with status {exit_status}: {error_output}")
-                                except paramiko.SSHException as ssh_err:
-                                    logger.error(f"SSH error while deleting {scpfilename}: {str(ssh_err)}")
-                                except IOError as io_err:
-                                    logger.error(f"I/O error while deleting {scpfilename}: {str(io_err)}")
-                                except Exception as e:
-                                    logger.error(f"Failed to delete remote file {scpfilename}: {str(e)}")
-                        except IOError as e:
-                            logger.warning(f"Cannot access remote file {scpfilename}: {str(e)}")
-                            continue
-                        except Exception as e:
-                            logger.error(f"Error processing file {scpfilename}: {str(e)}")
-                            continue
+                # Déterminer l'extension de fichier à surveiller
+                file_extension = os.environ.get('3CX_FILEEXT', '.csv')
 
-                # Process downloaded files
-                try:
+                # Lister les fichiers dans le dossier distant
+                stdin, stdout, stderr = ssh.exec_command(f"find {ftpfolder} -type f -name '*{file_extension}'")
+                files = stdout.read().decode().strip().split('\n')
+
+                downloaded_files = False
+
+                for file_path in files:
+                    if not file_path:  # Ignorer les lignes vides
+                        continue
+
+                    file_name = os.path.basename(file_path)
+                    local_file_path = os.path.join(localfolder, file_name)
+
+                    # Télécharger le fichier
+                    try:
+                        # Créer un client SCP à partir de la session SSH
+                        scp = paramiko.SFTPClient.from_transport(ssh.get_transport())
+                        scp.get(file_path, local_file_path)
+                        logger.info(f"Fichier téléchargé: {file_name}")
+                        downloaded_files = True
+
+                        # Gérer le fichier distant (archiver ou supprimer)
+                        archive_folder = os.path.join(ftpfolder, 'cdrfiles_archives') if action == 'ARCHIVE' else None
+                        self.handle_remote_file(ssh, file_path, action, archive_folder)
+
+                    except Exception as e:
+                        logger.error(f"Erreur lors du téléchargement du fichier {file_name}: {str(e)}")
+                        logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
+
+                # Traiter les fichiers téléchargés avec la fonction existante
+                if downloaded_files:
+                    logger.info('New files detected')
                     csv_files_read(localfolder, archivefolder)
-                except Exception as e:
-                    logger.error(f"Error processing downloaded files: {str(e)}")
 
+                # Fermer la connexion SSH
+                ssh.close()
+
+                # Attendre avant la prochaine vérification
+                logger.info(f"Attente de {interval} secondes avant la prochaine vérification")
                 sleep(interval)
 
-        except paramiko.ssh_exception.SSHException as e:
-            logger.error(f"SSH connection error: {str(e)}")
-            if "Host key verification failed" in str(e):
-                logger.error(f"Host key verification failed for {self.host}. If this is a trusted host, add its key to known_hosts.")
-            elif "Authentication failed" in str(e):
-                logger.error(f"Authentication failed for user {self.user}. Please check credentials.")
-            else:
-                logger.error(f"SSH error: {str(e)}")
-        except paramiko.ssh_exception.NoValidConnectionsError as e:
-            logger.error(f"Could not connect to {self.host}:{self.port}: {str(e)}")
-        except socket.timeout:
-            logger.error(f"Connection timeout while connecting to {self.host}:{self.port}")
-        except Exception as e:
-            logger.error(f"Unexpected error in SCP monitor: {str(e)}")
-        finally:
-            # Ensure SSH connection is closed even if an exception occurs
-            if ssh:
-                ssh.close()
-                logger.info("SSH connection closed")
+            except paramiko.SSHException as e:
+                logger.error(f"Erreur SSH: {str(e)}")
+            except socket.error as e:
+                logger.error(f"Erreur de socket: {str(e)}")
+            except Exception as e:
+                logger.error(f"Erreur inattendue: {str(e)}")
+                logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
+
+            # En cas d'erreur, attendre avant de réessayer
+            logger.info(f"Tentative de reconnexion dans {interval} secondes")
+            sleep(interval)
+
+            # Fermer la connexion SSH si elle est encore ouverte
+            try:
+                if ssh and ssh.get_transport() and ssh.get_transport().is_active():
+                    ssh.close()
+            except paramiko.SSHException as e:
+                logger.debug(f"Erreur lors de la fermeture de la connexion SSH: {str(e)}")
+            except Exception as e:
+                logger.debug(f"Erreur inattendue lors de la fermeture de la connexion SSH: {str(e)}")
