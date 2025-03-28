@@ -12,7 +12,7 @@ import traceback
 import requests
 from requests.exceptions import HTTPError
 from .logging import logger
-from config.settings import CONFIG
+from ..config.settings import CONFIG
 import sys
 sys.path.append(os.path.abspath("."))
 
