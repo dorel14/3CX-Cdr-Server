@@ -84,7 +84,7 @@ class scpclient():
 
                             # Download the file
                             local_path = os.path.join(localfolder, f)
-                            logger.info(f"Downloading {scpfilename} to {local_path}")
+                            logger.info(f"Downloading file to {local_path}")
                             scp.get(remote_path=scpfilename, local_path=local_path)
                             logger.info("File downloaded successfully.")
 
@@ -92,7 +92,7 @@ class scpclient():
                             if os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'ARCHIVE':
                                 try:
                                     sftp.rename(scpfilename, f"{scpfilename}.old")
-                                    logger.info(f"Archived remote file to {scpfilename}.old")
+                                    logger.info("Archived remote file")
                                 except IOError as e:
                                     logger.error(f"Failed to archive remote file {scpfilename}: {str(e)}")
                             elif os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'DELETE':
@@ -101,21 +101,21 @@ class scpclient():
                                     stdin, stdout, stderr = ssh.exec_command(f"rm -f {scpfilename}")
                                     exit_status = stdout.channel.recv_exit_status()
                                     if exit_status == 0:
-                                        logger.info(f"Deleted remote file {scpfilename}")
+                                        logger.info("Deleted remote file")
                                     else:
                                         error_output = stderr.read().decode('utf-8').strip()
                                         logger.error(f"Command failed with status {exit_status}: {error_output}")
                                 except paramiko.SSHException as ssh_err:
                                     logger.error(f"SSH error while deleting {scpfilename}: {str(ssh_err)}")
                                 except IOError as io_err:
-                                    logger.error(f"I/O error while deleting {scpfilename}: {str(io_err)}")
+                                    logger.error(f"I/O error while deleting remote file: {str(io_err)}")
                                 except Exception as e:
                                     logger.error(f"Failed to delete remote file {scpfilename}: {str(e)}")
                         except IOError as e:
-                            logger.warning(f"Cannot access remote file {scpfilename}: {str(e)}")
+                            logger.warning(f"Cannot access remote file: {str(e)}")
                             continue
                         except Exception as e:
-                            logger.error(f"Error processing file {scpfilename}: {str(e)}")
+                            logger.error(f"Error processing remote file: {str(e)}")
                             continue
 
                 # Process downloaded files
