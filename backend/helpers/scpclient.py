@@ -72,7 +72,7 @@ class scpclient():
 
             fNames = sftp.listdir(sftp.getcwd())
             with SCPClient(ssh.get_transport(), sanitize=lambda x: x) as scp:
-                for f in fNames:                
+                for f in fNames:
                     logger.info(f"Found file: {f}")
                     scpfilename = os.path.join(ftpfolder, f)
 
@@ -97,8 +97,18 @@ class scpclient():
                                     logger.error(f"Failed to archive remote file {scpfilename}: {str(e)}")
                             elif os.environ.get('3CX_FILES_ARCHIVE_OR_DELETE') == 'DELETE':
                                 try:
-                                    ssh.exec_command(f"sudo rm -f {scpfilename}")
-                                    logger.info(f"Deleted remote file {scpfilename}")
+                                    # Exécuter la commande sans sudo
+                                    stdin, stdout, stderr = ssh.exec_command(f"rm -f {scpfilename}")
+                                    exit_status = stdout.channel.recv_exit_status()
+                                    if exit_status == 0:
+                                        logger.info(f"Deleted remote file {scpfilename}")
+                                    else:
+                                        error_output = stderr.read().decode('utf-8').strip()
+                                        logger.error(f"Command failed with status {exit_status}: {error_output}")
+                                except paramiko.SSHException as ssh_err:
+                                    logger.error(f"SSH error while deleting {scpfilename}: {str(ssh_err)}")
+                                except IOError as io_err:
+                                    logger.error(f"I/O error while deleting {scpfilename}: {str(io_err)}")
                                 except Exception as e:
                                     logger.error(f"Failed to delete remote file {scpfilename}: {str(e)}")
                         except IOError as e:

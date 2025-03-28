@@ -17,7 +17,6 @@ import sys
 sys.path.append(os.path.abspath("."))
 
 
-
 def to_local_datetime(dt_obj):
     """
     convert from utc datetime to a locally aware datetime
@@ -270,7 +269,7 @@ def validate_cdr(cdr, cdr_details):
         return True
     except requests.exceptions.ConnectionError as e:
         # Connection to API failed, log warning and fall back to basic validation
-        logger.warning(f"API validation unavailable, falling back to basic validation: {str(e)}")
+        logger.exception(f"API validation unavailable, falling back to basic validation: {str(e)}")
         return perform_basic_validation(cdr, cdr_details)
     except requests.exceptions.HTTPError as e:
         # API returned an error response - check if it's a server error (5xx)
