@@ -7,7 +7,7 @@ from alembic import context
 import os
 
 from backendapi.helpers.base import Base
-from backendapi.models import *
+import backendapi.models  # noqa: F401
 
 dbUser = os.environ.get('POSTGRES_USER')
 dbPassword = os.environ.get('POSTGRES_PASSWORD')
