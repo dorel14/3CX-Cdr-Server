@@ -12,7 +12,7 @@ import traceback
 import requests
 from requests.exceptions import HTTPError
 from .logging import logger
-
+from ..config.settings import CONFIG
 import sys
 sys.path.append(os.path.abspath("."))
 
@@ -200,9 +200,9 @@ def push_cdr_api(cdr, cdr_details):
             - 1 le statut d'intégration CDR
             - 1 le statut d'intégration de CDR détail
     """
-
-    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr'
-    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails'
+    base_url = CONFIG["api"]["base_url"]
+    webapi_url_cdr = base_url + CONFIG["api"]["endpoints"]["cdr"]
+    webapi_url_cdr_details = base_url + CONFIG["api"]["endpoints"]["cdr_details"]
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     cdrdict = json.loads(cdr)
     cdr_historyid = cdrdict['historyid']
