@@ -185,7 +185,14 @@ class scpclient():
                 logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
 
             # En cas d'erreur, attendre avant de réessayer
-            logger.info(f"Tentative de reconnexion dans {interval} secondes")
+            try:
+                interval = int(interval)
+                if interval < 1 or interval > 3600:
+                    raise ValueError("Interval out of range")
+                logger.info(f"Tentative de reconnexion dans {interval} secondes")
+            except ValueError as e:
+                logger.error(f"Invalid interval value: {str(e)}")
+                interval = 60  # Default to 60 seconds if invalid
             sleep(interval)
 
             # Fermer la connexion SSH si elle est encore ouverte
