@@ -72,7 +72,7 @@ RUN groupadd -r appgroup && \
     mkdir -p /home/appuser/app/backend/logs && \
     chown -R appuser:appgroup /opt/cdrfiles /opt/cdrfiles_archives && \
     chown -R appuser:appgroup /home/appuser/app/backend/logs && \
-    chmod -R 777 ${APP_DIR} /opt/cdrfiles /opt/cdrfiles_archives /home/appuser/app/backend/logs
+    chmod -R 755 ${APP_DIR} && chmod -R 755 /opt/cdrfiles /opt/cdrfiles_archives /home/appuser/app/backend/logs
 
 WORKDIR ${APP_DIR}
 

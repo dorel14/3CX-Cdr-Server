@@ -22,7 +22,7 @@ dburl=os.environ.get('DATABASE_URL')
 config = context.config
 dburl = f'{os.environ.get('ALEMBIC_DBURL')}' #f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
 #sanitized_dburl = f'postgresql://{dbUser}:****@{dbServer}:{dbPort}/{dbName}'
-print(f'dburl: {dburl}')
+#print(f'dburl: {dburl}')
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
