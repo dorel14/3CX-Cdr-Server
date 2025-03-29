@@ -49,7 +49,7 @@ class scpclient():
 
                 # Archiver le fichier (renommer/déplacer)
                 archive_path = os.path.join(archive_folder, file_name)
-                logger.info(f"Archivage du fichier {file_path} vers {archive_path}")
+                logger.info("Archivage du fichier en cours")
                 stdin, stdout, stderr = ssh.exec_command(f"mv {file_path} {archive_path}")
                 error = stderr.read()
                 if error:
@@ -124,7 +124,7 @@ class scpclient():
                 ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
 
                 # Connect with strict host key checking
-                logger.info(f"Connecting to {self.host}:{self.port} as {self.user}")
+                logger.info("Establishing connection to the server")
                 ssh.connect(
                     hostname=self.host, 
                     port=self.port, 
@@ -173,7 +173,7 @@ class scpclient():
                 ssh.close()
 
                 # Attendre avant la prochaine vérification
-                logger.info(f"Attente de {interval} secondes avant la prochaine vérification")
+                logger.info("Attente avant la prochaine vérification")
                 sleep(interval)
 
             except paramiko.SSHException as e:
