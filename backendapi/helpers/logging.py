@@ -25,9 +25,9 @@ formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
 # création d'un handler qui va rediriger une écriture du log vers
 # un fichier en mode 'append', avec 1 backup et une taille max de 1Mo
 file_handler = RotatingFileHandler(filename=logfiles,
-                                   mode='a',
-                                   maxBytes=1000000,
-                                   backupCount=5)
+                                    mode='a',
+                                    maxBytes=1000000,
+                                    backupCount=5)
 # on lui met le niveau sur DEBUG, on lui dit qu'il doit utiliser le formateur
 # créé précédement et on ajoute ce handler au logger
 file_handler.setLevel(getattr(logging, log_level))
