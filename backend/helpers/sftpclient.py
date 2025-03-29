@@ -48,17 +48,17 @@ class sftpclient():
                 try:
                     sftp.stat(archive_folder)
                 except FileNotFoundError:
-                    logger.info(f"Création du dossier d'archive {archive_folder}")
+                    logger.info("Création du dossier d'archive")
                     sftp.mkdir(archive_folder)
 
                 # Archiver le fichier (renommer/déplacer)
                 archive_path = os.path.join(archive_folder, file_name)
-                logger.info(f"Archivage du fichier {file_path} vers {archive_path}")
+                logger.info(f"Archivage du fichier {file_name} vers le dossier d'archive")
                 sftp.rename(file_path, archive_path)
                 logger.info(f"Fichier {file_name} archivé avec succès")
 
             elif action == "DELETE":
-                logger.info(f"Suppression du fichier {file_path}")
+                logger.info(f"Suppression du fichier {file_name}")
                 sftp.remove(file_path)
                 logger.info(f"Fichier {file_name} supprimé avec succès")
 
@@ -155,17 +155,22 @@ class sftpclient():
                         csv_files_read(localfolder, archivefolder)
 
                 # Attendre avant la prochaine vérification
-                logger.info(f"Attente de {interval} secondes avant la prochaine vérification")
-                sleep(interval)
+                sanitized_interval = int(interval)
+                if sanitized_interval < 0 or sanitized_interval > 86400:  # Ensure interval is within a reasonable range (0 to 24 hours)
+                    logger.warning(f"Intervalle invalide: {sanitized_interval}. Utilisation de la valeur par défaut de 50 secondes.")
+                    sanitized_interval = 50
+                logger.info(f"Attente de {sanitized_interval} secondes avant la prochaine vérification")
+                sleep(sanitized_interval)
 
             except paramiko.SSHException as e:
                 logger.error(f"Erreur SSH: {str(e)}")
             except socket.error as e:
                 logger.error(f"Erreur de socket: {str(e)}")
             except Exception as e:
-                logger.error(f"Erreur inattendue: {str(e)}")
+                logger.info("Tentative de reconnexion après une erreur")
                 logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
+                sleep(sanitized_interval)
 
             # En cas d'erreur, attendre avant de réessayer
-            logger.info(f"Tentative de reconnexion dans {interval} secondes")
-            sleep(interval)
+            logger.info(f"Tentative de reconnexion dans {sanitized_interval} secondes")
+            sleep(sanitized_interval)
