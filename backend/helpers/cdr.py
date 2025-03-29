@@ -254,28 +254,37 @@ def validate_cdr(cdr, cdr_details):
     Returns:
         bool: True if validation passes, False otherwise
     """
-    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr/validate'
-    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails/validate'
+    webapi_url_cdr = os.environ.get('API_URL') + CONFIG["api"]["endpoints"]["cdr_validate"]
+    webapi_url_cdr_details = os.environ.get('API_URL') + CONFIG["api"]["endpoints"]["cdr_details_validate"]
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 
     try:
         # Primary validation method: API endpoints
+        logger.info("Attempting API validation for CDR data")
         cdr_validation = requests.post(webapi_url_cdr, data=cdr, headers=headers)
         cdr_validation.raise_for_status()
 
+        logger.info("Attempting API validation for CDR details data")
         cdr_details_validation = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
         cdr_details_validation.raise_for_status()
 
+        logger.info("API validation successful for both CDR and CDR details")
         return True
     except requests.exceptions.ConnectionError as e:
         # Connection to API failed, log warning and fall back to basic validation
-        logger.exception(f"API validation unavailable, falling back to basic validation: {str(e)}")
+        logger.warning(f"API validation unavailable (connection error): {str(e)}")
+        logger.info("Falling back to basic validation")
+        return perform_basic_validation(cdr, cdr_details)
+    except requests.exceptions.Timeout as e:
+        # API request timed out
+        logger.warning(f"API validation timed out: {str(e)}")
+        logger.info("Falling back to basic validation due to timeout")
         return perform_basic_validation(cdr, cdr_details)
     except requests.exceptions.HTTPError as e:
         # API returned an error response - check if it's a server error (5xx)
         if e.response.status_code >= 500:
             logger.error(f"API server error during validation (code {e.response.status_code}): {str(e)}")
-            logger.warning("Falling back to basic validation due to API server error")
+            logger.info("Falling back to basic validation due to API server error")
             return perform_basic_validation(cdr, cdr_details)
         else:
             # Client error (4xx) - likely a validation failure, log details from response if available
@@ -283,7 +292,7 @@ def validate_cdr(cdr, cdr_details):
                 error_details = e.response.json()
                 logger.error(f"Validation error (code {e.response.status_code}): {error_details}")
             except ValueError:
-                logger.error(f"Validation error (code {e.response.status_code}): {str(e)}")
+                logger.error(f"Validation error (code {e.response.status_code}): {e.response.text}")
             return False
     except Exception as e:
         # Catch any other unexpected exceptions
@@ -312,32 +321,113 @@ def perform_basic_validation(cdr, cdr_details):
         cdr_data = json.loads(cdr)
         cdr_details_data = json.loads(cdr_details)
 
+        logger.info("Performing basic validation as fallback")
+
         # Check required fields in CDR
-        required_cdr_fields = ["historyid", "callid", "time_start", "time_end"]
+        required_cdr_fields = ["historyid", "callid", "time_start", "time_end", "duration"]
         for field in required_cdr_fields:
-            if field not in cdr_data or cdr_data[field] is None:
+            if field not in cdr_data:
                 logger.error(f"Missing required CDR field: {field}")
                 return False
+            if cdr_data[field] is None:
+                logger.error(f"Required CDR field '{field}' has null value")
+                return False
+
+        # Validate data types for critical fields
+        try:
+            # Validate historyid is numeric
+            if not str(cdr_data["historyid"]).isdigit():
+                logger.error(f"Invalid historyid format: {cdr_data['historyid']} - must be numeric")
+                return False
+
+            # Validate time fields are valid datetime strings
+            for time_field in ["time_start", "time_end"]:
+                if pd.isna(cdr_data[time_field]) or not isinstance(cdr_data[time_field], str):
+                    logger.error(f"Invalid {time_field} format: must be a valid datetime string")
+                    return False
+
+            # Validate time_answered if present
+            if "time_answered" in cdr_data and cdr_data["time_answered"] is not None:
+                if not isinstance(cdr_data["time_answered"], str):
+                    logger.error("Invalid time_answered format: must be a valid datetime string")
+                    return False
+
+            # Validate duration is numeric
+            if not str(cdr_data["duration"]).replace(".", "", 1).isdigit():
+                logger.error(f"Invalid duration format: {cdr_data['duration']} - must be numeric")
+                return False
+        except Exception as e:
+            logger.error(f"Data type validation error: {str(e)}")
+            return False
 
         # Check required fields in CDR details
-        required_details_fields = ["cdr_historyid"]
+        required_details_fields = ["cdr_historyid", "call_date", "call_time", "handling_time_seconds", "waiting_time_seconds"]
         for field in required_details_fields:
-            if field not in cdr_details_data or cdr_details_data[field] is None:
+            if field not in cdr_details_data:
                 logger.error(f"Missing required CDR details field: {field}")
+                return False
+            if cdr_details_data[field] is None and field != "call_time":  # call_time can be null in some cases
+                logger.error(f"Required CDR details field '{field}' has null value")
                 return False
 
         # Verify historyid matches between CDR and CDR details
-        if cdr_data["historyid"] != cdr_details_data["cdr_historyid"]:
-            logger.error("Mismatch between CDR historyid and CDR details cdr_historyid")
+        if str(cdr_data["historyid"]) != str(cdr_details_data["cdr_historyid"]):
+            logger.error(f"Mismatch between CDR historyid ({cdr_data['historyid']}) and CDR details cdr_historyid ({cdr_details_data['cdr_historyid']})")
             return False
 
+        # Validate time sequence (time_start should be before time_end)
+        try:
+            time_start = pd.to_datetime(cdr_data["time_start"])
+            time_end = pd.to_datetime(cdr_data["time_end"])
+
+            if time_start > time_end:
+                logger.error(f"Invalid time sequence: time_start ({time_start}) is after time_end ({time_end})")
+                return False
+
+            # If time_answered exists, validate it's between start and end
+            if "time_answered" in cdr_data and cdr_data["time_answered"] is not None:
+                time_answered = pd.to_datetime(cdr_data["time_answered"])
+                if time_answered < time_start or time_answered > time_end:
+                    logger.error(f"Invalid time_answered: {time_answered} is not between time_start ({time_start}) and time_end ({time_end})")
+                    return False
+        except Exception as e:
+            logger.error(f"Time sequence validation error: {str(e)}")
+            return False
+
+        # Validate numeric fields in CDR details
+        try:
+            handling_time = float(cdr_details_data["handling_time_seconds"])
+            waiting_time = float(cdr_details_data["waiting_time_seconds"])
+
+            if handling_time < 0:
+                logger.error(f"Invalid handling_time_seconds: {handling_time} (must be non-negative)")
+                return False
+
+            if waiting_time < 0:
+                logger.error(f"Invalid waiting_time_seconds: {waiting_time} (must be non-negative)")
+                return False
+        except ValueError:
+            logger.error("Invalid numeric format for handling_time_seconds or waiting_time_seconds")
+            return False
+        except Exception as e:
+            logger.error(f"Numeric field validation error: {str(e)}")
+            return False
+
+        logger.info("Basic validation passed successfully")
         return True
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON format: {str(e)}")
+        logger.debug(f"Problematic JSON (CDR): {cdr[:100]}...")
+        logger.debug(f"Problematic JSON (CDR details): {cdr_details[:100]}...")
+        return False
+    except KeyError as e:
+        logger.error(f"Missing key in data structure: {str(e)}")
         return False
     except Exception as e:
         logger.error(f"Basic validation error: {str(e)}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         return False
+
 def push_cdr_api2(cdr, cdr_details):
 
     """Fonction permettant de poster le CDR et son détail vers l'API
