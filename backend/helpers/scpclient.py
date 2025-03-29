@@ -44,7 +44,7 @@ class scpclient():
                 # Vérifier si le dossier d'archive existe, sinon le créer
                 stdin, stdout, stderr = ssh.exec_command(f"test -d {archive_folder} || mkdir -p {archive_folder}")
                 if stderr.read():
-                    logger.error(f"Erreur lors de la vérification/création du dossier {archive_folder}")
+                    logger.error("Erreur lors de la vérification/création du dossier d'archive")
                     return False
 
                 # Archiver le fichier (renommer/déplacer)
