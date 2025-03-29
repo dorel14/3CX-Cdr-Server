@@ -96,7 +96,7 @@ class sftpclient():
         # Vérification de la résolution du hostname
         try:
             socket.gethostbyname(self.host)
-            logger.info(f"Successfully resolved hostname {self.host}")
+            logger.info(f"Successfully resolved hostname")
         except socket.gaierror as e:
             logger.error(f"Hostname resolution failed : {e}")
             return
