@@ -15,7 +15,7 @@ logfiles = os.path.join(logdir, '3cxtcpserver'+ datetime.today().strftime(date_f
 pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
 # Définir les permissions du répertoire de logs (777 = rwxrwxrwx)
 try:
-    os.chmod(logdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # équivalent à 0o777
+    os.chmod(logdir, 0o755)  # équivalent à 0o777
     print(f"Permissions du répertoire {logdir} modifiées avec succès")
 except Exception as e:
     print(f"Impossible de modifier les permissions du répertoire {logdir}: {e}")

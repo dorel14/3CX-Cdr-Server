@@ -234,7 +234,6 @@ def push_cdr_api(cdr, cdr_details):
 
     return mcdr, mcdrdetails
 
-
 def validate_cdr(cdr, cdr_details):
     """
     Validates CDR and CDR details data by sending them to dedicated validation endpoints.
@@ -254,8 +253,19 @@ def validate_cdr(cdr, cdr_details):
     Returns:
         bool: True if validation passes, False otherwise
     """
-    webapi_url_cdr = os.environ.get('API_URL') + CONFIG["api"]["endpoints"]["cdr_validate"]
-    webapi_url_cdr_details = os.environ.get('API_URL') + CONFIG["api"]["endpoints"]["cdr_details_validate"]
+    # First, validate that inputs are valid JSON before sending to API
+    try:
+        # Try parsing the JSON to catch format errors early
+        json.loads(cdr)
+        json.loads(cdr_details)
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON format detected before API validation: {str(e)}")
+        logger.debug(f"Problematic JSON sample (CDR): {cdr[:100]}...")
+        logger.debug(f"Problematic JSON sample (CDR details): {cdr_details[:100]}...")
+        return False
+
+    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr/validate'
+    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails/validate'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 
     try:
@@ -270,6 +280,11 @@ def validate_cdr(cdr, cdr_details):
 
         logger.info("API validation successful for both CDR and CDR details")
         return True
+    except json.JSONDecodeError as e:
+        # This could happen if the API response contains invalid JSON
+        logger.error(f"JSON decode error during API validation: {str(e)}")
+        logger.warning("Falling back to basic validation due to API response JSON error")
+        return perform_basic_validation(cdr, cdr_details)
     except requests.exceptions.ConnectionError as e:
         # Connection to API failed, log warning and fall back to basic validation
         logger.warning(f"API validation unavailable (connection error): {str(e)}")
@@ -291,8 +306,12 @@ def validate_cdr(cdr, cdr_details):
             try:
                 error_details = e.response.json()
                 logger.error(f"Validation error (code {e.response.status_code}): {error_details}")
-            except ValueError:
+            except json.JSONDecodeError:
+                # Handle case where error response is not valid JSON
                 logger.error(f"Validation error (code {e.response.status_code}): {e.response.text}")
+            except Exception as parse_err:
+                logger.error(f"Error parsing validation response: {str(parse_err)}")
+                logger.error(f"Raw response: {e.response.text[:200]}...")
             return False
     except Exception as e:
         # Catch any other unexpected exceptions
@@ -302,12 +321,13 @@ def validate_cdr(cdr, cdr_details):
         return perform_basic_validation(cdr, cdr_details)
 
 
+
 def perform_basic_validation(cdr, cdr_details):
     """
     Performs basic validation of CDR and CDR details when API validation is unavailable.
 
-    This is a simplified version of the original validation logic that checks for
-    required fields and basic data integrity.
+    This function orchestrates multiple validation checks by calling specialized
+    validation functions for different aspects of the data.
 
     Args:
         cdr (str): JSON string containing CDR data
@@ -323,6 +343,36 @@ def perform_basic_validation(cdr, cdr_details):
 
         logger.info("Performing basic validation as fallback")
 
+        # Run validation checks in sequence
+        validation_checks = [
+            validate_required_fields(cdr_data, cdr_details_data),
+            validate_data_types(cdr_data),
+            validate_id_consistency(cdr_data, cdr_details_data),
+            validate_time_sequence(cdr_data),
+            validate_numeric_values(cdr_details_data)
+        ]
+
+        # If any validation check returns False, validation fails
+        if not all(validation_checks):
+            return False
+
+        logger.info("Basic validation passed successfully")
+        return True
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON format: {str(e)}")
+        logger.debug(f"Problematic JSON (CDR): {cdr[:100]}...")
+        logger.debug(f"Problematic JSON (CDR details): {cdr_details[:100]}...")
+        return False
+    except Exception as e:
+        logger.error(f"Basic validation error: {str(e)}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        return False
+
+
+def validate_required_fields(cdr_data, cdr_details_data):
+    """Validates that all required fields are present and non-null."""
+    try:
         # Check required fields in CDR
         required_cdr_fields = ["historyid", "callid", "time_start", "time_end", "duration"]
         for field in required_cdr_fields:
@@ -332,33 +382,6 @@ def perform_basic_validation(cdr, cdr_details):
             if cdr_data[field] is None:
                 logger.error(f"Required CDR field '{field}' has null value")
                 return False
-
-        # Validate data types for critical fields
-        try:
-            # Validate historyid is numeric
-            if not str(cdr_data["historyid"]).isdigit():
-                logger.error(f"Invalid historyid format: {cdr_data['historyid']} - must be numeric")
-                return False
-
-            # Validate time fields are valid datetime strings
-            for time_field in ["time_start", "time_end"]:
-                if pd.isna(cdr_data[time_field]) or not isinstance(cdr_data[time_field], str):
-                    logger.error(f"Invalid {time_field} format: must be a valid datetime string")
-                    return False
-
-            # Validate time_answered if present
-            if "time_answered" in cdr_data and cdr_data["time_answered"] is not None:
-                if not isinstance(cdr_data["time_answered"], str):
-                    logger.error("Invalid time_answered format: must be a valid datetime string")
-                    return False
-
-            # Validate duration is numeric
-            if not str(cdr_data["duration"]).replace(".", "", 1).isdigit():
-                logger.error(f"Invalid duration format: {cdr_data['duration']} - must be numeric")
-                return False
-        except Exception as e:
-            logger.error(f"Data type validation error: {str(e)}")
-            return False
 
         # Check required fields in CDR details
         required_details_fields = ["cdr_historyid", "call_date", "call_time", "handling_time_seconds", "waiting_time_seconds"]
@@ -370,62 +393,109 @@ def perform_basic_validation(cdr, cdr_details):
                 logger.error(f"Required CDR details field '{field}' has null value")
                 return False
 
+        return True
+    except KeyError as e:
+        logger.error(f"Key error while validating required fields: {str(e)}")
+        return False
+    except Exception as e:
+        logger.error(f"Error validating required fields: {str(e)}")
+        return False
+
+
+def validate_data_types(cdr_data):
+    """Validates that data fields have the correct types."""
+    try:
+        # Validate historyid is numeric
+        if not str(cdr_data["historyid"]).isdigit():
+            logger.error(f"Invalid historyid format: {cdr_data['historyid']} - must be numeric")
+            return False
+
+        # Validate time fields are valid datetime strings
+        for time_field in ["time_start", "time_end"]:
+            if pd.isna(cdr_data[time_field]) or not isinstance(cdr_data[time_field], str):
+                logger.error(f"Invalid {time_field} format: must be a valid datetime string")
+                return False
+
+        # Validate time_answered if present
+        if "time_answered" in cdr_data and cdr_data["time_answered"] is not None:
+            if not isinstance(cdr_data["time_answered"], str):
+                logger.error("Invalid time_answered format: must be a valid datetime string")
+                return False
+
+        # Validate duration is numeric
+        if not str(cdr_data["duration"]).replace(".", "", 1).isdigit():
+            logger.error(f"Invalid duration format: {cdr_data['duration']} - must be numeric")
+            return False
+
+        return True
+    except Exception as e:
+        logger.error(f"Data type validation error: {str(e)}")
+        return False
+
+
+def validate_id_consistency(cdr_data, cdr_details_data):
+    """Validates that IDs are consistent between CDR and CDR details."""
+    try:
         # Verify historyid matches between CDR and CDR details
         if str(cdr_data["historyid"]) != str(cdr_details_data["cdr_historyid"]):
             logger.error(f"Mismatch between CDR historyid ({cdr_data['historyid']}) and CDR details cdr_historyid ({cdr_details_data['cdr_historyid']})")
             return False
 
-        # Validate time sequence (time_start should be before time_end)
-        try:
-            time_start = pd.to_datetime(cdr_data["time_start"])
-            time_end = pd.to_datetime(cdr_data["time_end"])
-
-            if time_start > time_end:
-                logger.error(f"Invalid time sequence: time_start ({time_start}) is after time_end ({time_end})")
-                return False
-
-            # If time_answered exists, validate it's between start and end
-            if "time_answered" in cdr_data and cdr_data["time_answered"] is not None:
-                time_answered = pd.to_datetime(cdr_data["time_answered"])
-                if time_answered < time_start or time_answered > time_end:
-                    logger.error(f"Invalid time_answered: {time_answered} is not between time_start ({time_start}) and time_end ({time_end})")
-                    return False
-        except Exception as e:
-            logger.error(f"Time sequence validation error: {str(e)}")
-            return False
-
-        # Validate numeric fields in CDR details
-        try:
-            handling_time = float(cdr_details_data["handling_time_seconds"])
-            waiting_time = float(cdr_details_data["waiting_time_seconds"])
-
-            if handling_time < 0:
-                logger.error(f"Invalid handling_time_seconds: {handling_time} (must be non-negative)")
-                return False
-
-            if waiting_time < 0:
-                logger.error(f"Invalid waiting_time_seconds: {waiting_time} (must be non-negative)")
-                return False
-        except ValueError:
-            logger.error("Invalid numeric format for handling_time_seconds or waiting_time_seconds")
-            return False
-        except Exception as e:
-            logger.error(f"Numeric field validation error: {str(e)}")
-            return False
-
-        logger.info("Basic validation passed successfully")
         return True
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON format: {str(e)}")
-        logger.debug(f"Problematic JSON (CDR): {cdr[:100]}...")
-        logger.debug(f"Problematic JSON (CDR details): {cdr_details[:100]}...")
-        return False
     except KeyError as e:
-        logger.error(f"Missing key in data structure: {str(e)}")
+        logger.error(f"Key error while validating ID consistency: {str(e)}")
         return False
     except Exception as e:
-        logger.error(f"Basic validation error: {str(e)}")
-        logger.error(f"Full traceback: {traceback.format_exc()}")
+        logger.error(f"Error validating ID consistency: {str(e)}")
+        return False
+
+
+def validate_time_sequence(cdr_data):
+    """Validates that time fields follow a logical sequence."""
+    try:
+        time_start = pd.to_datetime(cdr_data["time_start"])
+        time_end = pd.to_datetime(cdr_data["time_end"])
+
+        if time_start > time_end:
+            logger.error(f"Invalid time sequence: time_start ({time_start}) is after time_end ({time_end})")
+            return False
+
+        # If time_answered exists, validate it's between start and end
+        if "time_answered" in cdr_data and cdr_data["time_answered"] is not None:
+            time_answered = pd.to_datetime(cdr_data["time_answered"])
+            if time_answered < time_start or time_answered > time_end:
+                logger.error(f"Invalid time_answered: {time_answered} is not between time_start ({time_start}) and time_end ({time_end})")
+                return False
+
+        return True
+    except Exception as e:
+        logger.error(f"Time sequence validation error: {str(e)}")
+        return False
+
+
+def validate_numeric_values(cdr_details_data):
+    """Validates that numeric fields have valid values."""
+    try:
+        handling_time = float(cdr_details_data["handling_time_seconds"])
+        waiting_time = float(cdr_details_data["waiting_time_seconds"])
+
+        if handling_time < 0:
+            logger.error(f"Invalid handling_time_seconds: {handling_time} (must be non-negative)")
+            return False
+
+        if waiting_time < 0:
+            logger.error(f"Invalid waiting_time_seconds: {waiting_time} (must be non-negative)")
+            return False
+
+        return True
+    except ValueError:
+        logger.error("Invalid numeric format for handling_time_seconds or waiting_time_seconds")
+        return False
+    except KeyError as e:
+        logger.error(f"Missing numeric field: {str(e)}")
+        return False
+    except Exception as e:
+        logger.error(f"Numeric field validation error: {str(e)}")
         return False
 
 def push_cdr_api2(cdr, cdr_details):

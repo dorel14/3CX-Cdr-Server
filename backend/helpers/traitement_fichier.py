@@ -6,7 +6,7 @@ import shutil
 import re
 from .cdr import parse_cdr, push_cdr_api, validate_cdr
 from .logging import logger
-
+import traceback
 
 def sanitize_filepath(filepath):
     # Nettoie le chemin en ne gardant que le nom de base du fichier
@@ -148,41 +148,133 @@ def files_move(file, savefolder):
 
 
 def csv_files_read(filefolder, archivefolder):
-    logger.info(filefolder)
+    """
+    Read and process CSV files from a specified folder, parsing CDR (Call Detail Record) data.
 
-    # Sanitize and validate input folder path
-    filefolder = os.path.realpath(os.path.normpath(filefolder))
-    if not os.path.exists(filefolder):
-        raise ValueError("Invalid source directory")
+    Args:
+        filefolder (str): Path to the directory containing CSV files to be processed.
+        archivefolder (str): Path to the directory where processed files will be archived.
 
-    os.chdir(filefolder)
-    file_pattern = os.environ.get('3CX_FILEEXT')
+    Processes CSV files matching a specified file pattern (default '*.csv'), validates and 
+    parses each line starting with 'Call', pushes CDR data via API, and moves successfully 
+    processed files to the archive folder. Handles various file and processing errors with 
+    comprehensive logging.
 
-    for f in list(glob.glob(file_pattern, recursive=False)):
-        # Validate each file path
-        full_path = os.path.realpath(os.path.normpath(os.path.join(filefolder, f)))
-        if not full_path.startswith(filefolder):
-            logger.error(f"Invalid file path: {f}")
-            continue
+    Raises:
+        ValueError: If the source directory is invalid.
+        PermissionError: If there are insufficient permissions to access files or directories.
+    """
+    logger.info(f"Reading CSV files from folder: {filefolder}")
 
-        with open(full_path, 'r', encoding='utf-8') as csv:
-            count = 1
-            while True:
-                line = csv.readline()
-                if not line:
-                    break
-                testline = line.split(',')
-                if testline[0].startswith('Call'):
-                    cdrs, cdrdetails = parse_cdr(line, f)
-                    if validate_cdr(cdrs, cdrdetails):
-                        rcdr, rcdrdetails = push_cdr_api(cdrs, cdrdetails)
-                        logger.info(rcdr)
-                        logger.info(rcdrdetails)
-                        logger.info(f"Line{count}: {line.strip()}")
-                        count += 1
-                    else:
-                        logger.error(f"Validation error line: {count} \n {line.strip()}")
+    try:
+        # Sanitize and validate input folder path
+        filefolder = os.path.realpath(os.path.normpath(filefolder))
+        if not os.path.exists(filefolder):
+            logger.error(f"Source directory does not exist: {filefolder}")
+            raise ValueError("Invalid source directory")
 
-        files_move(full_path, archivefolder)
+        # Check directory permissions before proceeding
+        try:
+            check_directory_permissions(filefolder)
+        except OSError as e:
+            logger.error(f"Failed to check directory permissions: {str(e)}")
+
+        os.chdir(filefolder)
+        file_pattern = os.environ.get('3CX_FILEEXT')
+        if not file_pattern:
+            logger.warning("3CX_FILEEXT environment variable not set, defaulting to '*.csv'")
+            file_pattern = '*.csv'
+
+        files = list(glob.glob(file_pattern, recursive=False))
+        logger.info(f"Found {len(files)} files matching pattern '{file_pattern}'")
+
+        for f in files:
+            try:
+                # Validate each file path
+                full_path = os.path.realpath(os.path.normpath(os.path.join(filefolder, f)))
+                if not full_path.startswith(filefolder):
+                    logger.error(f"Invalid file path (directory traversal attempt): {f}")
+                    continue
+
+                if not os.path.exists(full_path):
+                    logger.error(f"File does not exist: {full_path}")
+                    continue
+
+                if not os.access(full_path, os.R_OK):
+                    logger.error(f"No read permission for file: {full_path}")
+                    continue
+
+                logger.info(f"Processing file: {f}")
+
+                try:
+                    with open(full_path, 'r', encoding='utf-8') as csv_file:
+                        count = 1
+                        processed_lines = 0
+                        error_lines = 0
+
+                        while True:
+                            try:
+                                line = csv_file.readline()
+                                if not line:
+                                    break
+
+                                testline = line.split(',')
+                                if testline[0].startswith('Call'):
+                                    try:
+                                        cdrs, cdrdetails = parse_cdr(line, f)
+                                        if validate_cdr(cdrs, cdrdetails):
+                                            rcdr, rcdrdetails = push_cdr_api(cdrs, cdrdetails)
+                                            logger.info(f"Line {count}: Processed successfully")
+                                            logger.debug(f"CDR status: {rcdr}, CDR details status: {rcdrdetails}")
+                                            processed_lines += 1
+                                        else:
+                                            logger.error(f"Validation error line {count}")
+                                            error_lines += 1
+                                    except Exception as e:
+                                        logger.error(f"Error processing line {count}: {str(e)}")
+                                        logger.debug(f"Problematic line: {line.strip()}")
+                                        error_lines += 1
+                                count += 1
+                            except UnicodeDecodeError as e:
+                                logger.error(f"Unicode decode error at line {count}: {str(e)}")
+                                error_lines += 1
+                                count += 1
+                                continue
+
+                    logger.info(f"File {f} processing complete. Processed {processed_lines} lines with {error_lines} errors.")
+
+                    # Move the file to archive folder after processing
+                    try:
+                        files_move(full_path, archivefolder)
+                    except (ValueError, FileNotFoundError, PermissionError) as e:
+                        logger.error(f"Failed to move file {f} to archive: {str(e)}")
+                    except Exception as e:
+                        logger.error(f"Unexpected error moving file {f} to archive: {str(e)}")
+                        logger.debug(traceback.format_exc())
+
+                except PermissionError as e:
+                    logger.error(f"Permission error opening file {f}: {str(e)}")
+                except FileNotFoundError as e:
+                    logger.error(f"File not found error opening {f}: {str(e)}")
+                except UnicodeError as e:
+                    logger.error(f"Unicode error opening file {f}: {str(e)}")
+                except IOError as e:
+                    logger.error(f"IO error opening file {f}: {str(e)}")
+                except Exception as e:
+                    logger.error(f"Unexpected error opening file {f}: {str(e)}")
+                    logger.debug(traceback.format_exc())
+
+            except Exception as e:
+                logger.error(f"Unexpected error processing file {f}: {str(e)}")
+                logger.debug(traceback.format_exc())
+
+    except PermissionError as e:
+        logger.error(f"Permission error accessing directory {filefolder}: {str(e)}")
+    except OSError as e:
+        logger.error(f"OS error accessing directory {filefolder}: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error in csv_files_read: {str(e)}")
+        logger.debug(traceback.format_exc())
+
 
 
