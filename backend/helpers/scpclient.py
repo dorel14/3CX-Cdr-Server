@@ -19,7 +19,6 @@ class scpclient():
         self.user=user
         self.password=password
         self.port=port
-
     def handle_remote_file(self, ssh, file_path, action="ARCHIVE", archive_folder=None):
         """
         Gère un fichier distant sur un serveur SSH/SCP (archivage ou suppression)
@@ -45,16 +44,16 @@ class scpclient():
                 # Vérifier si le dossier d'archive existe, sinon le créer
                 stdin, stdout, stderr = ssh.exec_command(f"test -d {archive_folder} || mkdir -p {archive_folder}")
                 if stderr.read():
-                    logger.error(f"Erreur lors de la vérification/création du dossier {archive_folder}: {stderr.read().decode()}")
+                    logger.error(f"Erreur lors de la vérification/création du dossier {archive_folder}")
                     return False
 
                 # Archiver le fichier (renommer/déplacer)
                 archive_path = os.path.join(archive_folder, file_name)
-                logger.info(f"Archivage du fichier {file_path} vers {archive_path}")
+                logger.info("Archivage du fichier en cours")
                 stdin, stdout, stderr = ssh.exec_command(f"mv {file_path} {archive_path}")
                 error = stderr.read()
                 if error:
-                    logger.error(f"Erreur lors de l'archivage du fichier {file_path}: {error.decode()}")
+                    logger.error(f"Erreur lors de l'archivage du fichier {file_path}")
                     return False
                 logger.info(f"Fichier {file_name} archivé avec succès")
 
@@ -63,7 +62,7 @@ class scpclient():
                 stdin, stdout, stderr = ssh.exec_command(f"rm {file_path}")
                 error = stderr.read()
                 if error:
-                    logger.error(f"Erreur lors de la suppression du fichier {file_path}: {error.decode()}")
+                    logger.error(f"Erreur lors de la suppression du fichier {file_path}")
                     return False
                 logger.info(f"Fichier {file_name} supprimé avec succès")
 
@@ -84,6 +83,7 @@ class scpclient():
             logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
 
         return False
+
 
     def monitor(self, ftpfolder='', localfolder='', archivefolder='', interval=50):
         """
@@ -124,7 +124,7 @@ class scpclient():
                 ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
 
                 # Connect with strict host key checking
-                logger.info(f"Connecting to {self.host}:{self.port} as {self.user}")
+                logger.info("Establishing connection to the server")
                 ssh.connect(
                     hostname=self.host, 
                     port=self.port, 
@@ -173,7 +173,7 @@ class scpclient():
                 ssh.close()
 
                 # Attendre avant la prochaine vérification
-                logger.info(f"Attente de {interval} secondes avant la prochaine vérification")
+                logger.info("Attente avant la prochaine vérification")
                 sleep(interval)
 
             except paramiko.SSHException as e:
@@ -185,7 +185,14 @@ class scpclient():
                 logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
 
             # En cas d'erreur, attendre avant de réessayer
-            logger.info(f"Tentative de reconnexion dans {interval} secondes")
+            try:
+                interval = int(interval)
+                if interval < 1 or interval > 3600:
+                    raise ValueError("Interval out of range")
+                logger.info(f"Tentative de reconnexion dans {interval} secondes")
+            except ValueError as e:
+                logger.error(f"Invalid interval value: {str(e)}")
+                interval = 60  # Default to 60 seconds if invalid
             sleep(interval)
 
             # Fermer la connexion SSH si elle est encore ouverte
