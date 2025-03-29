@@ -1,0 +1,253 @@
+services:
+  db:
+    image: "pgautoupgrade/pgautoupgrade:17-alpine"
+    restart: unless-stopped
+    networks:
+      - custom_network
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    env_file:
+      - .env
+    user: root
+    volumes:
+      - ./db_folder/pg_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  webapi:
+    build:
+      context: .
+      dockerfile: ./backendapi/Dockerfile
+    hostname: webapi
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - api-dir:/fastapi
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - custom_network
+    ports:
+      - 8004:8000
+    command: bash -c  "/wait && python -m backendapi.helpers.init_db && uvicorn backendapi.server:app --reload --workers 1 --host 0.0.0.0 --port 8000 --log-level info"
+    environment:
+      - CONTAINER_NAME=api
+      - API_URL=http://webapi:8000
+      - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
+      - WAIT_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - PK_EXTENSION_QUEUE_NAME = 'pk_extensiontoqueuelink'
+    healthcheck:
+      test: curl http://webapi:8000/healthcheck || exit 1
+      interval: 60s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapi.rule=Host(\"webapi.${WEB_SERVER_NAME:-localhost}\")"
+      - "traefik.http.services.webapi.loadbalancer.server.port=8000"
+      - "traefik.http.routers.webapi.entrypoints=web"
+
+  webapp:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    hostname: webapp
+    restart: unless-stopped
+    networks:
+      - custom_network
+    ports:
+      - 8181:8181
+    volumes:
+      - webapp-dir:/webapp
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://webapp:8181/healthcheck || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    environment:
+      - CONTAINER_NAME=webapp
+      - API_URL=http://webapi:8000
+    depends_on:
+      webapi:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=Host(\"webapp.${WEB_SERVER_NAME:-localhost}\")"
+      - "traefik.http.services.webapp.loadbalancer.server.port=8181"
+      - "traefik.http.routers.webapp.entrypoints=web"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  3cxcdrserver:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    tty: true
+    networks:
+      - custom_network
+    env_file:
+      - .env
+    depends_on:
+      webapi:
+        condition: service_healthy
+    restart: unless-stopped
+    command: bash -c "/wait && python -m backend.runserver"
+    environment:
+      - API_URL=http://webapi:8000
+      - WAIT_HOSTS=${POSTGRES_SERVER}:${POSTGRES_PORT}
+      - WAIT_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+    volumes:
+      - app-code:/home/appuser/app
+      - cdr_datas:/home/appuser/cdrfiles
+      - ${LOCAL_CDR_FOLDER_ARCHIVE:./backup/datas/cdr}:/home/appuser/cdrfiles/cdrfiles_archives:rw
+    #labels:
+      #- "traefik.enable=true"
+      #- "traefik.tcp.routers.3cxtcpservice.rule=HostSNI(`*`)"  # Règle pour router en fonction de l'hostname
+      #- "traefik.tcp.services.mytcpservice.loadbalancer.server.port=${SERVER_PORT}"  # Port de service TCP
+      #- "traefik.tcp.routers.3cxtcpservice.entrypoints=tcp"
+      #- "traefik.tcp.routers.3cxtcpservice.tls=true"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - custom_network
+    ports:
+      - 5555:80
+    env_file:
+      - .env
+    environment:
+      - CONTAINER_NAME = pgadmin
+      - PGADMIN_LISTEN_PORT=8006
+      - PGADMIN_DISABLE_POSTFIX=true
+    restart: unless-stopped
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.rule=Host(\"pgadmin.${WEB_SERVER_NAME:-localhost}\")"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=8006"
+      - "traefik.http.middlewares.pgadmin-headers.headers.customRequestHeaders.X-Scheme=http"
+      - "traefik.http.routers.pgadmin.entrypoints=web"
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - CONTAINER_NAME=grafana
+    depends_on:
+      - db
+    networks:
+      - custom_network
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/custom.ini:/etc/grafana/custom.ini
+      - ./grafana/grafana_init/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/grafana_init/provisioning/dashboards/dashboard_files/:/var/lib/grafana/dashboards/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(\"grafana.${WEB_SERVER_NAME:-localhost}\")"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grafana.entrypoints=web"
+
+  dnsmasq:
+    build: 
+      context: .
+      dockerfile: ./dnsmasq/Dockerfile
+    container_name: dnsmasq
+    restart: always
+    volumes:
+      - ./dnsmasq/start.sh:/start.sh
+    environment:
+      - WEB_SERVER_NAME=${WEB_SERVER_NAME:-localhost}
+    networks:
+      - custom_network
+    ports:
+      - "53:53/udp"  # DNS service
+
+  traefik:
+    build: 
+      context: .
+      dockerfile: ./traefik/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+      - "8080:8080"
+      #- "443:443"
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    depends_on:
+      webapp:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=${SERVER_PORT}
+      - CONTAINER_NAME=traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+    networks:
+      - custom_network
+    #entrypoint: ["/bin/sh", "/scripts/entrypoint.sh"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-api.rule=Host(\"traefik.${WEB_SERVER_NAME:-localhost}\")"
+      - "traefik.http.routers.traefik-api.service=api@internal"
+      - "traefik.http.routers.traefik-api.entrypoints=web"
+
+volumes:
+  pgadmin_data:
+  grafana-storage:
+  cdr_datas:
+  app-code:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+  api-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+  webapp-dir:
+    driver: local
+    driver_opts:
+      type: none
+      device: .
+      o: bind
+
+networks:
+  custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET}
+          gateway: ${DOCKER_GATEWAY}
