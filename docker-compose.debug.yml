@@ -26,7 +26,7 @@ services:
     build:
       context: .
       dockerfile: ./backendapi/Dockerfile
-    args:
+      args:
         ENV_LOCALE_LANGUAGE: ${LOCALE_LANGUAGE}
         ENV_TZ: ${TZ}
     hostname: webapi
@@ -74,7 +74,7 @@ services:
     build:
       context: .
       dockerfile: ./frontend/Dockerfile
-    args:
+      args:
         ENV_LOCALE_LANGUAGE: ${LOCALE_LANGUAGE}
         ENV_TZ: ${TZ}
     hostname: webapp
@@ -114,7 +114,7 @@ services:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
-    args:
+      args:
         ENV_LOCALE_LANGUAGE: ${LOCALE_LANGUAGE}
         ENV_TZ: ${TZ}
     restart: unless-stopped
