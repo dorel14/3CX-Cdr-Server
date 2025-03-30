@@ -20,7 +20,7 @@ dburl=os.environ.get('DATABASE_URL')
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-dburl = f'{os.environ.get('ALEMBIC_DBURL')}' #f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
+dburl = f'{os.environ.get('ALEMBIC_DBURL')}'
 #sanitized_dburl = f'postgresql://{dbUser}:****@{dbServer}:{dbPort}/{dbName}'
 #print(f'dburl: {dburl}')
 # Interpret the config file for Python logging.
