@@ -4,6 +4,7 @@ from sqlalchemy import select
 from pydantic import ValidationError
 from datetime import datetime
 from typing import List, Optional
+import sqlalchemy
 
 
 
@@ -28,18 +29,45 @@ router = APIRouter(prefix="/v1")
 async def create_cdr(call_data_record:call_data_records_create,
                     session: AsyncSession = Depends(get_session), ):
     try:
-        db_cdr=call_data_records(**call_data_record.dict())
+        db_cdr = call_data_records(**call_data_record.dict())
         async with session as s:
-            s.add(db_cdr)
-            await s.commit()
-            await s.refresh(db_cdr)
-            
-        await broadcast_message({'action': 'create', 'cdr': db_cdr.dict()})
+            try:
+                s.add(db_cdr)
+                await s.commit()
+                await s.refresh(db_cdr)
+            except sqlalchemy.exc.IntegrityError as e:
+                await s.rollback()
+                logger.error(f"Integrity error creating CDR: {str(e)}")
+                raise HTTPException(status_code=409, 
+                                    detail=f"CDR record conflicts with existing data: {str(e)}")
+            except sqlalchemy.exc.DataError as e:
+                await s.rollback()
+                logger.error(f"Data error creating CDR: {str(e)}")
+                raise HTTPException(status_code=422, 
+                                    detail=f"Invalid data for CDR record: {str(e)}")
+            except sqlalchemy.exc.DBAPIError as e:
+                await s.rollback()
+                logger.error(f"Database API error creating CDR: {str(e)}")
+                raise HTTPException(status_code=500, 
+                                    detail="Database error occurred while creating CDR record")
+
+        try:
+            await broadcast_message({'action': 'create', 'cdr': db_cdr.dict()})
+        except Exception as e:
+            # Non-critical error - log but don't fail the request
+            logger.warning(f"Error broadcasting CDR creation message: {str(e)}")
+
         logger.info(f"CDR created successfully with callid: {db_cdr.callid}")
         return db_cdr
+
+    except ValidationError as e:
+        logger.error(f"Validation error in CDR data: {str(e)}")
+        raise HTTPException(status_code=422, 
+                            detail=f"Invalid CDR data: {str(e)}")
     except Exception as e:
-        logger.error(f"Error creating CDR: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to create CDR record")
+        logger.error(f"Unexpected error creating CDR: {str(e)}")
+        raise HTTPException(status_code=500, 
+                            detail="An unexpected error occurred while creating CDR record")
 
 @router.get('/cdr', response_model=List[call_data_records_read], tags=["cdr"])
 async def read_cdrs(*,
