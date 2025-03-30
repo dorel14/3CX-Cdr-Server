@@ -2,6 +2,10 @@
 
 set -e
 
+# Set default values for environment variables if not set
+: ${TZ:="UTC"}
+: ${LOCALE_LANGUAGE:="en_US"}
+
 # Set timezone and locale
 # Update and install necessary packages
 apk update && apk add --no-cache \

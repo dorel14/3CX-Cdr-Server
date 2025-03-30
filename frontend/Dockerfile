@@ -37,6 +37,15 @@ RUN /root/.local/bin/uv pip install --no-cache -r requirements.txt
 
 # final stage
 FROM python:3.13-slim AS runner
+
+ARG LOCALE_LANGUAGE=en_US
+ARG ENV_LOCALE_LANGUAGE
+ENV LOCALE_LANGUAGE=${ENV_LOCALE_LANGUAGE:-${LOCALE_LANGUAGE}}
+
+ARG TZ=UTC
+ARG ENV_TZ
+ENV TZ=${ENV_TZ:-${TZ}}
+
 RUN touch /etc/apt/sources.list
 # Add the default debian repository
 RUN echo "deb http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list
