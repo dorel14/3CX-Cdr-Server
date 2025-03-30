@@ -7,7 +7,11 @@ Create Date: ${create_date}
 """
 from alembic import op
 import sqlalchemy as sa
+import logging
 ${imports if imports else ""}
+
+# Set up logger
+logger = logging.getLogger('alembic.migration')
 
 # revision identifiers, used by Alembic.
 revision = ${repr(up_revision)}
