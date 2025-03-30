@@ -200,6 +200,19 @@ class scpclient():
                 if ssh and ssh.get_transport() and ssh.get_transport().is_active():
                     ssh.close()
             except paramiko.SSHException as e:
-                logger.debug(f"Erreur lors de la fermeture de la connexion SSH: {str(e)}")
+                logger.debug(f"Erreur SSH lors de la fermeture de la connexion: {str(e)}")
+            except paramiko.AuthenticationException as e:
+                logger.debug(f"Erreur d'authentification lors de la fermeture de la connexion: {str(e)}")
+            except paramiko.ChannelException as e:
+                logger.debug(f"Erreur de canal SSH lors de la fermeture de la connexion: {str(e)}")
+            except paramiko.SFTPError as e:
+                logger.debug(f"Erreur SFTP lors de la fermeture de la connexion: {str(e)}")
+            except socket.error as e:
+                logger.debug(f"Erreur de socket réseau lors de la fermeture de la connexion: {str(e)}")
+            except IOError as e:
+                logger.debug(f"Erreur d'E/S lors de la fermeture de la connexion: {str(e)}")
+            except OSError as e:
+                logger.debug(f"Erreur système lors de la fermeture de la connexion: {str(e)}")
             except Exception as e:
                 logger.debug(f"Erreur inattendue lors de la fermeture de la connexion SSH: {str(e)}")
+                logger.debug(f"Type d'erreur: {type(e).__name__}")
