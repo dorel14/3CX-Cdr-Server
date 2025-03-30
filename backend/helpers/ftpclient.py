@@ -154,9 +154,20 @@ class ftpclient():
         """
 
         while True:
-            new_files = self.download_new_files(ftp_folder, local_folder)
-            if new_files:
-                logger.info('New files detected')
-                csv_files_read(local_folder, archive_folder)
-                #self.move_files(new_files, archive_folder)
+            try:
+                new_files = self.download_new_files(ftp_folder, local_folder)
+                if new_files:
+                    logger.info('New files detected')
+                    try:
+                        csv_files_read(local_folder, archive_folder)
+                    except Exception as e:
+                        logger.error(f"Error processing CSV files: {str(e)}")
+                        # Optionally, you could implement a retry mechanism or move problematic files to an "error" folder
+                    #self.move_files(new_files, archive_folder)
+            except Exception as e:
+                logger.error(f"Error in FTP monitoring loop: {str(e)}")
+            # Add a short delay before retrying to avoid tight error loops
+                sleep(10)
+
+            # Continue with the regular interval between checks
             sleep(interval)
