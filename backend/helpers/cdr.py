@@ -187,7 +187,6 @@ def parse_cdr(data,filename=''):
     return cdr, cdr_details
 
 def push_cdr_api(cdr, cdr_details):
-
     """Fonction permettant de poster le CDR et son détail vers l'API
     Cette fonction teste si l'enregistrement existe avant de le poster
 
@@ -204,33 +203,75 @@ def push_cdr_api(cdr, cdr_details):
     webapi_url_cdr = base_url + CONFIG["api"]["endpoints"]["cdr"]
     webapi_url_cdr_details = base_url + CONFIG["api"]["endpoints"]["cdr_details"]
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-    cdrdict = json.loads(cdr)
-    cdr_historyid = cdrdict['historyid']
-    cdrddict = json.loads(cdr_details)
-    cdrd_historyid = cdrddict['cdr_historyid']
-    urlcdr = quote(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
-    getcdr = requests.get(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
-    urlcdrdetails = quote(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
-    getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
-    logger.info(f"Status get cdr: {getcdr.status_code}")
-    logger.info(f"Status get cdrdetail {getcdrdetails.status_code}")
 
+    try:
+        cdrdict = json.loads(cdr)
+        cdr_historyid = cdrdict['historyid']
+        cdrddict = json.loads(cdr_details)
+        cdrd_historyid = cdrddict['cdr_historyid']
+    except json.JSONDecodeError as e:
+        logger.error(f"Erreur de décodage JSON: {str(e)}")
+        return "Erreur JSON", "Erreur JSON"
+    except KeyError as e:
+        logger.error(f"Clé manquante dans les données JSON: {str(e)}")
+        return "Données incomplètes", "Données incomplètes"
+
+    mcdr = "Erreur API"
+    mcdrdetails = "Erreur API"
+
+    # Vérification de l'existence du CDR
+    try:
+        urlcdr = quote(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
+        getcdr = requests.get(f"{webapi_url_cdr}/historyid/{cdr_historyid}", timeout=10)
+        logger.info(f"Status get cdr: {getcdr.status_code}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erreur lors de la vérification du CDR: {str(e)}")
+        return "Erreur connexion API", "Erreur connexion API"
+
+    # Vérification de l'existence du détail CDR
+    try:
+        urlcdrdetails = quote(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
+        getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}", timeout=10)
+        logger.info(f"Status get cdrdetail {getcdrdetails.status_code}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erreur lors de la vérification du détail CDR: {str(e)}")
+        return mcdr, "Erreur connexion API"
+
+    # Traitement du CDR
     if getcdr.status_code == 404:
-        r_cdr = requests.post(webapi_url_cdr,data=cdr, headers=headers)
-        logger.info(f"Statut get cdr {r_cdr.status_code}")
-        logger.info(f"Texte statut get cdr {r_cdr.content}")
-        mcdr=r_cdr.status_code
+        try:
+            r_cdr = requests.post(webapi_url_cdr, data=cdr, headers=headers, timeout=10)
+            r_cdr.raise_for_status()  # Raise an exception for 4XX/5XX responses
+            logger.info(f"Statut post cdr {r_cdr.status_code}")
+            logger.info(f"Texte statut post cdr {r_cdr.content}")
+            mcdr = r_cdr.status_code
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Erreur HTTP lors de l'envoi du CDR: {str(e)}")
+            mcdr = f"Erreur HTTP: {e.response.status_code}"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erreur lors de l'envoi du CDR: {str(e)}")
+            mcdr = "Erreur envoi CDR"
     else:
         logger.info("cdr existant")
-        mcdr ="cdr existant"
-    if getcdrdetails.status_code == 404 and r_cdr.status_code == 200 :
-        r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
-        logger.info(r_cdrdetails.status_code)
-        logger.info(r_cdrdetails.content)
-        mcdrdetails = r_cdrdetails.status_code
-    else :
-        logger.info("cdr detail existant")
-        mcdrdetails="cdr detail existant"
+        mcdr = "cdr existant"
+
+    # Traitement du détail CDR - seulement si le CDR a été posté avec succès
+    if getcdrdetails.status_code == 404 and (mcdr == 200 or mcdr == 201):
+        try:
+            r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers, timeout=10)
+            r_cdrdetails.raise_for_status()
+            logger.info(f"Statut post cdr details: {r_cdrdetails.status_code}")
+            logger.info(f"Texte statut post cdr details: {r_cdrdetails.content}")
+            mcdrdetails = r_cdrdetails.status_code
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Erreur HTTP lors de l'envoi du détail CDR: {str(e)}")
+            mcdrdetails = f"Erreur HTTP: {e.response.status_code}"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erreur lors de l'envoi du détail CDR: {str(e)}")
+            mcdrdetails = "Erreur envoi détail CDR"
+    else:
+        logger.info("cdr detail existant ou CDR non posté")
+        mcdrdetails = "cdr detail existant"
 
     return mcdr, mcdrdetails
 
