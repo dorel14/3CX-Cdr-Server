@@ -117,6 +117,7 @@ services:
     args:
         ENV_LOCALE_LANGUAGE: ${LOCALE_LANGUAGE}
         ENV_TZ: ${TZ}
+    restart: unless-stopped
     tty: true
     networks:
       - custom_network
@@ -126,7 +127,6 @@ services:
     depends_on:
       webapi:
         condition: service_healthy
-    restart: unless-stopped
     command: bash -c "python -m backend.runserver"
     environment:
       - API_URL=http://webapi:8000
@@ -134,7 +134,12 @@ services:
       - WAIT_TIMEOUT=300
       - WAIT_SLEEP_INTERVAL=30
       - WAIT_HOST_CONNECT_TIMEOUT=30
-
+    healthcheck:
+      test: ["CMD", "python", "/home/appuser/app/backend/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     volumes:
       - app-code:/home/appuser/app
       - app-logs:/home/appuser/app/logs:rw
