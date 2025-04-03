@@ -11,6 +11,7 @@ from backendapi.helpers.base import Base
 # before the migration script is run.
 # This is necessary for Alembic to be able to autogenerate migrations
 # for any changes to the models.
+
 import backendapi.models  # noqa: F401
 
 dbUser = os.environ.get('POSTGRES_USER')
@@ -23,6 +24,11 @@ dburl=os.environ.get('DATABASE_URL')
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
+#ALEMBIC_DBURL imported from env
+# and set in docker-compose.yml
+# as an environment variable
+#ALEMBIC_DBURL is used to set the database URL
+# in the alembic.ini file
 config = context.config
 dburl = f'{os.environ.get('ALEMBIC_DBURL')}' if os.environ.get('ALEMBIC_DBURL') else f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
 
