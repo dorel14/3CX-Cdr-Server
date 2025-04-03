@@ -7,6 +7,10 @@ from alembic import context
 import os
 
 from backendapi.helpers.base import Base
+#Ensure that models are imported so that they are registered with the metadata
+# before the migration script is run.
+# This is necessary for Alembic to be able to autogenerate migrations
+# for any changes to the models.
 import backendapi.models  # noqa: F401
 
 dbUser = os.environ.get('POSTGRES_USER')
