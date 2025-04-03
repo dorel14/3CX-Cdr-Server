@@ -79,20 +79,26 @@ def files_move(file, savefolder):
     """
     # Input validation for file parameter
     if not isinstance(file, str) or not file:
+        logger.error(f"Invalid file path parameter: {type(file)}")
         raise ValueError("File path must be a non-empty string")
 
+    # Log the initial file movement request
+    logger.info(f"File movement requested - Source: {file}, Target folder: {savefolder}")
+
     # Check for suspicious patterns in file path
-    suspicious_patterns = ['../', '..\\', '~', '$', '|', ';', '&', '>', '<']
+    suspicious_patterns = ['../', '..\\', '~', '`', '|', ';', '&', '>', '<']
     if any(pattern in file for pattern in suspicious_patterns):
         logger.error(f"Suspicious pattern detected in file path: {file}")
         raise ValueError("File path contains potentially malicious patterns")
 
     # Validate file exists before processing
     if not os.path.exists(file):
+        logger.error(f"Source file does not exist: {file}")
         raise FileNotFoundError(f"Source file does not exist: {file}")
 
     # Validate file is a regular file (not a symlink, device file, etc.)
     if not os.path.isfile(file):
+        logger.error(f"Source path is not a regular file: {file}")
         raise ValueError(f"Source path is not a regular file: {file}")
 
     # Optional: Validate file type/extension if needed
@@ -103,15 +109,19 @@ def files_move(file, savefolder):
     # Sanitize input paths
     filename = sanitize_filepath(file)
     savefolder = os.path.realpath(os.path.normpath(savefolder))
+    logger.debug(f"Sanitized filename: {filename}, Normalized save folder: {savefolder}")
 
     # Verify save folder exists and is a directory
     if not os.path.exists(savefolder):
+        logger.error(f"Save folder does not exist: {savefolder}")
         raise ValueError(f"Save folder does not exist: {savefolder}")
     if not os.path.isdir(savefolder):
+        logger.error(f"Save folder is not a directory: {savefolder}")
         raise ValueError(f"Save folder is not a directory: {savefolder}")
 
     # Check write permissions on save folder
     if not os.access(savefolder, os.W_OK):
+        logger.error(f"No write permission on save folder: {savefolder}")
         raise PermissionError(f"No write permission on save folder: {savefolder}")
 
     year = datetime.now().strftime("%Y")
@@ -120,33 +130,47 @@ def files_move(file, savefolder):
 
     # Construct and validate paths
     final_path = os.path.realpath(os.path.normpath(os.path.join(savefolder, year, month)))
+    logger.debug(f"Constructed archive path: {final_path}")
+
     if not final_path.startswith(savefolder):
         logger.error(f"Path traversal attempt detected: {final_path}")
         raise ValueError("Destination path outside allowed directory")
 
     source = os.path.realpath(os.path.normpath(file))
     if not os.path.exists(source):
+        logger.error(f"Source file {source} does not exist")
         raise FileNotFoundError(f"Source file {source} does not exist")
 
     # Verify source file is readable
     if not os.access(source, os.R_OK):
+        logger.error(f"No read permission on source file: {source}")
         raise PermissionError(f"No read permission on source file: {source}")
 
     # Create a safe destination filename with timestamp prefix
     safe_filename = re.sub(r'[^\w\.-]', '_', filename)  # Replace unsafe chars
     destination = os.path.join(final_path, date + '_' + safe_filename)
+    logger.info(f"Prepared destination path: {destination}")
 
     # Create directories with restricted permissions
-    os.makedirs(final_path, mode=0o755, exist_ok=True)
+    try:
+        os.makedirs(final_path, mode=0o755, exist_ok=True)
+        logger.debug(f"Created or verified archive directory: {final_path}")
+    except OSError as e:
+        logger.error(f"Failed to create archive directory {final_path}: {str(e)}")
+        raise
 
     # Perform move operation with validated paths
-    # file deepcode ignore PT: Path traversal is prevented by validation above
-    shutil.move(source, destination)
-    logger.info(f'File moved: {source} -> {destination}')
+    try:
+        # file deepcode ignore PT: Path traversal is prevented by validation above
+        logger.info(f"Moving file from {source} to {destination}")
+        shutil.move(source, destination)
+        logger.info(f'File moved successfully: {source} -> {destination}')
+    except (shutil.Error, OSError) as e:
+        logger.error(f"Error during file move operation: {str(e)}")
+        logger.error(f"Source: {source}, Destination: {destination}")
+        raise
 
     return destination
-
-
 def csv_files_read(filefolder, archivefolder):
     """
     Read and process CSV files from a specified folder, parsing CDR (Call Detail Record) data.
@@ -245,11 +269,18 @@ def csv_files_read(filefolder, archivefolder):
 
                     # Move the file to archive folder after processing
                     try:
-                        files_move(full_path, archivefolder)
-                    except (ValueError, FileNotFoundError, PermissionError) as e:
+                        logger.info(f"Attempting to move processed file {f} to archive folder")
+                        archive_path = files_move(full_path, archivefolder)
+                        logger.info(f"File {f} successfully archived to {archive_path}")
+                    except (ValueError, FileNotFoundError) as e:
                         logger.error(f"Failed to move file {f} to archive: {str(e)}")
+                        logger.error(f"Source path: {full_path}, Target folder: {archivefolder}")
+                    except PermissionError as e:
+                        logger.error(f"Permission error moving file {f} to archive: {str(e)}")
+                        logger.error(f"Check permissions on source ({full_path}) and destination ({archivefolder})")
                     except Exception as e:
                         logger.error(f"Unexpected error moving file {f} to archive: {str(e)}")
+                        logger.error(f"Source: {full_path}, Target: {archivefolder}")
                         logger.debug(traceback.format_exc())
 
                 except PermissionError as e:
@@ -275,6 +306,7 @@ def csv_files_read(filefolder, archivefolder):
     except Exception as e:
         logger.error(f"Unexpected error in csv_files_read: {str(e)}")
         logger.debug(traceback.format_exc())
+
 
 
 

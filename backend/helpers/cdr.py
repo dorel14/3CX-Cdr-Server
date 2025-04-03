@@ -313,10 +313,30 @@ def validate_cdr(cdr, cdr_details):
         # Primary validation method: API endpoints
         logger.info("Attempting API validation for CDR data")
         cdr_validation = requests.post(webapi_url_cdr, data=cdr, headers=headers)
+        
+        if not cdr_validation.ok:
+            # Enhanced logging for API validation failures
+            logger.error(f"CDR validation failed with status code: {cdr_validation.status_code}")
+            try:
+                error_details = cdr_validation.json()
+                logger.error(f"CDR validation error details: {json.dumps(error_details, indent=2)}")
+            except json.JSONDecodeError:
+                logger.error(f"CDR validation error response (non-JSON): {cdr_validation.text[:500]}")
+        
         cdr_validation.raise_for_status()
 
         logger.info("Attempting API validation for CDR details data")
         cdr_details_validation = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
+        
+        if not cdr_details_validation.ok:
+            # Enhanced logging for API validation failures
+            logger.error(f"CDR details validation failed with status code: {cdr_details_validation.status_code}")
+            try:
+                error_details = cdr_details_validation.json()
+                logger.error(f"CDR details validation error details: {json.dumps(error_details, indent=2)}")
+            except json.JSONDecodeError:
+                logger.error(f"CDR details validation error response (non-JSON): {cdr_details_validation.text[:500]}")
+        
         cdr_details_validation.raise_for_status()
 
         logger.info("API validation successful for both CDR and CDR details")
@@ -346,7 +366,14 @@ def validate_cdr(cdr, cdr_details):
             # Client error (4xx) - likely a validation failure, log details from response if available
             try:
                 error_details = e.response.json()
-                logger.error(f"Validation error (code {e.response.status_code}): {error_details}")
+                logger.error(f"Validation error (code {e.response.status_code}): {json.dumps(error_details, indent=2)}")
+                # Log specific validation errors if available in a structured format
+                if isinstance(error_details, dict) and 'detail' in error_details:
+                    if isinstance(error_details['detail'], list):
+                        for error in error_details['detail']:
+                            logger.error(f"Field '{error.get('loc', ['unknown'])}': {error.get('msg', 'Unknown error')}")
+                    else:
+                        logger.error(f"Validation detail: {error_details['detail']}")
             except json.JSONDecodeError:
                 # Handle case where error response is not valid JSON
                 logger.error(f"Validation error (code {e.response.status_code}): {e.response.text}")
@@ -360,6 +387,7 @@ def validate_cdr(cdr, cdr_details):
         logger.error(f"Full traceback: {traceback.format_exc()}")
         logger.warning("Falling back to basic validation due to unexpected error")
         return perform_basic_validation(cdr, cdr_details)
+
 
 
 

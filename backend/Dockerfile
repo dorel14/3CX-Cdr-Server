@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 ENV PATH="/home/myuser/.venv/bin:$PATH"
 WORKDIR /home/myuser/app
-
+#Download and install the latest version of uv (uv is a tool for building and running Python applications)
 ADD --chmod=755 https://astral.sh/uv/install.sh /install.sh
 RUN /install.sh && rm /install.sh
 

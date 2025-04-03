@@ -2,10 +2,11 @@ import subprocess
 import os
 import sys
 
+
 def run_alembic_command(command):
     try:
         # Use python -m alembic instead of direct alembic command
-        python_executable = os.path.join("/opt/venv/bin", "python") #sys.executable
+        python_executable = sys.executable
         modified_command = [python_executable, "-m", "alembic"] + command[1:]
 
         result = subprocess.run(
