@@ -595,9 +595,9 @@ def push_cdr_api2(cdr, cdr_details):
             - 1 le statut d'intégration de CDR détail
 
     Raises:
-        ConfigurationError: Si l'URL de l'API n'est pas configurée
-        CDRProcessingError: Si une erreur survient lors du traitement des CDR
-        APIConnectionError: Si une erreur de connexion à l'API survient
+        ConfigurationError: If the API URL is not configured in the settings.
+        CDRProcessingError: If an error occurs during CDR processing, such as invalid data format or missing fields.
+        APIConnectionError: If an API connection error occurs, such as a timeout or invalid credentials.
     """
     if 'API_URL' not in CONFIG:
         logger.error("API_URL not configured in CONFIG")
