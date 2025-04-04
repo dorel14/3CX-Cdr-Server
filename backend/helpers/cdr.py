@@ -594,7 +594,7 @@ def push_cdr_api2(cdr, cdr_details):
             - 1 le statut d'intégration CDR
             - 1 le statut d'intégration de CDR détail
 
-    Raises:
+        Raises:
         ConfigurationError: If the API URL is not configured in the settings.
         APIConnectionError: If an API connection error occurs, such as a timeout or invalid credentials.
         CDRProcessingError: If an error occurs during CDR processing, such as an invalid data format in field X (e.g., 'date_field': 'invalid date format') or missing field Y (e.g., 'missing_field').
