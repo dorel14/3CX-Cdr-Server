@@ -16,6 +16,20 @@ from ..config.settings import CONFIG
 import sys
 sys.path.append(os.path.abspath("."))
 
+# Définition des exceptions personnalisées
+class ConfigurationError(Exception):
+    """Exception levée pour les erreurs liées à la configuration."""
+    pass
+
+
+class APIConnectionError(Exception):
+    """Exception levée pour les erreurs de connexion à l'API."""
+    pass
+
+
+class CDRProcessingError(Exception):
+    """Exception levée pour les erreurs de traitement des CDR."""
+    pass
 
 def to_local_datetime(dt_obj):
     """
@@ -579,10 +593,16 @@ def push_cdr_api2(cdr, cdr_details):
         _String_: Renvoi 2 String :
             - 1 le statut d'intégration CDR
             - 1 le statut d'intégration de CDR détail
+
+    Raises:
+        ConfigurationError: Si l'URL de l'API n'est pas configurée
+        CDRProcessingError: Si une erreur survient lors du traitement des CDR
+        APIConnectionError: Si une erreur de connexion à l'API survient
     """
     if 'API_URL' not in CONFIG:
         logger.error("API_URL not configured in CONFIG")
-        raise ValueError("API_URL not configured") # Or a custom exception
+        raise ConfigurationError("API_URL not configured")
+
     webapi_url_cdr = CONFIG['API_URL'] + '/v1/cdr'
     webapi_url_cdr_details = CONFIG['API_URL'] + '/v1/cdr_details'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
@@ -594,10 +614,10 @@ def push_cdr_api2(cdr, cdr_details):
         cdrd_historyid = cdrddict['cdr_historyid']
     except json.JSONDecodeError as e:
         logger.error(f"Erreur de décodage JSON: {str(e)}")
-        return f"Erreur JSON: {str(e)}", "Erreur JSON"
+        raise CDRProcessingError(f"Erreur de décodage JSON: {str(e)}")
     except KeyError as e:
         logger.error(f"Clé manquante dans les données JSON: {str(e)}")
-        return f"Données incomplètes: {str(e)}", "Données incomplètes"
+        raise CDRProcessingError(f"Clé manquante dans les données JSON: {str(e)}")
 
     mcdr = "Erreur API"
     mcdrdetails = "Erreur API"
@@ -608,7 +628,7 @@ def push_cdr_api2(cdr, cdr_details):
         logger.info(f"Status get cdr: {getcdr.status_code}")
     except requests.exceptions.RequestException as e:
         logger.error(f"Erreur lors de la vérification du CDR: {str(e)}")
-        return "Erreur connexion API", "Erreur connexion API"
+        raise APIConnectionError(f"Erreur lors de la vérification du CDR: {str(e)}")
 
     # Vérification de l'existence du détail CDR
     try:
@@ -616,7 +636,7 @@ def push_cdr_api2(cdr, cdr_details):
         logger.info(f"Status get cdrdetail: {getcdrdetails.status_code}")
     except requests.exceptions.RequestException as e:
         logger.error(f"Erreur lors de la vérification du détail CDR: {str(e)}")
-        return mcdr, "Erreur connexion API"
+        raise APIConnectionError(f"Erreur lors de la vérification du détail CDR: {str(e)}")
 
     # Traitement du CDR
     if getcdr.status_code == 404:
