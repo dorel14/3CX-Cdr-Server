@@ -580,6 +580,8 @@ def push_cdr_api2(cdr, cdr_details):
             - 1 le statut d'intégration CDR
             - 1 le statut d'intégration de CDR détail
     """
+    if 'API_URL' not in CONFIG:
+        logger.error("API_URL not configured in CONFIG")
     webapi_url_cdr = CONFIG['API_URL'] + '/v1/cdr'
     webapi_url_cdr_details = CONFIG['API_URL'] + '/v1/cdr_details'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
@@ -591,10 +593,10 @@ def push_cdr_api2(cdr, cdr_details):
         cdrd_historyid = cdrddict['cdr_historyid']
     except json.JSONDecodeError as e:
         logger.error(f"Erreur de décodage JSON: {str(e)}")
-        return "Erreur JSON", "Erreur JSON"
+        return f"Erreur JSON: {str(e)}", "Erreur JSON"
     except KeyError as e:
         logger.error(f"Clé manquante dans les données JSON: {str(e)}")
-        return "Données incomplètes", "Données incomplètes"
+        return f"Données incomplètes: {str(e)}", "Données incomplètes"
 
     mcdr = "Erreur API"
     mcdrdetails = "Erreur API"
