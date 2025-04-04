@@ -582,6 +582,7 @@ def push_cdr_api2(cdr, cdr_details):
     """
     if 'API_URL' not in CONFIG:
         logger.error("API_URL not configured in CONFIG")
+        raise ValueError("API_URL not configured") # Or a custom exception
     webapi_url_cdr = CONFIG['API_URL'] + '/v1/cdr'
     webapi_url_cdr_details = CONFIG['API_URL'] + '/v1/cdr_details'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
