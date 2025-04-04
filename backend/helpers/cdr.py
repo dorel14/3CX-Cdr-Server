@@ -596,9 +596,8 @@ def push_cdr_api2(cdr, cdr_details):
 
     Raises:
         ConfigurationError: If the API URL is not configured in the settings.
-        CDRProcessingError: If an error occurs during CDR processing, such as an invalid data format in field X or missing field Y
         APIConnectionError: If an API connection error occurs, such as a timeout or invalid credentials.
-
+        CDRProcessingError: If an error occurs during CDR processing, such as an invalid data format in field X (e.g., 'date_field': 'invalid date format') or missing field Y (e.g., 'missing_field').
     """
     if 'API_URL' not in CONFIG:
         logger.error("API_URL not configured in CONFIG")
