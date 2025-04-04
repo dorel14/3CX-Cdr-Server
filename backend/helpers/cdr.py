@@ -305,15 +305,15 @@ def validate_cdr(cdr, cdr_details):
         logger.debug(f"Problematic JSON sample (CDR details): {cdr_details[:100]}...")
         return False
 
-    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr/validate'
-    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails/validate'
+    webapi_url_cdr = CONFIG["api"]["base_url"] + '/v1/cdr/validate'
+    webapi_url_cdr_details = CONFIG["api"]["base_url"] + '/v1/cdr/validate/details'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 
     try:
         # Primary validation method: API endpoints
         logger.info("Attempting API validation for CDR data")
         cdr_validation = requests.post(webapi_url_cdr, data=cdr, headers=headers)
-        
+
         if not cdr_validation.ok:
             # Enhanced logging for API validation failures
             logger.error(f"CDR validation failed with status code: {cdr_validation.status_code}")
@@ -322,12 +322,12 @@ def validate_cdr(cdr, cdr_details):
                 logger.error(f"CDR validation error details: {json.dumps(error_details, indent=2)}")
             except json.JSONDecodeError:
                 logger.error(f"CDR validation error response (non-JSON): {cdr_validation.text[:500]}")
-        
+
         cdr_validation.raise_for_status()
 
         logger.info("Attempting API validation for CDR details data")
         cdr_details_validation = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
-        
+
         if not cdr_details_validation.ok:
             # Enhanced logging for API validation failures
             logger.error(f"CDR details validation failed with status code: {cdr_details_validation.status_code}")
@@ -336,7 +336,7 @@ def validate_cdr(cdr, cdr_details):
                 logger.error(f"CDR details validation error details: {json.dumps(error_details, indent=2)}")
             except json.JSONDecodeError:
                 logger.error(f"CDR details validation error response (non-JSON): {cdr_details_validation.text[:500]}")
-        
+
         cdr_details_validation.raise_for_status()
 
         logger.info("API validation successful for both CDR and CDR details")
@@ -568,7 +568,6 @@ def validate_numeric_values(cdr_details_data):
         return False
 
 def push_cdr_api2(cdr, cdr_details):
-
     """Fonction permettant de poster le CDR et son détail vers l'API
     Cette fonction teste si l'enregistrement existe avant de le poster
 
@@ -577,81 +576,79 @@ def push_cdr_api2(cdr, cdr_details):
         cdr_details (String) : Json contenant le détail du CDR
 
     Returns:
-        _String_: Renvoi 2 Srting :
+        _String_: Renvoi 2 String :
             - 1 le statut d'intégration CDR
             - 1 le statut d'intégration de CDR détail
     """
-
-    webapi_url_cdr = os.environ.get('API_URL') + '/v1/cdr'
-    webapi_url_cdr_details = os.environ.get('API_URL') + '/v1/cdrdetails'
+    webapi_url_cdr = CONFIG['API_URL'] + '/v1/cdr'
+    webapi_url_cdr_details = CONFIG['API_URL'] + '/v1/cdr_details'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-    cdrdict = json.loads(cdr)
-    cdr_historyid = cdrdict['historyid']
-    cdrddict = json.loads(cdr_details)
-    cdrd_historyid = cdrddict['cdr_historyid']
-
 
     try:
-        getcdr = requests.get(f"{webapi_url_cdr}/historyid/{cdr_historyid}")
-        getcdr.raise_for_status()
-    except HTTPError as http_err:
-        if http_err.response.status_code == 422:
-            logger.error(f"Erreur 422 (Unprocessable Entity) lors de la récupération du CDR: {http_err}")
-            mcdr = http_err.response.status_code
-        else:
-            logger.error(f"Erreur HTTP lors de la récupération du CDR: {http_err}")
-            mcdr = http_err.response.status_code
-    else:
-        logger.info(getcdr.status_code)
-        if getcdr.status_code == 404:
-            try:
-                r_cdr = requests.post(webapi_url_cdr, data=cdr, headers=headers)
-                r_cdr.raise_for_status()
-            except HTTPError as http_err:
-                if http_err.response.status_code == 422:
-                    logger.error(f"Erreur 422 (Unprocessable Entity) lors de l'envoi du CDR: {http_err}")
-                    mcdr = "Erreur 422"
-                else:
-                    logger.error(f"Erreur HTTP lors de l'envoi du CDR: {http_err}")
-                    mcdr = "Erreur HTTP"
-            else:
-                logger.info(r_cdr.status_code)
-                logger.info(r_cdr.content)
-                mcdr = r_cdr.status_code
-        else:
-            logger.info("cdr existant")
-            mcdr = "cdr existant"
+        cdrdict = json.loads(cdr)
+        cdr_historyid = cdrdict['historyid']
+        cdrddict = json.loads(cdr_details)
+        cdrd_historyid = cdrddict['cdr_historyid']
+    except json.JSONDecodeError as e:
+        logger.error(f"Erreur de décodage JSON: {str(e)}")
+        return "Erreur JSON", "Erreur JSON"
+    except KeyError as e:
+        logger.error(f"Clé manquante dans les données JSON: {str(e)}")
+        return "Données incomplètes", "Données incomplètes"
 
+    mcdr = "Erreur API"
+    mcdrdetails = "Erreur API"
+
+    # Vérification de l'existence du CDR
     try:
-        getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}")
-        getcdrdetails.raise_for_status()
-    except HTTPError as http_err:
-        if http_err.response.status_code == 422:
-            logger.error(f"Erreur 422 (Unprocessable Entity) lors de la récupération du CDR: {http_err}")
-            mcdrdetails = http_err.response.status_code
-        else:
-            logger.error(f"Erreur HTTP lors de la récupération du CDR: {http_err}")
-            mcdrdetails = http_err.response.status_code
-    else:
-        logger.info(getcdrdetails.status_code)
-        if getcdrdetails.status_code == 404:
-            try:
-                r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers)
-                r_cdrdetails.raise_for_status()
-            except HTTPError as http_err:
-                if http_err.response.status_code == 422:
-                    logger.error(f"Erreur 422 (Unprocessable Entity) lors de l'envoi du CDR: {http_err}")
-                    mcdrdetails = "Erreur 422"
-                else:
-                    logger.error(f"Erreur HTTP lors de l'envoi du CDR: {http_err}")
-                    mcdrdetails = "Erreur HTTP"
-            else:
-                logger.info(r_cdr.status_code)
-                logger.info(r_cdr.content)
-                mcdrdetails = r_cdrdetails.status_code
-        else:
-            logger.info("cdr existant")
-            mcdrdetails = "cdr existant"
+        getcdr = requests.get(f"{webapi_url_cdr}/historyid/{cdr_historyid}", timeout=10)
+        logger.info(f"Status get cdr: {getcdr.status_code}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erreur lors de la vérification du CDR: {str(e)}")
+        return "Erreur connexion API", "Erreur connexion API"
 
+    # Vérification de l'existence du détail CDR
+    try:
+        getcdrdetails = requests.get(f"{webapi_url_cdr_details}/historyid/{cdrd_historyid}", timeout=10)
+        logger.info(f"Status get cdrdetail: {getcdrdetails.status_code}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erreur lors de la vérification du détail CDR: {str(e)}")
+        return mcdr, "Erreur connexion API"
+
+    # Traitement du CDR
+    if getcdr.status_code == 404:
+        try:
+            r_cdr = requests.post(webapi_url_cdr, data=cdr, headers=headers, timeout=10)
+            r_cdr.raise_for_status()
+            logger.info(f"Statut post cdr: {r_cdr.status_code}")
+            logger.info(f"Texte statut post cdr: {r_cdr.content}")
+            mcdr = r_cdr.status_code
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Erreur HTTP lors de l'envoi du CDR: {str(e)}")
+            mcdr = f"Erreur HTTP: {e.response.status_code}"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erreur lors de l'envoi du CDR: {str(e)}")
+            mcdr = "Erreur envoi CDR"
+    else:
+        logger.info("CDR existant")
+        mcdr = "CDR existant"
+
+    # Traitement du détail CDR - seulement si le CDR a été posté avec succès
+    if getcdrdetails.status_code == 404 and (mcdr == 200 or mcdr == 201):
+        try:
+            r_cdrdetails = requests.post(webapi_url_cdr_details, data=cdr_details, headers=headers, timeout=10)
+            r_cdrdetails.raise_for_status()
+            logger.info(f"Statut post cdr details: {r_cdrdetails.status_code}")
+            logger.info(f"Texte statut post cdr details: {r_cdrdetails.content}")
+            mcdrdetails = r_cdrdetails.status_code
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Erreur HTTP lors de l'envoi du détail CDR: {str(e)}")
+            mcdrdetails = f"Erreur HTTP: {e.response.status_code}"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erreur lors de l'envoi du détail CDR: {str(e)}")
+            mcdrdetails = "Erreur envoi détail CDR"
+    else:
+        logger.info("CDR detail existant ou CDR non posté")
+        mcdrdetails = "CDR detail existant"
 
     return mcdr, mcdrdetails
