@@ -44,8 +44,12 @@ def upgrade() -> None:
         WHERE table_name = 'extraevents' AND column_name = 'exdate'
     """)).fetchone()
     
+    if not result:
+        logger.warning("Could not determine the type of column 'exdate', skipping conversion. This is expected in some cases because the 'extraevents' table or the 'exdate' column does not yet exist.")
+        return
+        
     # Pour les colonnes de type ARRAY, PostgreSQL stocke '_date' dans udt_name pour ARRAY(DATE)
-    if result and (result[0] == 'ARRAY' and result[1] == '_date'):
+    if result[0] == 'ARRAY' and result[1] == '_date':
         logger.info("Column 'exdate' is of type ARRAY(DATE), converting to ARRAY(DateTime)")
         with op.batch_alter_table('extraevents', schema=None) as batch_op:
             batch_op.alter_column('exdate',
@@ -53,11 +57,12 @@ def upgrade() -> None:
                     type_=postgresql.ARRAY(sa.DateTime()),
                     existing_nullable=True)
         logger.info("Successfully converted column 'exdate' to ARRAY(DateTime)")
+    elif result[0] == 'ARRAY' and result[1] == '_timestamp':
+        logger.info("Column 'exdate' is already of type ARRAY(TIMESTAMP), no conversion needed")
     else:
-        if result:
-            logger.info(f"Column 'exdate' is already of type {result[0]}/{result[1]}, no conversion needed")
-        else:
-            logger.info("Could not determine the type of column 'exdate', skipping conversion. This is expected in some cases because the 'extraevents' table or the 'exdate' column does not yet exist.")
+        logger.warning(f"Unexpected type for column 'exdate': {result[0]}/{result[1]}. Expected ARRAY/_date. Migration may be needed but requires manual intervention.")
+        # Consider raising an exception here if you want to fail the migration
+        # raise Exception(f"Unexpected column type for 'exdate': {result[0]}/{result[1]}")
     # ### end Alembic commands ###
 
 
