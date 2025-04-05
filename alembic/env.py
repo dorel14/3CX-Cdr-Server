@@ -30,7 +30,7 @@ dburl=os.environ.get('DATABASE_URL')
 #ALEMBIC_DBURL is used to set the database URL
 # in the alembic.ini file
 config = context.config
-dburl = f'{os.environ.get('ALEMBIC_DBURL')}' if os.environ.get('ALEMBIC_DBURL') else f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
+dburl = f"{os.environ.get('ALEMBIC_DBURL')}" if os.environ.get('ALEMBIC_DBURL') else f"postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}"
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
