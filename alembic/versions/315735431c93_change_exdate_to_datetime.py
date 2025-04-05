@@ -57,7 +57,7 @@ def upgrade() -> None:
         if result:
             logger.info(f"Column 'exdate' is already of type {result[0]}/{result[1]}, no conversion needed")
         else:
-            logger.warning("Could not determine the type of column 'exdate', skipping conversion")
+            logger.info("Could not determine the type of column 'exdate', skipping conversion")
     # ### end Alembic commands ###
 
 
