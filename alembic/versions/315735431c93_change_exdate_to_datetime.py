@@ -53,16 +53,16 @@ def upgrade() -> None:
     # Vérifier le type actuel de la colonne exdate avec une requête plus précise pour PostgreSQL
     logger.info("Checking data type of column 'exdate' in table 'extraevents'")
     result = conn.execute(text("""
-        SELECT data_type, udt_name, character_maximum_length
+        SELECT data_type, udt_name 
         FROM information_schema.columns 
         WHERE table_name = 'extraevents' AND column_name = 'exdate'
     """)).fetchone()
     
     if not result:
-        logger.warning("Could not determine the type of column 'exdate', skipping conversion.")
+        logger.warning("Could not determine the type of column 'exdate', skipping conversion. This is expected in some cases because the 'extraevents' table or the 'exdate' column does not yet exist.")
         return
     
-    data_type, udt_name, char_max_length = result
+    data_type, udt_name = result
     
     # Define types that don't need conversion (already datetime-based)
     datetime_array_types = ['_timestamp', '_timestamptz', '_datetime']
