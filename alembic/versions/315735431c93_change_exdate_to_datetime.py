@@ -44,8 +44,12 @@ def upgrade() -> None:
         WHERE table_name = 'extraevents' AND column_name = 'exdate'
     """)).fetchone()
     
+    if not result:
+        logger.warning("Could not determine the type of column 'exdate', skipping conversion. This is expected in some cases because the 'extraevents' table or the 'exdate' column does not yet exist.")
+        return
+        
     # Pour les colonnes de type ARRAY, PostgreSQL stocke '_date' dans udt_name pour ARRAY(DATE)
-    if result and (result[0] == 'ARRAY' and result[1] == '_date'):
+    if result[0] == 'ARRAY' and result[1] == '_date':
         logger.info("Column 'exdate' is of type ARRAY(DATE), converting to ARRAY(DateTime)")
         with op.batch_alter_table('extraevents', schema=None) as batch_op:
             batch_op.alter_column('exdate',
@@ -53,11 +57,16 @@ def upgrade() -> None:
                     type_=postgresql.ARRAY(sa.DateTime()),
                     existing_nullable=True)
         logger.info("Successfully converted column 'exdate' to ARRAY(DateTime)")
+    elif result[0] == 'ARRAY' and result[1] == '_timestamp':
+        logger.info("Column 'exdate' is already of type ARRAY(TIMESTAMP), no conversion needed")
     else:
-        if result:
-            logger.info(f"Column 'exdate' is already of type {result[0]}/{result[1]}, no conversion needed")
-        else:
-            logger.info("Could not determine the type of column 'exdate', skipping conversion. This is expected in some cases because the 'extraevents' table or the 'exdate' column does not yet exist.")
+        error_msg = (f"Unexpected type for column 'exdate': {result[0]}/{result[1]}. "
+                    f"Expected ARRAY/_date. Migration halted to prevent data corruption. "
+                    f"MANUAL ACTION REQUIRED: Please examine the 'exdate' column in the 'extraevents' table "
+                    f"and run an appropriate conversion script based on the current data type. "
+                    f"Then update this migration to handle the specific type or mark it as completed.")
+        logger.error(error_msg)
+        raise TypeError(error_msg)
     # ### end Alembic commands ###
 
 
@@ -73,4 +82,5 @@ def downgrade() -> None:
         logger.info("Successfully converted column 'exdate' back to ARRAY(DATE)")
     except Exception as e:
         logger.error(f"Error converting column 'exdate': {str(e)}")
+        raise  # Re-raise the exception to halt the downgrade process
     # ### end Alembic commands ###
