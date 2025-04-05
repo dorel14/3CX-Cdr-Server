@@ -60,9 +60,13 @@ def upgrade() -> None:
     elif result[0] == 'ARRAY' and result[1] == '_timestamp':
         logger.info("Column 'exdate' is already of type ARRAY(TIMESTAMP), no conversion needed")
     else:
-        logger.warning(f"Unexpected type for column 'exdate': {result[0]}/{result[1]}. Expected ARRAY/_date. Migration may be needed but requires manual intervention.")
-        # Consider raising an exception here if you want to fail the migration
-        # raise Exception(f"Unexpected column type for 'exdate': {result[0]}/{result[1]}")
+        error_msg = (f"Unexpected type for column 'exdate': {result[0]}/{result[1]}. "
+                    f"Expected ARRAY/_date. Migration halted to prevent data corruption. "
+                    f"MANUAL ACTION REQUIRED: Please examine the 'exdate' column in the 'extraevents' table "
+                    f"and run an appropriate conversion script based on the current data type. "
+                    f"Then update this migration to handle the specific type or mark it as completed.")
+        logger.error(error_msg)
+        raise TypeError(error_msg)
     # ### end Alembic commands ###
 
 
@@ -78,4 +82,5 @@ def downgrade() -> None:
         logger.info("Successfully converted column 'exdate' back to ARRAY(DATE)")
     except Exception as e:
         logger.error(f"Error converting column 'exdate': {str(e)}")
+        raise  # Re-raise the exception to halt the downgrade process
     # ### end Alembic commands ###
