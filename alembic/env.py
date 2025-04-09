@@ -19,7 +19,7 @@ dbPassword = os.environ.get('POSTGRES_PASSWORD')
 dbServer = os.environ.get('POSTGRES_SERVER')
 dbPort = os.environ.get('POSTGRES_PORT')
 dbName = os.environ.get('POSTGRES_DB')
-dburl=os.environ.get('DATABASE_URL')
+
 
 
 # this is the Alembic Config object, which provides
