@@ -1,8 +1,8 @@
 from logging.config import fileConfig
-
+import logging
+import sys
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
 from alembic import context
 import os
 
@@ -14,13 +14,24 @@ from backendapi.helpers.base import Base
 
 import backendapi.models  # noqa: F401
 
+# Set up logger
+logger = logging.getLogger('alembic')
+
+# Check for required environment variables
+required_env_vars = ['POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_SERVER', 'POSTGRES_PORT', 'POSTGRES_DB']
+missing_vars = [var for var in required_env_vars if not os.environ.get(var)]
+
+if missing_vars and not os.environ.get('ALEMBIC_DBURL'):
+    error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
+    logger.error(error_msg)
+    logger.error("Either set these variables or provide ALEMBIC_DBURL directly")
+    sys.exit(1)
+
 dbUser = os.environ.get('POSTGRES_USER')
 dbPassword = os.environ.get('POSTGRES_PASSWORD')
 dbServer = os.environ.get('POSTGRES_SERVER')
 dbPort = os.environ.get('POSTGRES_PORT')
 dbName = os.environ.get('POSTGRES_DB')
-dburl=os.environ.get('DATABASE_URL')
-
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -32,6 +43,10 @@ dburl=os.environ.get('DATABASE_URL')
 config = context.config
 dburl = f"{os.environ.get('ALEMBIC_DBURL')}" if os.environ.get('ALEMBIC_DBURL') else f"postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}"
 
+# Log the database URL being used (with password masked)
+safe_dburl = dburl.replace(dbPassword, "********") if dbPassword else dburl
+logger.info(f"Using database URL: {safe_dburl}")
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -40,9 +55,6 @@ if config.config_file_name is not None:
 context.config.set_main_option('sqlalchemy.url', dburl)
 
 target_metadata = Base.metadata
-
-
-
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -75,21 +87,25 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection, 
-            target_metadata=target_metadata,
-            render_as_batch=True,
+    try:
+        connectable = engine_from_config(
+            config.get_section(config.config_ini_section),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
         )
 
-        with context.begin_transaction():
-            context.run_migrations()
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection, 
+                target_metadata=target_metadata,
+                render_as_batch=True,
+            )
+
+            with context.begin_transaction():
+                context.run_migrations()
+    except Exception as e:
+        logger.error(f"Error during migration: {str(e)}")
+        raise
 
 
 if context.is_offline_mode():

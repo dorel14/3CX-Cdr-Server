@@ -599,12 +599,20 @@ def push_cdr_api2(cdr, cdr_details):
         APIConnectionError: If an API connection error occurs, such as a timeout or invalid credentials.
         CDRProcessingError: If an error occurs during CDR processing, such as an invalid data format in field X (e.g., 'date_field': 'invalid date format') or missing field Y (e.g., 'missing_field').
     """
-    if 'API_URL' not in CONFIG:
-        logger.error("API_URL not configured in CONFIG")
-        raise ConfigurationError("API_URL not configured")
+    if 'api' not in CONFIG:
+        logger.error("API configuration section missing in CONFIG. Please ensure the 'api' section is properly defined in your configuration file.")
+        raise ConfigurationError("Missing 'api' section in configuration. This section is required for API validation and connectivity.")
+    if 'base_url' not in CONFIG["api"]:
+        logger.error("API base URL is not configured in CONFIG. Please ensure the 'base_url' is properly defined in your configuration file.")
+        raise ConfigurationError("Missing 'base_url' in API configuration. This setting is required for API validation and connectivity.")
+    if 'endpoints' not in CONFIG["api"]:
+        logger.error("API endpoints are not configured in CONFIG. Please ensure the 'endpoints' section is properly defined in your configuration file.")
+        raise ConfigurationError("Missing 'endpoints' section in API configuration. This section is required for API validation and connectivity.")
 
-    webapi_url_cdr = CONFIG['API_URL'] + '/v1/cdr'
-    webapi_url_cdr_details = CONFIG['API_URL'] + '/v1/cdr_details'
+
+    base_url = CONFIG["api"]["base_url"]
+    webapi_url_cdr = base_url + CONFIG["api"]["endpoints"]["cdr"]
+    webapi_url_cdr_details = base_url + CONFIG["api"]["endpoints"]["cdr_details"]
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 
     try:
