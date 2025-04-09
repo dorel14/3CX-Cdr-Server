@@ -150,7 +150,7 @@ async def create_cdr_details(call_data_record_detail:call_data_records_details_c
             s.add(db_cdr_detail)
             await s.commit()
             await s.refresh(db_cdr_detail)
-            
+
         await broadcast_message({'action': 'create', 'cdr_details': db_cdr_detail.dict()})
         return db_cdr_detail
     except Exception as e:
@@ -207,7 +207,7 @@ async def validate_cdr(cdr: call_data_records_create):
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-@router.post("/cdrdatails/validate", status_code=200, tags=["cdr_details"])
+@router.post("/cdrdetails/validate", status_code=200, tags=["cdr_details"])
 async def validate_cdr_details(cdr_details: call_data_records_details_create):
     try:
         #Validation faite par Pydantic
