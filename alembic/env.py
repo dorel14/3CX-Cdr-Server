@@ -45,7 +45,7 @@ dburl = f"{os.environ.get('ALEMBIC_DBURL')}" if os.environ.get('ALEMBIC_DBURL') 
 
 # Log the database URL being used (with password masked)
 safe_dburl = dburl.replace(dbPassword, "********") if dbPassword else dburl
-logger.info(f"Using database URL: {safe_dburl}")
+logger.info("Database URL has been successfully configured.")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
