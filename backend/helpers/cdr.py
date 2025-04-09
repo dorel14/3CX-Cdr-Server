@@ -599,12 +599,13 @@ def push_cdr_api2(cdr, cdr_details):
         APIConnectionError: If an API connection error occurs, such as a timeout or invalid credentials.
         CDRProcessingError: If an error occurs during CDR processing, such as an invalid data format in field X (e.g., 'date_field': 'invalid date format') or missing field Y (e.g., 'missing_field').
     """
-    if 'API_URL' not in CONFIG:
-        logger.error("API_URL not configured in CONFIG")
-        raise ConfigurationError("API_URL not configured")
+    if 'api' not in CONFIG:
+        logger.error("api not configured in CONFIG")
+        raise ConfigurationError("api not configured")
 
-    webapi_url_cdr = CONFIG['API_URL'] + '/v1/cdr'
-    webapi_url_cdr_details = CONFIG['API_URL'] + '/v1/cdr_details'
+    base_url = CONFIG["api"]["base_url"]
+    webapi_url_cdr = base_url + CONFIG["api"]["endpoints"]["cdr"]
+    webapi_url_cdr_details = base_url + CONFIG["api"]["endpoints"]["cdr_details"]
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 
     try:
