@@ -1,0 +1,45 @@
+
+
+logs:
+  level: "INFO"
+  filepath: "/var/log/traefik.log"
+  maxSize: 1
+  maxAge: 1
+  maxBackups: 3
+
+accessLog:
+  filepath: "/var/log/traefik-access.log"
+  format: "json"
+  bufferingSize: 100
+
+
+
+ping:
+  entryPoint: "web"
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  # tcp:
+  #   address: ":${SERVER_PORT}"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+
+api:
+  dashboard: true
+  insecure: true
+
+metrics:
+  prometheus:
+    entryPoint: "traefik"
+
+experimental:
+  plugins:
+    traefik-plugin-rewrite-headers:
+      moduleName: "github.com/XciD/traefik-plugin-rewrite-headers"
+      version: "v0.0.4"

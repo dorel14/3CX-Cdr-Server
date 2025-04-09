@@ -11,16 +11,19 @@ local_settings.py
 cache/
 .vscode/
 env/
-*.log
+logs/
 .venv/
 .env
 test/
 *.csv
 *.~csv
 db_folder/pg_*/*
+*.log
+*.log.*
+.bak
 
 srv/datas/*
-
+fake_data/*
 #exceptions
 !srv/datas/.gitkeep 
 

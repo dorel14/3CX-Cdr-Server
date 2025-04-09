@@ -1,44 +1,60 @@
 from logging.config import fileConfig
-
+import logging
+import sys
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from sqlmodel import SQLModel
 from alembic import context
 import os
-from models import *
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+
+from backendapi.helpers.base import Base
+#Ensure that models are imported so that they are registered with the metadata
+# before the migration script is run.
+# This is necessary for Alembic to be able to autogenerate migrations
+# for any changes to the models.
+
+import backendapi.models  # noqa: F401
+
+# Set up logger
+logger = logging.getLogger('alembic')
+
+# Check for required environment variables
+required_env_vars = ['POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_SERVER', 'POSTGRES_PORT', 'POSTGRES_DB']
+missing_vars = [var for var in required_env_vars if not os.environ.get(var)]
+
+if missing_vars and not os.environ.get('ALEMBIC_DBURL'):
+    error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
+    logger.error(error_msg)
+    logger.error("Either set these variables or provide ALEMBIC_DBURL directly")
+    sys.exit(1)
+
 dbUser = os.environ.get('POSTGRES_USER')
 dbPassword = os.environ.get('POSTGRES_PASSWORD')
 dbServer = os.environ.get('POSTGRES_SERVER')
 dbPort = os.environ.get('POSTGRES_PORT')
 dbName = os.environ.get('POSTGRES_DB')
-dburl=os.environ.get('DATABASE_URL')
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
+#ALEMBIC_DBURL imported from env
+# and set in docker-compose.yml
+# as an environment variable
+#ALEMBIC_DBURL is used to set the database URL
+# in the alembic.ini file
 config = context.config
-dburl = f'postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}'
+dburl = f"{os.environ.get('ALEMBIC_DBURL')}" if os.environ.get('ALEMBIC_DBURL') else f"postgresql://{dbUser}:{dbPassword}@{dbServer}:{dbPort}/{dbName}"
+
+# Log the database URL being used (with password masked)
+safe_dburl = dburl.replace(dbPassword, "********") if dbPassword else dburl
+logger.info("Database URL has been successfully configured.")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-#target_metadata = None
-target_metadata = SQLModel.metadata
+context.config.set_main_option('sqlalchemy.url', dburl)
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-config.set_section_option(
-    config.config_ini_section, "sqlalchemy.url", dburl)
-
+target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -52,7 +68,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = dburl
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -71,19 +87,25 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
+    try:
+        connectable = engine_from_config(
+            config.get_section(config.config_ini_section),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
         )
 
-        with context.begin_transaction():
-            context.run_migrations()
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection, 
+                target_metadata=target_metadata,
+                render_as_batch=True,
+            )
+
+            with context.begin_transaction():
+                context.run_migrations()
+    except Exception as e:
+        logger.error(f"Error during migration: {str(e)}")
+        raise
 
 
 if context.is_offline_mode():

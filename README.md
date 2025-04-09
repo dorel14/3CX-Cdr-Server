@@ -1,11 +1,11 @@
-
 # 3CX CDR SERVER APPLICATION
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.md)
 [![fr](https://img.shields.io/badge/lang-fr-green.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.fr.md)
 [![swe](https://img.shields.io/badge/lang-swe-blue.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.swe.md)
+[![pt](https://img.shields.io/badge/lang-pt-yellow.svg)](https://github.com/dorel14/3CX-Cdr-Tcp-Server/blob/master/README.pt.md)
 
-# Recording 3CX CDRs in a PostgreSQL Database with Grafana
+## Recording 3CX CDRs in a PostgreSQL Database with Grafana
 
 ## Description
 
@@ -20,6 +20,12 @@ It allows you to collect call data from your 3CX telephony system and store it i
 - **Storage in PostgreSQL**: Recording of CDRs in a PostgreSQL database for centralized and structured storage.
 - **Web API**: A Web API is provided to interact with the stored CDR data.
 - **Visualization with Grafana**: Creation of Grafana dashboards to visualize and analyze call data interactively.
+- **Event Management**: Manage events with recurrence rules, impact levels, and associations with extensions and queues.
+- **WebSocket Integration**: Real-time updates using WebSocket for event management.
+
+## Important Notice
+
+**This new version introduces significant changes. It is crucial to back up your data before updating.**
 
 ## Technologies Used
 
@@ -28,6 +34,8 @@ It allows you to collect call data from your 3CX telephony system and store it i
 - PostgreSQL (Database)
 - Grafana (Data Visualization)
 - Docker (Containerization)
+- NiceGUI (Frontend)
+- WebSockets (Real-time updates)
 
 ## Contributions
 
